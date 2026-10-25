@@ -29,13 +29,13 @@ This is a hackathon demo, not a deployed governance system. There are **no Solid
 | Wallet graph data | **Simulated** | Addresses, amounts, timestamps, block numbers and tx hashes are fixture data labeled `SIMULATED DATA`. They are not chain records. |
 | Voting / claims / COI scoring | **Real code over fixtures** | Formulas run on fixture votes and the graph output. Votes are not read from a chain. |
 | Queued transaction and tx hashes | **Simulated** | The executor hash is derived deterministically from scenario id, calldata and block. No transaction was broadcast. |
-| Disclosure challenge | **Simulated status, real payload** | "Filed" is fixture state. The challenge payload, digest and cited evidence edges are computed. On-chain verification is pending Person A. |
-| Sentinel trace | **Fixture** | `sentinel-trace-06.json` is explicitly labeled a simulated trace. Fork simulation and guardian halt are pending Person A. |
+| Disclosure challenge | **Simulated status, real payload** | "Filed" is fixture state. The challenge payload, digest and cited evidence edges are computed. The flag is raised only when the graph reaches the red threshold; a sub-threshold challenge raises no flag. On-chain verification is pending Person A. |
+| Sentinel trace | **Fixture** | `sentinel-trace-06.json` is explicitly labeled a simulated trace. The verdict is derived by walking its call tree for `DELEGATECALL`, never from the scenario's layer label. Fork simulation and guardian halt are pending Person A. |
 | Solidity executor, governor, registries | **Pending Person A** | No contracts exist here. Nine scorecard properties are `TEST_REQUIRED`, shown amber and never green. |
 | Solidity/TypeScript hash parity | **Pending Person A** | `hash-vectors.json` contains **TypeScript reference vectors** only. |
 | Real per-scenario evidence and Hardhat scorecard | **Pending Person A** | Current fixtures and scorecard come from the reference model. |
 
-Current verification state: **49 Vitest tests in 8 files pass**. The reference scorecard is **25 PASS, 0 FAIL, 9 TEST_REQUIRED**.
+Current verification state: **51 Vitest tests in 8 files pass**. The reference scorecard is **25 PASS, 0 FAIL, 9 TEST_REQUIRED**.
 
 ---
 
@@ -47,7 +47,7 @@ Requires Node.js 22.12+ (tested on Node 24) and npm. No network access is needed
 npm install
 
 npm run dev          # http://localhost:3000
-npm test             # 49 tests, 8 files
+npm test             # 51 tests, 8 files
 npm run test:watch   # watch mode
 npm run scorecard    # regenerates fixtures/scorecard.json + scorecard-meta.json
 npm run arena -- 3   # runs scenario 3 (jargon upgrade) and prints raw evidence
@@ -226,5 +226,5 @@ The exact swap points, interface rules and current schemas are in [`docs/person-
 - **AI is advisory.** Extraction is pre-baked; the validator, reviewer confirmation and hashing are real. No live LLM is called. Claims without document spans are rejected, but extraction quality is not proven.
 - **No on-chain evidence.** Evidence roots and disclosure hashes are computed locally; nothing is anchored in a registry yet.
 - **Voting data is a fixture.** Quorum, weights and brief acknowledgements are not read from `IntentGovernor`.
-- **Test coverage is modest and not 80%.** There are 49 tests across 8 files. No coverage threshold is configured, and no coverage claim is made. The scorecard measures specific properties, not line coverage.
+- **Test coverage is modest and not 80%.** There are 51 tests across 8 files. No coverage threshold is configured, and no coverage claim is made. The scorecard measures specific properties, not line coverage.
 - **No live chain and no live LLM at demo time.** The whole demo runs offline from bundled assets and fixtures.

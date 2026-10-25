@@ -28,7 +28,7 @@
     "property": "Version chain links content hashes and preserves rules across v2→v3",
     "status": "PASS",
     "testFile": "tests/hash.test.ts",
-    "durationMs": 0,
+    "durationMs": 1,
     "evidenceKind": "unit"
   },
   {
@@ -36,7 +36,7 @@
     "property": "Every evidence document re-hashes and verifies against the Merkle root",
     "status": "PASS",
     "testFile": "tests/evidence.test.ts",
-    "durationMs": 0,
+    "durationMs": 1,
     "evidenceKind": "unit"
   },
   {
@@ -108,7 +108,7 @@
     "property": "Delegatecall payload",
     "status": "PASS",
     "testFile": "tests/executor.test.ts",
-    "durationMs": 0,
+    "durationMs": 1,
     "evidenceKind": "reference-model"
   },
   {
@@ -140,7 +140,7 @@
     "property": "Undisclosed conflict of interest",
     "status": "PASS",
     "testFile": "tests/executor.test.ts",
-    "durationMs": 0,
+    "durationMs": 1,
     "evidenceKind": "reference-model"
   },
   {
@@ -172,7 +172,7 @@
     "property": "Claim score reacts to unresolved items and reviewer resolutions",
     "status": "PASS",
     "testFile": "tests/scoring.test.ts",
-    "durationMs": 0,
+    "durationMs": 1,
     "evidenceKind": "unit"
   },
   {

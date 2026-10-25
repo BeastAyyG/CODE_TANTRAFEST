@@ -9,7 +9,7 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:3000`. Confirm `npm test` is green (49 tests) and, if you changed fixtures, run `npm run demo:check`. Have a terminal in the repo root as backup for `npm run arena -- 3`.
+Open `http://localhost:3000`. Confirm `npm test` is green (51 tests) and, if you changed fixtures, run `npm run demo:check`. Have a terminal in the repo root as backup for `npm run arena -- 3`.
 
 **One rule for the whole demo:** say "reference executor" or "executor model", never "the contract rejected it on-chain". Say "the wallet graph is simulated data with real link math", never "we proved they colluded".
 
@@ -203,7 +203,7 @@ It prints the layer, expected vs actual, every check step, "proposal said" vs "a
 > "They answer different questions: are the claims sourced, is there a conflict, was the vote informed, and does the calldata match. Averaging execution into the other three would hide the only deterministic fact. Execution stays a hard gate; the other three are advisory and every number has a drilldown."
 
 **5. "How well tested is this? Do you have 80% coverage?"**
-> "49 tests in 8 files, all passing. The scorecard checks 34 specific properties: 25 pass, 0 fail, 9 require the Solidity layer. We do not claim 80% line coverage and there is no coverage gate configured. The honest statement is that the reference logic is well covered on the properties we chose, and the on-chain properties are unproven."
+> "51 tests in 8 files, all passing. The scorecard checks 34 specific properties: 25 pass, 0 fail, 9 require the Solidity layer. We do not claim 80% line coverage and there is no coverage gate configured. The honest statement is that the reference logic is well covered on the properties we chose, and the on-chain properties are unproven."
 
 **If asked "what is the biggest weakness?"**
 > "The guarantee is modeled, not enforced. Until the Solidity executor and hash parity exist, this is a very clear demonstration of the gap and a specification for closing it — not a security guarantee."
@@ -219,6 +219,6 @@ Use this 30–45 second block if judges ask for limitations, or weave it into th
 3. **Wallet data is simulated.** Addresses, transfers and tx hashes are fixtures labeled `SIMULATED DATA`. The link math is real; the records are not chain evidence.
 4. **AI is advisory.** Pre-baked extraction, no live LLM. The validator, human confirmation, hashing, decoder, report and scoring are real code.
 5. **No on-chain evidence yet.** Evidence roots and disclosure hashes are computed locally; nothing is anchored in a registry. Solidity/TypeScript hash parity is `TEST_REQUIRED`.
-6. **Coverage is modest.** 49 tests, 8 files, no 80% coverage claim. Nine on-chain properties are amber and unproven.
+6. **Coverage is modest.** 51 tests, 8 files, no 80% coverage claim. Nine on-chain properties are amber and unproven.
 
 **Phrases to avoid:** "on-chain", "the contract reverts", "the AI found", "we proved the wallets are linked", "production-ready". Replace with "the executor model rejects", "the extractor proposes and the validator checks", "the graph flags a risk signal", "demo".

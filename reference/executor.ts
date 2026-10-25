@@ -21,8 +21,45 @@ import type {
   RunStep,
   Scenario,
 } from "./types";
+import sentinelTrace06Json from "../packages/shared/fixtures/sentinel-trace-06.json";
 
 const ZERO_HASH = `0x${"0".repeat(64)}` as Hex;
+
+/**
+ * Simulated Sentinel traces, keyed by the filename a scenario cites.
+ * A trace is only evidence if it is actually read — the verdict below is
+ * derived from the call tree, never from `scenario.layer`.
+ */
+export type TraceNode = {
+  type: string;
+  from: string;
+  to: string;
+  selector: string;
+  function: string;
+  flag?: string;
+  children: TraceNode[];
+};
+
+export type TraceFixture = {
+  source: string;
+  network: string;
+  root: TraceNode;
+  storageChanges: { contract: string; slot: string; label: string; before: string; after: string }[];
+  flags: { code: string; message: string; evidence: string }[];
+};
+
+export const TRACE_REGISTRY: Record<string, TraceFixture> = {
+  "sentinel-trace-06.json": sentinelTrace06Json as unknown as TraceFixture,
+};
+
+/** Walk a trace's call tree for a DELEGATECALL, falling back to its explicit flags. */
+export function traceFlagsDelegatecall(trace: TraceFixture): boolean {
+  const walk = (node: TraceNode): boolean =>
+    node.type === "DELEGATECALL" || node.flag === "DELEGATECALL" || node.children.some(walk);
+  if (walk(trace.root)) return true;
+  return (trace.flags ?? []).some((flag) => flag.code === "DELEGATECALL");
+}
+
 
 const CODE_LABELS: Record<string, string> = {
   OK: "Executed as committed",
@@ -407,9 +444,11 @@ export function runScenario(
     status: "PASSED" | "REJECTED" | "FLAGGED";
     steps: RunStep[];
     challenge?: ChallengeSummary;
+    messageOverride?: string;
   }): RunResult => {
     const code = input.violation?.code ?? "OK";
     const message =
+      input.messageOverride ??
       input.violation?.message ??
       "The submitted bundle matches the commitment and all post-conditions hold.";
     const revertData = input.violation ? encodeViolationError(input.violation) : ("0x" as Hex);
@@ -471,50 +510,101 @@ export function runScenario(
 
   if (scenario.layer === "disclosure") {
     const score = challenge?.score ?? 0;
+    const threshold = challenge?.threshold ?? 0.65;
     const linkCount = challenge?.linkCount ?? 0;
+    // A challenge only becomes a flag when the graph actually reaches the red
+    // threshold. Otherwise the layer raises no objection and we fall through.
+    const substantiated = Boolean(challenge) && score >= threshold;
+
+    if (substantiated) {
+      steps.push(
+        step(
+          "graph",
+          "Wallet graph",
+          "FLAG",
+          `${linkCount} discovered link${linkCount === 1 ? "" : "s"} · noisy-OR risk ${score.toFixed(2)} ≥ ${threshold.toFixed(2)}`,
+        ),
+        step("challenge", "Disclosure challenge", "FLAG", "Filed by Aegis Watch · evidence attached"),
+        step("flag", "Proposal status", "FLAG", "FLAGGED — execution should not proceed"),
+      );
+      return finalize({
+        violation: {
+          code: "UndisclosedLink",
+          message: `An undisclosed funding path connects the proposer to the GrowthLabs deployer. Noisy-OR risk ${score.toFixed(
+            2,
+          )} across ${linkCount} links; the proposal is flagged.`,
+        },
+        status: "FLAGGED",
+        steps,
+        challenge,
+      });
+    }
+
     steps.push(
       step(
         "graph",
         "Wallet graph",
-        "FLAG",
-        `${linkCount} discovered link${linkCount === 1 ? "" : "s"} · noisy-OR risk ${score.toFixed(2)}`,
+        "PASS",
+        `${linkCount} discovered link${linkCount === 1 ? "" : "s"} · noisy-OR risk ${score.toFixed(2)} < ${threshold.toFixed(2)}`,
       ),
-      step("challenge", "Disclosure challenge", "FLAG", "Filed by Aegis Watch · evidence attached"),
-      step("flag", "Proposal status", "FLAG", "FLAGGED — execution should not proceed"),
+      step(
+        "challenge",
+        "Disclosure challenge",
+        "INFO",
+        "Not substantiated — the graph does not reach the red threshold",
+      ),
     );
     return finalize({
-      violation: {
-        code: "UndisclosedLink",
-        message: `An undisclosed funding path connects the proposer to the GrowthLabs deployer. Noisy-OR risk ${score.toFixed(
-          2,
-        )} across ${linkCount} links; the proposal is flagged.`,
-      },
-      status: "FLAGGED",
+      violation: null,
+      status: "PASSED",
       steps,
       challenge,
+      messageOverride: `The disclosure challenge is not substantiated: noisy-OR risk ${score.toFixed(
+        2,
+      )} is below the ${threshold.toFixed(2)} red threshold across ${linkCount} link${
+        linkCount === 1 ? "" : "s"
+      }. This layer raises no flag.`,
     });
   }
 
   if (scenario.layer === "sentinel") {
+    const traceFile = scenario.context.sentinel?.traceFile ?? null;
+    const trace = traceFile ? TRACE_REGISTRY[traceFile] : undefined;
+    const detected = trace ? traceFlagsDelegatecall(trace) : false;
+
+    if (detected) {
+      steps.push(
+        step(
+          "simulation",
+          "Sentinel static scan",
+          "FLAG",
+          "DELEGATECALL detected in the simulated call tree",
+        ),
+        step("executor", "Executor", "INFO", "Not invoked — the simulation flags before execution"),
+        step("verdict", "Verdict", "FLAG", "FLAGGED — early warning, not the on-chain guarantee"),
+      );
+      return finalize({
+        violation: {
+          code: "DelegatecallDetected",
+          message:
+            "Sentinel detected a DELEGATECALL inside the proposed upgrade's initialization payload. The executor has no delegatecall path, so this transaction cannot execute.",
+        },
+        status: "FLAGGED",
+        steps,
+      });
+    }
+
     steps.push(
       step(
         "simulation",
         "Sentinel static scan",
-        "FLAG",
-        "DELEGATECALL detected in the simulated call tree",
+        trace ? "PASS" : "INFO",
+        trace
+          ? "No DELEGATECALL found in the simulated call tree"
+          : `No trace available for ${traceFile ?? "this scenario"} — simulation cannot substantiate a flag`,
       ),
-      step("executor", "Executor", "INFO", "Not invoked — the simulation flags before execution"),
-      step("verdict", "Verdict", "FLAG", "FLAGGED — early warning, not the on-chain guarantee"),
+      step("executor", "Executor", "INFO", "Falling through to the executor checks"),
     );
-    return finalize({
-      violation: {
-        code: "DelegatecallDetected",
-        message:
-          "Sentinel detected a DELEGATECALL inside the proposed upgrade's initialization payload. The executor has no delegatecall path, so this transaction cannot execute.",
-      },
-      status: "FLAGGED",
-      steps,
-    });
   }
 
   if (scenario.context.chainId !== scenario.context.expectedChainId) {

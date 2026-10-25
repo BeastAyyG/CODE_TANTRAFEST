@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { ADDRESSES, CHAIN_ID, ERROR_BY_NAME } from "../packages/shared/addresses";
 import type { EncodableCall } from "../packages/shared/calls";
 import type { ExecutionContext, Scenario } from "../reference/types";
-import { runScenario } from "../reference/executor";
+import { runScenario, TRACE_REGISTRY, traceFlagsDelegatecall } from "../reference/executor";
 import { getDemo } from "../lib/demo";
 
 function context(): ExecutionContext {
@@ -162,6 +162,63 @@ describe("reference executor", () => {
     );
     expect(run.code).toBe("PostConditionViolated");
     expect(run.steps.find((step) => step.id === "budget")?.status).toBe("FAIL");
+  });
+
+  it("does not flag a disclosure challenge that is below the red threshold", () => {
+    const demo = getDemo();
+    const scenario = demo.scenarioRows.find((row) => row.scenario.id === "10-undisclosed-link")!
+      .scenario;
+    const subThreshold = runScenario(scenario, context(), {
+      score: 0.1,
+      threshold: 0.65,
+      claim: "no conflict",
+      linkCount: 0,
+      payload: {},
+    });
+    expect(subThreshold.status).not.toBe("FLAGGED");
+    expect(subThreshold.code).not.toBe("UndisclosedLink");
+
+    const zero = runScenario(scenario, context(), {
+      score: 0,
+      threshold: 0.65,
+      claim: "no conflict",
+      linkCount: 0,
+      payload: {},
+    });
+    expect(zero.code).not.toBe("UndisclosedLink");
+    expect(zero.message).not.toContain("0.00 across 0 links; the proposal is flagged");
+  });
+
+  it("only flags a delegatecall when the trace actually contains one", () => {
+    const realTrace = TRACE_REGISTRY["sentinel-trace-06.json"];
+    expect(traceFlagsDelegatecall(realTrace)).toBe(true);
+
+    const cleanTrace = {
+      ...realTrace,
+      root: {
+        type: "CALL",
+        from: realTrace.root.from,
+        to: realTrace.root.to,
+        selector: "0xa9059cbb",
+        function: "transfer(address,uint256)",
+        children: [],
+      },
+      flags: [],
+    };
+    expect(traceFlagsDelegatecall(cleanTrace)).toBe(false);
+
+    const demo = getDemo();
+    const scenario = demo.scenarioRows.find((row) => row.scenario.id === "06-delegatecall-payload")!
+      .scenario;
+    const unverifiable = runScenario(
+      {
+        ...scenario,
+        context: { ...scenario.context, sentinel: { flag: "DELEGATECALL", traceFile: "absent.json" } },
+      },
+      context(),
+    );
+    expect(unverifiable.code).not.toBe("DelegatecallDetected");
+    expect(unverifiable.steps.find((step) => step.id === "simulation")?.status).toBe("INFO");
   });
 
   it("produces a stable simulated tx hash for the same bundle", () => {

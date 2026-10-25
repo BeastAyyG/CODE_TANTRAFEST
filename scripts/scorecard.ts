@@ -16,7 +16,7 @@ import { validateExtraction } from "../ai/validate";
 import { ERROR_BY_NAME, ADDRESSES } from "../packages/shared/addresses";
 import { decodeAction, decodeBundle } from "../sentinel/decode";
 import { describeErrorSelector } from "../sentinel/report";
-import { runScenario } from "../reference/executor";
+import { runScenario, TRACE_REGISTRY, traceFlagsDelegatecall } from "../reference/executor";
 import type { ScorecardEntry } from "../packages/shared/schemas";
 import { getDemo } from "../lib/demo";
 import vectorsJson from "../packages/shared/fixtures/hash-vectors.json";
@@ -195,6 +195,84 @@ entry("D2", "Error selectors map to human constraint names", "tests/report.test.
   assert.equal(ERROR_BY_NAME.SelectorNotAuthorized.selector, selector);
 });
 
+const scorecardContext = {
+  proposalId: demo.proposal.id,
+  chainId: 31337,
+  executor: ADDRESSES.executor,
+  intent: demo.committed,
+  evidenceRoot: demo.manifest.root,
+  disclosureHash: demo.disclosureHash,
+  approvedCalls: demo.approvedCalls,
+};
+
+/**
+ * Negative probes. The sentinel and disclosure layers used to branch on
+ * `scenario.layer` alone, which made their scorecard rows tautologies. These
+ * assert the opposite direction: without the evidence, no flag is raised.
+ */
+const negativeProbes: Record<string, () => void> = {
+  "06-delegatecall-payload": () => {
+    const realTrace = TRACE_REGISTRY["sentinel-trace-06.json"];
+    assert.equal(traceFlagsDelegatecall(realTrace), true, "the real trace must be flagged");
+    const cleanTrace = {
+      ...realTrace,
+      root: {
+        type: "CALL",
+        from: realTrace.root.from,
+        to: realTrace.root.to,
+        selector: "0xa9059cbb",
+        function: "transfer(address,uint256)",
+        children: [],
+      },
+      flags: [],
+    };
+    assert.equal(
+      traceFlagsDelegatecall(cleanTrace),
+      false,
+      "a call tree without DELEGATECALL must not be flagged",
+    );
+
+    const scenario = demo.scenarioRows.find((row) => row.scenario.id === "06-delegatecall-payload")!
+      .scenario;
+    const unverifiable = runScenario(
+      {
+        ...scenario,
+        context: { ...scenario.context, sentinel: { flag: "DELEGATECALL", traceFile: "absent.json" } },
+      },
+      scorecardContext,
+    );
+    assert.notEqual(
+      unverifiable.code,
+      "DelegatecallDetected",
+      "a missing trace must not assert a delegatecall",
+    );
+  },
+  "10-undisclosed-link": () => {
+    const scenario = demo.scenarioRows.find((row) => row.scenario.id === "10-undisclosed-link")!
+      .scenario;
+    const belowThreshold = runScenario(scenario, scorecardContext, {
+      score: 0.1,
+      threshold: 0.65,
+      claim: "no conflict",
+      linkCount: 0,
+      payload: {},
+    });
+    assert.notEqual(
+      belowThreshold.status,
+      "FLAGGED",
+      "a sub-threshold graph must not raise a disclosure flag",
+    );
+    const zero = runScenario(scenario, scorecardContext, {
+      score: 0,
+      threshold: 0.65,
+      claim: "no conflict",
+      linkCount: 0,
+      payload: {},
+    });
+    assert.notEqual(zero.code, "UndisclosedLink", "risk 0.00 across 0 links must not be flagged");
+  },
+};
+
 for (const row of demo.scenarioRows) {
   entry(
     `S${row.scenario.index}`,
@@ -212,6 +290,7 @@ for (const row of demo.scenarioRows) {
         row.scenario.expected.code,
         `Expected code ${row.scenario.expected.code}, got ${row.run.code}`,
       );
+      negativeProbes[row.scenario.id]?.();
     },
   );
 }
