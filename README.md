@@ -2,6 +2,22 @@
 
 DAO governance security for CODE_TANTRAFEST.
 
+## Unified frontend (2026-10-26)
+
+The editorial pages in `public/` are now the face of the product. The Next app
+in `console/` serves them directly: `/` is the Atlas, `/report` is the AIP-042
+editorial report, `/trail` starts the decision console, and `/live` reads the
+seeded proposals, governor state, version chains and contracts from a local
+Hardhat node. The old `app/` console is kept as the chain-side/backend
+reference; its live data and API modules were ported into `console/`.
+
+Verified state, 2026-10-26: `console/` tests 57/57, typecheck
+clean, lint 0 errors, production build passes. Local Hardhat
+compile, deploy and seed pass; `/api/status` and
+`/api/live/proposals` return live reads; a live dev-signer vote
+was submitted through `/api/live/vote`. The AIP-042 trail,
+intent, graph and arena remain the labelled reference model.
+
 One-line pitch: "DAOs don't get hacked at the vote. They get hacked
 at the reading."
 
@@ -26,18 +42,19 @@ with their code. Detection exists. Enforcement does not.
 - `sentinel/` : simulation, bytecode scan, guardian halt.
 - `intelligence/` : evidence, chain scoring, intent bridge,
   44 unit tests.
-- `app/` : Next.js live arena console on main
-  (proposals, voting, arena, disclosure, scorecard, status,
-  plus live Sentinel and watcher APIs).
-- `console/` : Person B's full Next.js decision-integrity
-  console, merged into main on 2026-10-26 from the
-  `b/judge-mode` branch (which is `person-b` plus the
-  whole-project atlas docs). It has its own package.json,
-  judge mode, presentation deck, downloadable reports, and
-  atlas docs in `console/docs/`. The old `person-b` and
-  `b/judge-mode` branches still exist on GitHub for history;
-  new work should go into `console/` on main, not into
-  those branches.
+- `app/` : the chain-side live console. It is the backend
+  reference for the live reads now served from `console/`;
+  the old dark UI is no longer the product face.
+- `console/` : the unified frontend. It serves the editorial
+  pages from `public/` at `/` and `/report`, the decision
+  console at `/trail`, the judge screens, and the live
+  local-chain section at `/live`. It has its own
+  package.json, judge mode, presentation deck, downloadable
+  reports, and docs in `console/docs/`. New frontend work
+  goes here on main.
+- `public/` : the editorial Atlas (`ecosystem.html`) and
+  AIP-042 report (`report-editorial.html`) that the console
+  serves. These are the source of truth for the face.
 - `packages/shared/` : shared hashing, fixtures, scorecard,
   error map.
 - See `aegisdao_work_division.md` for ownership and the

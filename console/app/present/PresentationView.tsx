@@ -183,7 +183,7 @@ function VerdictSlide({ demo }: { demo: Demo }) {
         </>
       }
       subtitle="AIP-042 authorized two one-time grants and a bounded allowance. The queued call upgrades the treasury proxy. The executor rejects it, and the disclosure is incomplete."
-      href="/"
+      href="/trail"
       action="Open the live trail"
     >
       <div className="grid gap-4 lg:grid-cols-[1.25fr_0.75fr]">
@@ -257,7 +257,7 @@ function TrailSlide({ demo }: { demo: Demo }) {
       eyebrow="Decision Trail"
       title="Four stages. One hard gate."
       subtitle="Claims answer “is it sourced?” COI answers “who benefits?” Voting answers “was the vote informed?” Execution answers “does the calldata match?” Only the last one is deterministic."
-      href="/"
+      href="/trail"
       action="Open the trail"
     >
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -747,7 +747,7 @@ export function PresentationView() {
 
       <header className="fixed inset-x-0 top-0 z-40 border-b border-edge/70 bg-ink/88 backdrop-blur-md">
         <div className="mx-auto flex h-14 w-full max-w-[1480px] items-center gap-4 px-4 sm:px-6">
-          <Link href="/" className="flex items-center gap-2.5">
+          <Link href="/trail" className="flex items-center gap-2.5">
             <span className="grid size-7 place-items-center rounded border border-signal/40 bg-signal/8 text-signal">
               <ShieldCheck size={14} strokeWidth={1.8} />
             </span>
@@ -766,7 +766,7 @@ export function PresentationView() {
               {fullscreen ? <Minimize2 size={12} /> : <Expand size={12} />}
               <span className="hidden sm:inline">{fullscreen ? "Exit fullscreen" : "Fullscreen"}</span>
             </button>
-            <Link href="/" className="btn btn-sm" aria-label="Exit presentation">
+            <Link href="/trail" className="btn btn-sm" aria-label="Exit presentation">
               <X size={12} />
               <span className="hidden sm:inline">Exit</span>
             </Link>

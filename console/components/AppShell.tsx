@@ -6,17 +6,19 @@ import { MonitorPlay, ShieldCheck } from "lucide-react";
 import { JudgeMode } from "@/components/JudgeMode";
 
 const NAV = [
-  { href: "/", label: "Trail" },
+  { href: "/trail", label: "Trail" },
   { href: "/intent", label: "Intent" },
   { href: "/graph", label: "Graph" },
   { href: "/timeline", label: "Timeline" },
   { href: "/vote", label: "Vote" },
   { href: "/arena", label: "Arena" },
   { href: "/scorecard", label: "Scorecard" },
+  { href: "/live", label: "Live" },
+  { href: "/docs", label: "Docs" },
 ];
 
 function isActive(pathname: string, href: string): boolean {
-  if (href === "/") return pathname === "/";
+  if (href === "/trail") return pathname === "/trail";
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
@@ -28,27 +30,34 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="relative flex min-h-screen flex-col">
-      <header className="sticky top-0 z-40 border-b border-edge bg-ink/92 backdrop-blur-md">
-        <div className="mx-auto flex w-full max-w-[1480px] items-center gap-5 px-5 py-3">
-          <Link href="/" className="group flex shrink-0 items-center gap-3">
-            <span className="grid size-8 place-items-center rounded-md border border-signal/40 bg-signal/8 text-signal">
-              <ShieldCheck size={17} strokeWidth={1.7} />
+    <div className="app-shell">
+      <aside className="app-rail" aria-hidden="true">
+        <Link href="/" className="app-rail-mark">
+          AEGIS
+        </Link>
+        <span className="app-rail-rule" />
+        <span className="app-rail-meta">IntentLock · Vol. 2</span>
+      </aside>
+
+      <div className="app-rail-r" aria-hidden="true">
+        <span className="app-dot" />
+        <span className="app-rail-meta">Local · 31337</span>
+      </div>
+
+      <header className="app-header">
+        <div className="app-header-inner">
+          <Link href="/" className="app-wordmark">
+            <span className="app-wordmark-mark">
+              <ShieldCheck size={15} strokeWidth={1.7} />
             </span>
-            <span className="flex items-baseline gap-2">
-              <span className="font-mono text-[15px] font-medium tracking-[0.2em] text-body">
-                AEGIS
-              </span>
-              <span className="font-mono text-[10px] tracking-[0.16em] text-signal">
-                INTENTLOCK
-              </span>
+            <span className="app-wordmark-text">
+              AEGIS <em>INTENTLOCK</em>
             </span>
           </Link>
 
-          <span className="hidden h-4 w-px bg-edge2 xl:block" />
-          <span className="mono-label hidden xl:block">Decision integrity console</span>
+          <span className="app-header-note">Decision integrity console</span>
 
-          <nav className="ml-auto hidden items-center gap-0.5 lg:flex" aria-label="Primary">
+          <nav className="app-nav" aria-label="Primary">
             {NAV.map((item) => {
               const active = isActive(pathname, item.href);
               return (
@@ -56,44 +65,32 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   key={item.href}
                   href={item.href}
                   aria-current={active ? "page" : undefined}
-                  className={`relative px-2.5 py-2 font-mono text-[10px] uppercase tracking-[0.12em] transition-colors ${
-                    active ? "text-body" : "text-dim hover:text-body"
-                  }`}
                 >
                   {item.label}
-                  {active ? (
-                    <span className="absolute inset-x-2.5 -bottom-[13px] h-px bg-signal" />
-                  ) : null}
                 </Link>
               );
             })}
           </nav>
 
-          <div className="ml-auto flex items-center gap-2 lg:ml-3">
+          <div className="app-header-actions">
             <JudgeMode />
             <Link
               href="/present"
               aria-label="Presentation mode"
               title="Full-screen presentation"
-              className="inline-flex items-center gap-1.5 rounded border border-edge bg-white/2 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.1em] text-dim transition-colors hover:border-edge2 hover:text-body"
+              className="btn btn-sm"
             >
               <MonitorPlay size={11} strokeWidth={1.8} />
               <span className="hidden xl:inline">Present</span>
             </Link>
-            <span className="hidden items-center gap-2 rounded border border-edge bg-white/2 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.1em] text-dim xl:inline-flex">
+            <span className="app-chain">
               <span className="status-dot text-safe" />
-              local · chain 31337
-            </span>
-            <span className="hidden items-center gap-1.5 rounded border border-signal/30 bg-signal/8 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.1em] text-signal lg:inline-flex">
-              reference model
+              local · 31337
             </span>
           </div>
         </div>
 
-        <nav
-          className="flex items-center gap-1 overflow-x-auto border-t border-edge px-4 py-2 lg:hidden"
-          aria-label="Primary mobile"
-        >
+        <nav className="app-mobile-nav" aria-label="Primary mobile">
           {NAV.map((item) => {
             const active = isActive(pathname, item.href);
             return (
@@ -101,9 +98,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 key={item.href}
                 href={item.href}
                 aria-current={active ? "page" : undefined}
-                className={`shrink-0 rounded px-2.5 py-1.5 font-mono text-[9.5px] uppercase tracking-[0.1em] ${
-                  active ? "bg-signal/12 text-signal" : "text-dim hover:text-body"
-                }`}
               >
                 {item.label}
               </Link>
@@ -112,18 +106,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </nav>
       </header>
 
-      <main className="relative z-10 mx-auto w-full max-w-[1480px] flex-1 px-4 pb-20 pt-6 sm:px-5 sm:pt-8">
-        {children}
-      </main>
+      <main className="app-main">{children}</main>
 
-      <footer className="relative z-10 border-t border-edge">
-        <div className="mx-auto flex w-full max-w-[1480px] flex-col gap-2 px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
-          <p className="font-mono text-[9.5px] uppercase tracking-[0.1em] text-faint">
-            AegisDAO IntentLock · demo workspace · simulated wallet data · no network calls
-          </p>
-          <p className="font-mono text-[9.5px] uppercase tracking-[0.1em] text-faint">
-            Solidity executor pending Person A · verdicts from a TypeScript reference model
-          </p>
+      <footer className="app-footer">
+        <div className="app-footer-inner">
+          <p>AegisDAO IntentLock · AIP-042 · editorial edition</p>
+          <p>Reference model · wallet data simulated · live chain at /live</p>
         </div>
       </footer>
     </div>

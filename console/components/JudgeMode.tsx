@@ -8,7 +8,7 @@ import { ArrowLeft, ArrowRight, Gavel, MonitorPlay, X } from "lucide-react";
 
 const STEPS = [
   {
-    path: "/",
+    path: "/trail",
     label: "Verdict",
     title: "The transaction does not match the vote",
     instruction: "Point at the blocked banner and the four stages. This is the whole story in one screen.",
