@@ -23,7 +23,13 @@ import type {
 } from "./types";
 import sentinelTrace06Json from "../packages/shared/fixtures/sentinel-trace-06.json";
 
-const ZERO_HASH = `0x${"0".repeat(64)}` as Hex;
+/**
+ * `extcodehash` of an account that exists but holds no bytecode (EIP-1052), i.e.
+ * `keccak256("")`. The reference model deploys nothing, so no address has code;
+ * this is the honest value to report as the observed implementation hash rather
+ * than a zero placeholder that reads like a measurement.
+ */
+const EMPTY_CODE_HASH = keccak256("0x");
 
 /**
  * Simulated Sentinel traces, keyed by the filename a scenario cites.
@@ -245,7 +251,10 @@ function checkSingle(
           message: `Implementation ${shortAddress(
             newImplementation,
           )} is not the approved implementation ${shortAddress(match.counterparty)}.`,
-          args: [call.target, match.codeHash, ZERO_HASH],
+          // args[2] is the code hash the model can actually observe at the
+          // submitted address. Nothing is deployed in this model, so that is
+          // the empty-code hash — not a zero stand-in for a measurement.
+          args: [call.target, match.codeHash, EMPTY_CODE_HASH],
         };
       }
       return null;
@@ -361,6 +370,15 @@ function transferSpend(calls: ConcreteCall[], decodedActions: DecodedAction[]): 
   }, 0n);
 }
 
+/**
+ * Cumulative transfer budget, summed over the committed ERC20_TRANSFER rules.
+ *
+ * Allowances are deliberately excluded. An `approve` ceiling is a permission,
+ * not a spend: it is already bounded by its own rule (ExceedsAllowance), and
+ * counting it here would double-count the same USDC against the grant total.
+ * The post-condition therefore answers "how much can leave the treasury", not
+ * "how much has been authorised".
+ */
 function transferBudget(rules: ActionRule[]): bigint {
   return rules
     .filter((rule) => rule.kind === "ERC20_TRANSFER")
@@ -473,6 +491,11 @@ export function runScenario(
     });
 
     const notes = scenario.modelNote ? [scenario.modelNote] : [];
+    if (code === "CodeHashMismatch") {
+      notes.push(
+        'The reference model deploys no bytecode, so the observed implementation hash is keccak256("") — the EIP-1052 extcodehash of an account with no code. A deployed executor must compare real extcodehash values.',
+      );
+    }
     if (scenario.layer === "disclosure") {
       notes.push("Challenge verification is simulated; the DisclosureRegistry is Person A's contract.");
     }
@@ -761,7 +784,9 @@ export function runScenario(
         "budget",
         "Post-condition: spend budget",
         "PASS",
-        `${formatTokenAmount(spent)} of ${formatTokenAmount(budget)} USDC committed transfer budget`,
+        `${formatTokenAmount(spent)} of ${formatTokenAmount(
+          budget,
+        )} USDC committed transfer budget (allowances excluded)`,
       ),
     );
   }

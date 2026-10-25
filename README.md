@@ -10,6 +10,8 @@ The problem is not that votes are secret. It is that **voting transparency is no
 
 **Stack:** Next.js 16 App Router, React 19, Tailwind v4, viem 2, zod 4, Vitest 5, lucide-react. Fonts are bundled via `@fontsource`; the demo makes no network calls.
 
+> **New here?** Read [`docs/PROJECT-STATUS.md`](docs/PROJECT-STATUS.md) first — one page covering verified state, the honesty ledger, what is blocked on Person A, and the environment gotchas.
+
 ---
 
 ## What is real, what is simulated, what is pending
@@ -35,7 +37,7 @@ This is a hackathon demo, not a deployed governance system. There are **no Solid
 | Solidity/TypeScript hash parity | **Pending Person A** | `hash-vectors.json` contains **TypeScript reference vectors** only. |
 | Real per-scenario evidence and Hardhat scorecard | **Pending Person A** | Current fixtures and scorecard come from the reference model. |
 
-Current verification state: **51 Vitest tests in 8 files pass**. The reference scorecard is **25 PASS, 0 FAIL, 9 TEST_REQUIRED**.
+Current verification state: **52 Vitest tests in 8 files pass**. The reference scorecard is **25 PASS, 0 FAIL, 9 TEST_REQUIRED**.
 
 ---
 
@@ -47,7 +49,7 @@ Requires Node.js 22.12+ (tested on Node 24) and npm. No network access is needed
 npm install
 
 npm run dev          # http://localhost:3000
-npm test             # 51 tests, 8 files
+npm test             # 52 tests, 8 files
 npm run test:watch   # watch mode
 npm run scorecard    # regenerates fixtures/scorecard.json + scorecard-meta.json
 npm run arena -- 3   # runs scenario 3 (jargon upgrade) and prints raw evidence
@@ -141,7 +143,7 @@ The execution guarantee is designed to be on-chain; in this workspace it is a de
 | `chain-scoring/` | Claims, COI, voting and execution stage scoring plus the Decision Trail. |
 | `scripts/` | Evidence build, vector/error generation, scorecard, arena runner, demo consistency check. |
 | `tests/` | Eight Vitest files covering hashing, evidence, AI validation, decoding, executor, reporting, graph and scoring. |
-| `docs/` | Demo script and Person A handoff. |
+| `docs/` | Project status brief, demo script, Person A handoff, and the independent audit. |
 
 ---
 
@@ -226,5 +228,5 @@ The exact swap points, interface rules and current schemas are in [`docs/person-
 - **AI is advisory.** Extraction is pre-baked; the validator, reviewer confirmation and hashing are real. No live LLM is called. Claims without document spans are rejected, but extraction quality is not proven.
 - **No on-chain evidence.** Evidence roots and disclosure hashes are computed locally; nothing is anchored in a registry yet.
 - **Voting data is a fixture.** Quorum, weights and brief acknowledgements are not read from `IntentGovernor`.
-- **Test coverage is modest and not 80%.** There are 51 tests across 8 files. No coverage threshold is configured, and no coverage claim is made. The scorecard measures specific properties, not line coverage.
+- **Test coverage is modest and not 80%.** There are 52 tests across 8 files. No coverage threshold is configured, and no coverage claim is made. The scorecard measures specific properties, not line coverage.
 - **No live chain and no live LLM at demo time.** The whole demo runs offline from bundled assets and fixtures.

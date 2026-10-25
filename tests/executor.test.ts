@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { keccak256 } from "viem";
 import { ADDRESSES, CHAIN_ID, ERROR_BY_NAME } from "../packages/shared/addresses";
-import type { EncodableCall } from "../packages/shared/calls";
+import { encodeCall, type EncodableCall } from "../packages/shared/calls";
 import type { ExecutionContext, Scenario } from "../reference/types";
 import { runScenario, TRACE_REGISTRY, traceFlagsDelegatecall } from "../reference/executor";
 import { getDemo } from "../lib/demo";
@@ -219,6 +220,53 @@ describe("reference executor", () => {
     );
     expect(unverifiable.code).not.toBe("DelegatecallDetected");
     expect(unverifiable.steps.find((step) => step.id === "simulation")?.status).toBe("INFO");
+  });
+
+  it("reports an observed empty-code hash, not a zero placeholder, for an unapproved implementation", () => {
+    const demo = getDemo();
+    const approvedImpl = ADDRESSES.treasuryImplV2;
+    const upgradeData = encodeCall({
+      kind: "UPGRADE",
+      target: ADDRESSES.treasuryProxy,
+      counterparty: approvedImpl,
+    });
+    const selector = upgradeData.slice(0, 10) as `0x${string}`;
+
+    // An intent that does commit an upgrade to the v2 implementation.
+    const intentWithUpgrade = {
+      ...demo.committed,
+      actions: [
+        ...demo.committed.actions,
+        {
+          kind: "UPGRADE" as const,
+          target: ADDRESSES.treasuryProxy,
+          selector,
+          counterparty: approvedImpl,
+          maxAmount: "0",
+          codeHash: null,
+          source: demo.committed.actions[0].source,
+          confidence: 1,
+        },
+      ],
+    };
+
+    const run = runScenario(
+      synthetic(() => undefined, [
+        {
+          kind: "UPGRADE",
+          target: ADDRESSES.treasuryProxy,
+          counterparty: ADDRESSES.maliciousImpl,
+        },
+      ]),
+      { ...context(), intent: intentWithUpgrade },
+    );
+
+    expect(run.code).toBe("CodeHashMismatch");
+    const emptyCodeHash = keccak256("0x");
+    expect(emptyCodeHash).not.toBe(`0x${"0".repeat(64)}`);
+    // The revert payload must carry the observable empty-code hash.
+    expect(run.revertData.toLowerCase()).toContain(emptyCodeHash.slice(2).toLowerCase());
+    expect(run.notes.join(" ")).toContain("extcodehash");
   });
 
   it("produces a stable simulated tx hash for the same bundle", () => {
