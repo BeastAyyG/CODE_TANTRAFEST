@@ -10,7 +10,8 @@
     "arena": "ts-node scripts/run-arena.ts",
     "scorecard": "ts-node scripts/run-arena.ts",
     "deploy": "ts-node scripts/deploy.ts",
-    "generate:errors": "ts-node scripts/generate-errors-map.ts"
+    "generate:errors": "ts-node scripts/generate-errors-map.ts",
+    "test:intelligence": "ts-mocha --timeout 10000 intelligence/__tests__/intelligence.test.ts"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
@@ -18,6 +19,7 @@
     "@types/mocha": "^10.0.0",
     "@types/node": "^20.0.0",
     "hardhat": "^2.22.0",
+    "ts-mocha": "^11.1.0",
     "ts-node": "^10.9.0",
     "typescript": "^5.4.0"
   },
