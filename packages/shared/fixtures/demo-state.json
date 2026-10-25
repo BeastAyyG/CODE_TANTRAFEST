@@ -1,0 +1,53 @@
+{
+  "1": {
+    "title": "Q4 Development Grant",
+    "govId": "1",
+    "state": "Executed",
+    "commitment": "0x2005f8dc6ae45474fb5ea09763e4d752c4c71cede9dd51efeb19683ff57b7494",
+    "versionChain": [
+      "0x7ea161b8d7de99928f02d1b3a8abb4cf10774a100c7c735ea2895ecef2797590",
+      "0xe62a7a5efb29826e2d44979827a0152c706dce1f0cbc7d65a89eeb39d94c6e7a"
+    ],
+    "notes": "2 versions (draft -> final); evidenceRoots 0x36d4f6fe…ee9861 / 0xd9ce7ed5…85f511; 5,000 USDC executed to 0x14dC79964da2C08b23698B3D3cc7Ca32193d9955."
+  },
+  "2": {
+    "title": "Routine parameter tuning of the fee module",
+    "govId": "2",
+    "state": "Halted",
+    "commitment": "0x0c29a61d0882e566875338608205f01b813616632bd0f2e043cfdcd6536541cb",
+    "versionChain": [
+      "0x21c166e698e0bcd77cd222a9ca89dbf2db3cb3e1068bae08af1bdc23fd27179d"
+    ],
+    "notes": "Queued benign setFee(35); malicious upgradeTo(0x9E545E3C…373042) was presented and flagged by the Sentinel (Static bytecode analysis detected: Dangerous opcode detected: DELEGATECALL (0xf4) in implementation bytecode; Dangerous opcode detected: SELFDESTRUCT (0xff) in implementation bytecode); guardian halt 0xb625eb05…14816d; evidenceRoot 0xeb0f856c…62cc56."
+  },
+  "3": {
+    "title": "Ecosystem grant with hidden link",
+    "govId": "3",
+    "state": "Challenged",
+    "commitment": "0xfc12f3343acaca28e9441afa6facf0279347f512b23d4f0797fcb512c48678af",
+    "versionChain": [
+      "0xbec657100c208cc41fe275802e341d6039df88470d9c902421164c0dad4d5d25"
+    ],
+    "notes": "Governor state VotingOpen; disclosure challenged and verified (1 ETH bond slashed to challenger); linkEvidenceHash 0x8b8958ef…815baa; evidenceRoot 0x9d457c9c…6ab382; intermediary path is SIMULATED graph data."
+  },
+  "4": {
+    "title": "Infrastructure budget",
+    "govId": "4",
+    "state": "VotingOpen",
+    "commitment": "0xf3435f7545d909f171a7146869b7fb8295f33f9af3647f0ad71cfe767160f4df",
+    "versionChain": [
+      "0x27a25c01002cc1da35247e8062bc470b679bf364bfe668028b704c01750015a1"
+    ],
+    "notes": "Voting open with mixed informed/uninformed votes; no disclosure challenge and no Sentinel halt; awaiting finalization."
+  },
+  "5": {
+    "title": "Community Grants Expansion",
+    "govId": null,
+    "state": "Drafted",
+    "commitment": null,
+    "versionChain": [
+      "0x0f2e3585d3a2e60a7444ad1a9f3b9407b13a8b630e7b4281a27ac2e7412e9707"
+    ],
+    "notes": "Draft only (not submitted to governor). 4 UNRESOLVED item(s): What exact amount should be transferred? The proposal delegates discretion. What exact recipient and value should be committed before voting? Is this a one-time action or a recurring commitment? The current ActionKind model encodes one-time actions only. No executable action could be grounded in the proposal text."
+  }
+}

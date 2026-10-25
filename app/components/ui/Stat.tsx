@@ -1,5 +1,6 @@
 import { cn } from "@/lib/format";
 import type { ReactNode } from "react";
+import { WhyDrawer } from "./WhyDrawer";
 
 export type StatTone = "neutral" | "success" | "danger" | "warning" | "info";
 
@@ -15,6 +16,7 @@ export function Stat({
   label,
   value,
   hint,
+  why,
   tone = "neutral",
   mono = true,
   className,
@@ -22,6 +24,7 @@ export function Stat({
   label: string;
   value: ReactNode;
   hint?: ReactNode;
+  why?: ReactNode;
   tone?: StatTone;
   mono?: boolean;
   className?: string;
@@ -46,6 +49,7 @@ export function Stat({
         {value}
       </p>
       {hint ? <p className="mt-0.5 text-[11px] text-muted">{hint}</p> : null}
+      {why ? <WhyDrawer className="mt-2">{why}</WhyDrawer> : null}
     </div>
   );
 }

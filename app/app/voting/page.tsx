@@ -1,5 +1,6 @@
 "use client";
 
+import { AttentionQueue } from "@/components/AttentionQueue";
 import { VotingPanel } from "@/components/VotingPanel";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatusBadge } from "@/components/ui/StatusBadge";
@@ -16,6 +17,7 @@ export default function VotingPage() {
         description="Votes bind to the execution commitment. Brief acknowledgments feed the informed-vote ratio."
         actions={<StatusBadge tone="info">gov {proposal.govId}</StatusBadge>}
       />
+      <AttentionQueue />
       <VotingPanel govId={proposal.govId} />
     </div>
   );

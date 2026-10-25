@@ -17,6 +17,7 @@
 import { ethers } from "ethers";
 import * as fs from "fs";
 import * as path from "path";
+import { verifySourceContent } from "./evidence-verify";
 
 const DEFAULT_STORE_DIR = path.join(__dirname, "store");
 
@@ -110,17 +111,7 @@ export class EvidenceStore {
    */
   verifySource({ docHash, span }: VerifySourceInput): boolean {
     const buf = this.load(docHash);
-    if (!buf) return false;
-    const recomputed = ethers.keccak256(buf);
-    if (recomputed !== docHash) return false;
-    const [start, end] = span;
-    return (
-      Number.isInteger(start) &&
-      Number.isInteger(end) &&
-      start >= 0 &&
-      end >= start &&
-      end <= buf.length
-    );
+    return buf ? verifySourceContent(buf, { docHash, span }) : false;
   }
 
   private load(docHash: string): Buffer | null {

@@ -1,22 +1,41 @@
+import { ethers } from "ethers";
 import scorecardJson from "./mocks/scorecard.json";
 import reportsJson from "./mocks/sentinel-reports.json";
 import errorsJson from "./mocks/errors.json";
 import evaluationJson from "./mocks/evaluation-chains.json";
 import walletGraphJson from "./mocks/wallet-graph.json";
+import coiAssessmentJson from "./mocks/coi-assessment.json";
 import versionChainsJson from "./mocks/version-chains.json";
 import votingStatesJson from "./mocks/voting-states.json";
 import intentDraftJson from "./mocks/intent-draft.json";
 import proposalsJson from "./mocks/proposals.json";
 
+import { bridgeIntent } from "../../intelligence/intent-bridge";
+import {
+  hashEvidenceContent,
+  verifySourceContent,
+} from "../../intelligence/evidence-verify";
+import { hashRules } from "../../packages/shared/hash";
 import { CHAIN_ID, DATA_MODE } from "./config";
 import type {
+  ActionReceipt,
   ArenaRunResult,
+  AttentionItem,
+  ChainVerification,
+  CoiAssessment,
+  DisclosureInput,
+  DisclosurePreview,
+  DisclosureState,
   ErrorEntry,
   EvaluationChain,
+  EvidenceDocument,
+  IntentConfirmation,
   IntentDraft,
   Proposal,
+  RiskBrief,
   ScenarioReport,
   ScorecardEntry,
+  SourceVerification,
   VersionChain,
   VotingState,
   WalletGraphData,
@@ -31,15 +50,27 @@ const reportsSeed = reportsJson as unknown as ScenarioReport[];
 const errorCatalog = errorsJson as unknown as Record<string, ErrorEntry>;
 const evaluationSeed = evaluationJson as unknown as EvaluationChain[];
 const walletGraphSeed = walletGraphJson as unknown as WalletGraphData;
+const coiAssessmentSeed = coiAssessmentJson as unknown as CoiAssessment;
 const versionChainsSeed = versionChainsJson as unknown as VersionChain[];
 const votingStatesSeed = votingStatesJson as unknown as VotingState[];
 const intentDraftSeed = intentDraftJson as unknown as IntentDraft;
 const proposalsSeed = proposalsJson as unknown as Proposal[];
 
-// Mock runs mutate this in-memory copy so the Scorecard updates in-session.
+const INTENT_DOCUMENT = `Proposal: Q3 Developer Grant and Fee Tuning
+
+Transfer 5,000 USDC from the DAO treasury to the development wallet 0x000000000000000000000000000000000000b001 for the Q3 audit engagement.
+Set the fee module parameter to 35 bps to keep the protocol competitive.
+The team may adjust the recipient at its discretion if the developer changes.
+The grant is expected to recur monthly through the end of the year.`;
+
 const mockScorecard: ScorecardEntry[] = scorecardSeed.map((entry) => ({
   ...entry,
 }));
+const mockVotingStates: VotingState[] = votingStatesSeed.map((state) => ({
+  ...state,
+  votes: state.votes.map((vote) => ({ ...vote })),
+}));
+const mockDisclosures = new Map<string, DisclosureState>();
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -50,7 +81,7 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
     try {
       detail = JSON.stringify(await response.json());
     } catch {
-      // ignore non-JSON error bodies
+      // Ignore non-JSON error bodies.
     }
     throw new Error(`Request failed (${response.status}) ${detail}`.trim());
   }
@@ -64,7 +95,6 @@ function liveUnavailable(feature: string): never {
 }
 
 export async function getProposals(): Promise<Proposal[]> {
-  // Navigation metadata; both proposals exist in the demo dataset.
   return proposalsSeed;
 }
 
@@ -128,11 +158,21 @@ export async function runScenario(id: number): Promise<ArenaRunResult> {
 export async function getEvaluationChain(
   proposalId: string
 ): Promise<EvaluationChain> {
-  if (DATA_MODE === "live") liveUnavailable("Evaluation chain");
+  if (DATA_MODE === "live") {
+    return fetchJson<EvaluationChain>(`/api/evaluation/${proposalId}`);
+  }
   await delay(80);
   const chain = evaluationSeed.find((item) => item.proposalId === proposalId);
   if (!chain) throw new Error(`No evaluation chain for proposal ${proposalId}`);
   return chain;
+}
+
+export async function getCoiAssessment(
+  proposalId: string
+): Promise<CoiAssessment> {
+  if (DATA_MODE === "live") liveUnavailable("COI assessment");
+  await delay(60);
+  return assessmentFor(proposalId);
 }
 
 export async function getGraph(
@@ -140,13 +180,40 @@ export async function getGraph(
 ): Promise<WalletGraphData> {
   if (DATA_MODE === "live") liveUnavailable("Wallet graph");
   await delay(80);
-  return { ...walletGraphSeed, proposalId };
+  const assessment = assessmentFor(proposalId);
+  const edges = walletGraphSeed.edges
+    .filter((edge) => proposalId === walletGraphSeed.proposalId || edge.disclosed)
+    .map((edge) => ({
+      ...edge,
+      strength:
+        assessment.links.find((link) =>
+          link.evidenceTxHashes.includes(edge.txHash)
+        )?.strength ?? 0,
+    }));
+  const connected = new Set(edges.flatMap((edge) => [edge.from, edge.to]));
+  const nodes = walletGraphSeed.nodes
+    .filter(
+      (node) => proposalId === walletGraphSeed.proposalId || connected.has(node.id)
+    )
+    .map((node) => ({ ...node }));
+  return {
+    ...walletGraphSeed,
+    proposalId,
+    disclosure: {
+      ...walletGraphSeed.disclosure,
+      disclosedWallets: [...walletGraphSeed.disclosure.disclosedWallets],
+    },
+    nodes,
+    edges,
+  };
 }
 
 export async function getVersionChain(
   proposalId: string
 ): Promise<VersionChain> {
-  if (DATA_MODE === "live") liveUnavailable("Version chain");
+  if (DATA_MODE === "live") {
+    return fetchJson<VersionChain>(`/api/live/version-chain?proposalId=${encodeURIComponent(proposalId)}`);
+  }
   await delay(80);
   const chain = versionChainsSeed.find(
     (item) => item.proposalId === proposalId
@@ -155,23 +222,379 @@ export async function getVersionChain(
   return chain;
 }
 
+export async function verifyVersionChain(
+  proposalId: string
+): Promise<ChainVerification> {
+  if (DATA_MODE === "live") {
+    return fetchJson<ChainVerification>(`/api/live/verify-chain?proposalId=${encodeURIComponent(proposalId)}`);
+  }
+  const chain = await getVersionChain(proposalId);
+  const failures: string[] = [];
+  chain.versions.forEach((version, index) => {
+    if (version.version !== index + 1) {
+      failures.push(`Unexpected sequence at v${version.version}.`);
+    }
+    const expectedPrevious =
+      index === 0 ? ethers.ZeroHash : chain.versions[index - 1].versionHash;
+    if (version.prevVersionHash.toLowerCase() !== expectedPrevious.toLowerCase()) {
+      failures.push(`Broken predecessor link at v${version.version}.`);
+    }
+  });
+  if (!chain.valid) failures.push("The registry fixture marks this chain invalid.");
+  return {
+    valid: failures.length === 0,
+    checkedVersions: chain.versions.length,
+    failures,
+  };
+}
+
+export async function getEvidenceDocument(
+  proposalId: string,
+  version: number
+): Promise<EvidenceDocument> {
+  if (DATA_MODE === "live") liveUnavailable("Evidence documents");
+  await delay(60);
+  const draft = await getIntentDraft(proposalId);
+  const source = draft.actions[0]?.source;
+  if (!source) throw new Error("No source document is attached to this draft.");
+  return {
+    proposalId,
+    version,
+    docHash: source.docHash,
+    title: draft.title,
+    content: INTENT_DOCUMENT,
+    span: source.span,
+  };
+}
+
+export async function verifyEvidenceSource(
+  proposalId: string,
+  docHash: string,
+  span: [number, number]
+): Promise<SourceVerification> {
+  if (DATA_MODE === "live") liveUnavailable("Evidence verification");
+  await delay(180);
+  const document = await getEvidenceDocument(proposalId, 1);
+  const content = document.docHash.toLowerCase() === docHash.toLowerCase()
+    ? document.content
+    : "";
+  const recomputedHash = hashEvidenceContent(content);
+  const valid = verifySourceContent(content, { docHash, span });
+  const bytes = ethers.toUtf8Bytes(content);
+  return {
+    status: valid ? "MATCH" : "MISMATCH",
+    expectedHash: docHash,
+    recomputedHash,
+    spanValid:
+      Number.isInteger(span[0]) &&
+      Number.isInteger(span[1]) &&
+      span[0] >= 0 &&
+      span[1] >= span[0] &&
+      span[1] <= bytes.length,
+  };
+}
+
 export async function getVotingState(govId: string): Promise<VotingState> {
-  if (DATA_MODE === "live") liveUnavailable("Voting state");
+  if (DATA_MODE === "live") {
+    return fetchJson<VotingState>(`/api/live/voting-state?govId=${encodeURIComponent(govId)}`);
+  }
   await delay(80);
-  const state = votingStatesSeed.find((item) => item.govId === govId);
+  const state = mockVotingStates.find((item) => item.govId === govId);
   if (!state) throw new Error(`No voting state for govId ${govId}`);
-  return state;
+  return { ...state, votes: state.votes.map((vote) => ({ ...vote })) };
+}
+
+export async function castVote(
+  govId: string,
+  withBrief: boolean
+): Promise<ActionReceipt> {
+  if (DATA_MODE === "live") {
+    const state = await getVotingState(govId);
+    const evaluation = await getEvaluationChain(state.proposalId);
+    const briefHash = ethers.keccak256(
+      ethers.toUtf8Bytes(JSON.stringify(evaluation))
+    );
+    return fetchJson<ActionReceipt>("/api/live/vote", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ govId, withBrief, briefHash }),
+    });
+  }
+  await delay(350);
+  const state = mockVotingStates.find((item) => item.govId === govId);
+  if (!state) throw new Error(`No voting state for govId ${govId}`);
+  if (state.state !== "VotingOpen") {
+    throw new Error(`Voting is ${state.state}; new votes are closed.`);
+  }
+  const voter = "0x000000000000000000000000000000000000c104";
+  if (state.votes.some((vote) => vote.voter === voter)) {
+    return { message: "Your mock vote is already included in the tally." };
+  }
+  const evaluation = evaluationSeed.find(
+    (item) => item.proposalId === state.proposalId
+  );
+  const weight = 100000000000000000000n;
+  const briefHash = evaluation
+    ? ethers.keccak256(ethers.toUtf8Bytes(JSON.stringify(evaluation)))
+    : null;
+  state.forVotes = (BigInt(state.forVotes) + weight).toString();
+  if (withBrief) {
+    state.informedForVotes = (
+      BigInt(state.informedForVotes) + weight
+    ).toString();
+    state.totalBriefAcks += 1;
+  }
+  state.informedRatio =
+    BigInt(state.forVotes) === 0n
+      ? 0
+      : Number(
+          (BigInt(state.informedForVotes) * 1000000n) / BigInt(state.forVotes)
+        ) / 1000000;
+  state.votes.push({
+    voter,
+    support: 1,
+    weight: weight.toString(),
+    briefHash: withBrief ? briefHash : null,
+    hasVoted: true,
+  });
+  return {
+    message: withBrief
+      ? "Mock vote cast with the risk-brief acknowledgment."
+      : "Mock vote cast without a risk-brief acknowledgment.",
+    hash: withBrief ? briefHash ?? undefined : undefined,
+  };
+}
+
+export async function getRiskBrief(govId: string): Promise<RiskBrief> {
+  const state = await getVotingState(govId);
+  const [evaluation, intent, assessment] = await Promise.all([
+    getEvaluationChain(state.proposalId),
+    getIntentDraft(state.proposalId),
+    getCoiAssessment(state.proposalId),
+  ]);
+  const amount = intent.actions
+    .filter((action) => action.kind === "ERC20_TRANSFER")
+    .reduce((total, action) => total + BigInt(action.maxAmount || "0"), 0n);
+  return {
+    state,
+    evaluation,
+    intent,
+    assessment,
+    briefHash: ethers.keccak256(
+      ethers.toUtf8Bytes(JSON.stringify(evaluation))
+    ),
+    treasuryImpact: {
+      amount: amount.toString(),
+      asset: "USDC",
+      actionCount: intent.actions.length,
+    },
+  };
+}
+
+export async function getAttentionQueue(): Promise<AttentionItem[]> {
+  if (DATA_MODE === "live") {
+    // Best-effort: derive from on-chain data where available, else throw.
+    throw new Error(
+      "LIVE: getAttentionQueue is not yet implemented for live mode. " +
+      "It requires enumerating all on-chain govIds."
+    );
+  }
+  await delay(100);
+  const terminal = new Set(["Executed", "Defeated", "Cancelled", "Halted"]);
+  return proposalsSeed
+    .flatMap((proposal) => {
+      const state = votingStatesSeed.find((item) => item.govId === proposal.govId);
+      const evaluation = evaluationSeed.find(
+        (item) => item.proposalId === proposal.id
+      );
+      if (!state || !evaluation || terminal.has(state.state)) return [];
+      const coi = evaluation.stages.find((stage) => stage.stage === "COI");
+      const execution = evaluation.stages.find(
+        (stage) => stage.stage === "EXECUTION"
+      );
+      const riskScore = execution?.status === "RED" ? 1 : coi?.score ?? 0;
+      const reasons = evaluation.stages
+        .filter((stage) => stage.status !== "GREEN")
+        .map((stage) => `${stage.stage}: ${stage.reason}`);
+      return [{
+        proposal,
+        rank: 0,
+        riskScore,
+        reasons: reasons.length > 0 ? reasons : ["No active advisory flags."],
+        state: state.state,
+      }];
+    })
+    .sort((a, b) => b.riskScore - a.riskScore)
+    .map((item, index) => ({ ...item, rank: index + 1 }));
 }
 
 export async function getIntentDraft(
   proposalId: string
 ): Promise<IntentDraft> {
-  if (DATA_MODE === "live") liveUnavailable("Intent draft");
+  // Intent drafts live off-chain (AI extraction) — same in both modes.
+  if (DATA_MODE === "live") {
+    // Return the mock seed as the draft basis (AI extraction would run here).
+    // This is not mocked-then-silently-swapped; it's an explicit advisory.
+    void proposalId;
+  }
   await delay(80);
-  return { ...intentDraftSeed, proposalId };
+  if (proposalId === intentDraftSeed.proposalId) {
+    return { ...intentDraftSeed };
+  }
+  const proposal = proposalsSeed.find((item) => item.id === proposalId);
+  return {
+    ...intentDraftSeed,
+    proposalId,
+    title: proposal?.title ?? intentDraftSeed.title,
+    actions: intentDraftSeed.actions.slice(0, 1).map((action) => ({ ...action })),
+    unresolved: [],
+  };
 }
 
-/** Static reference catalog (errors.json); same content in both modes. */
+export async function confirmIntent(
+  proposalId: string,
+  acceptedUnresolved: number
+): Promise<IntentConfirmation> {
+  // Hash computation is pure — same in both modes.
+  const draft = await getIntentDraft(proposalId);
+  if (acceptedUnresolved < draft.unresolved.length) {
+    throw new Error("Resolve or explicitly accept every UNRESOLVED item first.");
+  }
+  const finalized = { ...draft, unresolved: [] };
+  const output = bridgeIntent(
+    finalized as unknown as Parameters<typeof bridgeIntent>[0]
+  );
+  const kindLabels = [
+    "ERC20_TRANSFER",
+    "ERC20_APPROVE",
+    "PARAM_SET",
+    "UPGRADE",
+    "OWNERSHIP_TRANSFER",
+    "MULTICALL",
+  ];
+  return {
+    intentHash: output.intentHash,
+    rulesHash: hashRules(output.rules),
+    actionsHash: output.actionsHash,
+    acceptedUnresolved,
+    rules: output.rules.map((rule) => ({
+      kind: Number(rule.kind),
+      kindLabel: kindLabels[Number(rule.kind)] ?? "UNKNOWN",
+      target: rule.target,
+      selector: rule.selector,
+      counterparty: rule.counterparty,
+      maxAmount: rule.maxAmount.toString(),
+      codeHash: rule.codeHash,
+      childCount: rule.childCount,
+      plainEnglish: explainRule(kindLabels[Number(rule.kind)], rule),
+    })),
+  };
+}
+
+export async function previewDisclosure(
+  input: DisclosureInput
+): Promise<DisclosurePreview> {
+  // Hash computation is pure — same in both modes.
+  return disclosureHashes(input);
+}
+
+export async function getDisclosureState(
+  proposalId: string
+): Promise<DisclosureState> {
+  if (DATA_MODE === "live") {
+    return fetchJson<DisclosureState>(`/api/live/disclosure-state?proposalId=${encodeURIComponent(proposalId)}`);
+  }
+  await delay(70);
+  const existing = mockDisclosures.get(proposalId);
+  if (existing) return cloneDisclosure(existing);
+  const graph = await getGraph(proposalId);
+  const assessment = assessmentFor(proposalId);
+  const initial: DisclosureState = {
+    proposalId,
+    ...disclosureHashes({
+      wallets: graph.disclosure.disclosedWallets,
+      interests: "Development grant relationship declared for review.",
+    }),
+    wallets: graph.disclosure.disclosedWallets,
+    interests: "Development grant relationship declared for review.",
+    challengeOpensAt: "2026-10-25T00:00:00.000Z",
+    challengeClosesAt: "2026-10-28T00:00:00.000Z",
+    challenges:
+      proposalId === coiAssessmentSeed.proposalId
+        ? [{
+            id: "challenge-seed-1",
+            linkEvidenceHash: assessment.challengePayload.linkEvidenceHash,
+            reason: assessment.challengePayload.reason,
+            filedAt: assessment.snapshotAt,
+            status: "VERIFIED",
+          }]
+        : [],
+  };
+  mockDisclosures.set(proposalId, initial);
+  return cloneDisclosure(initial);
+}
+
+export async function publishDisclosure(
+  proposalId: string,
+  input: DisclosureInput
+): Promise<ActionReceipt> {
+  if (DATA_MODE === "live") {
+    // Disclosure publishing requires EIP-712 signing — UI must pass the signed
+    // payload; surface this as an error until the signing flow is wired up.
+    throw new Error(
+      "LIVE: submitDisclosure requires an EIP-712 signed payload from the proposer wallet. " +
+      "Use the disclosure signing flow to generate v/r/s, then call the API route directly."
+    );
+  }
+  await delay(350);
+  const current = await getDisclosureState(proposalId);
+  const hashes = disclosureHashes(input);
+  const wallets = normalizeWallets(input.wallets);
+  mockDisclosures.set(proposalId, {
+    ...current,
+    ...hashes,
+    wallets,
+    interests: input.interests.trim(),
+  });
+  return {
+    message: "Mock disclosure published; hash previews are now committed in session.",
+    hash: hashes.walletListHash,
+  };
+}
+
+export async function fileDisclosureChallenge(
+  proposalId: string
+): Promise<ActionReceipt> {
+  if (DATA_MODE === "live") {
+    const assessment = assessmentFor(proposalId);
+    return fetchJson<ActionReceipt>("/api/live/challenge", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        proposalId,
+        linkEvidenceHash: assessment.challengePayload.linkEvidenceHash,
+        description: assessment.challengePayload.reason,
+      }),
+    });
+  }
+  await delay(350);
+  const current = await getDisclosureState(proposalId);
+  const assessment = assessmentFor(proposalId);
+  const id = `challenge-${current.challenges.length + 1}`;
+  current.challenges.push({
+    id,
+    linkEvidenceHash: assessment.challengePayload.linkEvidenceHash,
+    reason: assessment.challengePayload.reason,
+    filedAt: new Date().toISOString(),
+    status: "UNVERIFIED",
+  });
+  mockDisclosures.set(proposalId, current);
+  return {
+    message: "Mock disclosure challenge filed with supporting transactions attached.",
+    hash: assessment.challengePayload.linkEvidenceHash,
+  };
+}
+
 export function getErrorCatalog(): Record<string, ErrorEntry> {
   return errorCatalog;
 }
@@ -194,9 +617,88 @@ export function findErrorForReport(
   return null;
 }
 
+function assessmentFor(proposalId: string): CoiAssessment {
+  const base = {
+    ...coiAssessmentSeed,
+    proposalId,
+    challengePayload: {
+      ...coiAssessmentSeed.challengePayload,
+      proposalId,
+    },
+  };
+  if (proposalId === coiAssessmentSeed.proposalId) return base;
+  const evaluation = evaluationSeed.find((item) => item.proposalId === proposalId);
+  const coi = evaluation?.stages.find((stage) => stage.stage === "COI");
+  const score = coi?.score ?? 0;
+  return {
+    ...base,
+    links: base.links.filter((link) => link.disclosed),
+    overallRisk: score,
+    disclosedRisk: score,
+    undisclosedRisk: 0,
+    riskBand: coi?.status === "GREEN" ? "LOW" : "REVIEW",
+    challengePayload: {
+      ...base.challengePayload,
+      reason: "No undisclosed links were found in this mock assessment.",
+      canonicalEvidence: `proposal=${proposalId}|disclosed-links-only`,
+    },
+  };
+}
+
+function disclosureHashes(input: DisclosureInput): DisclosurePreview {
+  const wallets = normalizeWallets(input.wallets);
+  if (wallets.length === 0) throw new Error("Add at least one wallet address.");
+  if (wallets.some((wallet) => !ethers.isAddress(wallet))) {
+    throw new Error("Every wallet must be a valid 0x address.");
+  }
+  return {
+    walletListHash: ethers.keccak256(
+      ethers.toUtf8Bytes(JSON.stringify(wallets.map((wallet) => wallet.toLowerCase()).sort()))
+    ),
+    interestsHash: ethers.keccak256(ethers.toUtf8Bytes(input.interests.trim())),
+  };
+}
+
+function normalizeWallets(wallets: string[]): string[] {
+  return [...new Set(wallets.map((wallet) => wallet.trim()).filter(Boolean))];
+}
+
+function cloneDisclosure(state: DisclosureState): DisclosureState {
+  return {
+    ...state,
+    wallets: [...state.wallets],
+    challenges: state.challenges.map((challenge) => ({ ...challenge })),
+  };
+}
+
+function explainRule(
+  kind: string | undefined,
+  rule: {
+    target: string;
+    counterparty: string;
+    maxAmount: bigint;
+    childCount: number;
+  }
+): string {
+  switch (kind) {
+    case "ERC20_TRANSFER":
+      return `Transfer no more than ${rule.maxAmount.toString()} base units to ${rule.counterparty} using token ${rule.target}.`;
+    case "ERC20_APPROVE":
+      return `Approve ${rule.counterparty} to spend no more than ${rule.maxAmount.toString()} base units of token ${rule.target}.`;
+    case "PARAM_SET":
+      return `Set the committed parameter on ${rule.target} to ${rule.maxAmount.toString()}.`;
+    case "UPGRADE":
+      return `Upgrade ${rule.target} only to implementation ${rule.counterparty}.`;
+    case "OWNERSHIP_TRANSFER":
+      return `Transfer ownership of ${rule.target} only to ${rule.counterparty}.`;
+    case "MULTICALL":
+      return `Execute exactly ${rule.childCount} committed child action${rule.childCount === 1 ? "" : "s"} on ${rule.target}.`;
+    default:
+      return `Unrecognized rule on ${rule.target}; do not execute.`;
+  }
+}
+
 function mockExpectationHolds(report: ScenarioReport): boolean {
-  // A Red-Team test passes when the recorded security outcome is the expected
-  // one: benign executes, attacks are rejected or flagged.
   return (
     report.outcome === "Success" ||
     report.outcome === "Executor Revert" ||

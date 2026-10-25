@@ -118,6 +118,7 @@ export interface WalletEdge {
   txHash: string;
   disclosed: boolean;
   simulated: boolean;
+  strength?: number;
 }
 
 export interface WalletGraphData {
@@ -231,4 +232,132 @@ export interface Proposal {
   title: string;
   scenarioId: number;
   govId: string;
+}
+
+export interface CoiLink {
+  id: string;
+  type: string;
+  from: string;
+  to: string;
+  disclosed: boolean;
+  rawStrength: number;
+  strength: number;
+  evidenceTxHashes: string[];
+  description: string;
+}
+
+export interface CoiAssessment {
+  simulated: boolean;
+  formula: string;
+  proposalId: string;
+  snapshotAt: string;
+  links: CoiLink[];
+  overallRisk: number;
+  disclosedRisk: number;
+  undisclosedRisk: number;
+  riskBand: string;
+  caveats: string[];
+  challengePayload: {
+    proposalId: string;
+    linkEvidenceHash: string;
+    reason: string;
+    canonicalEvidence: string;
+  };
+}
+
+export interface EvidenceDocument {
+  proposalId: string;
+  version: number;
+  docHash: string;
+  title: string;
+  content: string;
+  span: [number, number];
+}
+
+export interface SourceVerification {
+  status: "MATCH" | "MISMATCH";
+  expectedHash: string;
+  recomputedHash: string;
+  spanValid: boolean;
+}
+
+export interface ChainVerification {
+  valid: boolean;
+  checkedVersions: number;
+  failures: string[];
+}
+
+export interface CompiledRule {
+  kind: number;
+  kindLabel: string;
+  target: string;
+  selector: string;
+  counterparty: string;
+  maxAmount: string;
+  codeHash: string;
+  childCount: number;
+  plainEnglish: string;
+}
+
+export interface IntentConfirmation {
+  intentHash: string;
+  rulesHash: string;
+  actionsHash: string;
+  rules: CompiledRule[];
+  acceptedUnresolved: number;
+}
+
+export interface DisclosureChallenge {
+  id: string;
+  linkEvidenceHash: string;
+  reason: string;
+  filedAt: string;
+  status: "VERIFIED" | "UNVERIFIED";
+}
+
+export interface DisclosureState {
+  proposalId: string;
+  walletListHash: string;
+  interestsHash: string;
+  wallets: string[];
+  interests: string;
+  challengeOpensAt: string;
+  challengeClosesAt: string;
+  challenges: DisclosureChallenge[];
+}
+
+export interface DisclosureInput {
+  wallets: string[];
+  interests: string;
+}
+
+export interface DisclosurePreview {
+  walletListHash: string;
+  interestsHash: string;
+}
+
+export interface ActionReceipt {
+  message: string;
+  hash?: string;
+}
+
+export interface RiskBrief {
+  state: VotingState;
+  evaluation: EvaluationChain;
+  intent: IntentDraft;
+  assessment: CoiAssessment;
+  briefHash: string;
+  treasuryImpact: {
+    amount: string;
+    asset: string;
+    actionCount: number;
+  };
+}
+
+export interface AttentionItem {
+  proposal: Proposal;
+  rank: number;
+  riskScore: number;
+  reasons: string[];
+  state: string;
 }

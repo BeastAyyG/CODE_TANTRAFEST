@@ -1,5 +1,6 @@
 "use client";
 
+import { DisclosureForm } from "@/components/DisclosureForm";
 import { WalletGraph } from "@/components/WalletGraph";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatusBadge } from "@/components/ui/StatusBadge";
@@ -12,12 +13,13 @@ export default function DisclosurePage() {
     <div className="space-y-6">
       <PageHeader
         eyebrow="Disclosure & graph"
-        title="Conflict-of-interest graph"
-        description="Simulated wallet links and noisy-OR risk scoring. The interactive canvas lands in the next build; this page renders the container."
+        title="Disclosure and potential conflicts"
+        description="Publish declared interests, inspect simulated wallet links, and attach supporting transactions to a disclosure challenge."
         actions={
           <StatusBadge tone="info">proposal {proposal.id}</StatusBadge>
         }
       />
+      <DisclosureForm proposalId={proposal.id} />
       <WalletGraph proposalId={proposal.id} />
     </div>
   );

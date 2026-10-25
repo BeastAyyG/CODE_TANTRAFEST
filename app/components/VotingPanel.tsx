@@ -1,15 +1,26 @@
 "use client";
 
-import { Check, X } from "lucide-react";
+import { useState } from "react";
+import { BookOpenCheck, Check, Loader2, ShieldAlert, X } from "lucide-react";
 import { DataState } from "@/components/ui/DataState";
 import { HashChip } from "@/components/ui/HashChip";
 import { Panel } from "@/components/ui/Panel";
 import { Stat } from "@/components/ui/Stat";
 import { StatusBadge, type StatusTone } from "@/components/ui/StatusBadge";
-import { getVotingState } from "@/lib/data";
-import { formatDateTime, formatPct, formatTokenUnits } from "@/lib/format";
+import { WhyDrawer } from "@/components/ui/WhyDrawer";
+import { stageTone } from "@/components/StageCard";
+import { castVote, getRiskBrief } from "@/lib/data";
+import {
+  formatDateTime,
+  formatPct,
+  formatTokenUnits,
+} from "@/lib/format";
 import { useAsync } from "@/lib/useAsync";
-import type { VoteRecord, VotingState } from "@/lib/types";
+import type {
+  ActionReceipt,
+  RiskBrief,
+  VoteRecord,
+} from "@/lib/types";
 
 const SUPPORT: Record<number, { label: string; tone: StatusTone }> = {
   0: { label: "Against", tone: "danger" },
@@ -29,21 +40,35 @@ const STATE_TONE: Record<string, StatusTone> = {
 
 export function VotingPanel({ govId }: { govId: string }) {
   const { data, loading, error, reload } = useAsync(
-    () => getVotingState(govId),
+    () => getRiskBrief(govId),
     [govId]
   );
+  const [pending, setPending] = useState<"brief" | "without" | null>(null);
+  const [receipt, setReceipt] = useState<ActionReceipt | null>(null);
+  const [voteError, setVoteError] = useState<string | null>(null);
+
+  const vote = async (withBrief: boolean) => {
+    setPending(withBrief ? "brief" : "without");
+    setVoteError(null);
+    try {
+      setReceipt(await castVote(govId, withBrief));
+      reload();
+    } catch (cause) {
+      setVoteError(cause instanceof Error ? cause.message : String(cause));
+    } finally {
+      setPending(null);
+    }
+  };
 
   return (
     <Panel
-      title="Voting State"
-      subtitle="Voting binds to the commitment; brief acknowledgments feed the informed-vote ratio."
+      title="Informed Voting"
+      subtitle="Review the risk brief, then vote with or without a cryptographic brief acknowledgment."
       actions={
         data ? (
           <div className="flex items-center gap-2">
-            <StatusBadge tone={STATE_TONE[data.state] ?? "neutral"}>
-              {data.state}
-            </StatusBadge>
-            <StatusBadge tone="neutral">gov {data.govId}</StatusBadge>
+            <StatusBadge tone={STATE_TONE[data.state.state] ?? "neutral"}>{data.state.state}</StatusBadge>
+            <StatusBadge tone="neutral">gov {data.state.govId}</StatusBadge>
           </div>
         ) : null
       }
@@ -52,127 +77,199 @@ export function VotingPanel({ govId }: { govId: string }) {
         loading={loading}
         error={error}
         empty={!loading && !error && !data}
-        emptyMessage="No voting state for this proposal."
-        loadingLabel="Loading voting state"
+        emptyMessage="No voting state or risk brief is available for this proposal."
+        loadingLabel="Assembling voting risk brief"
         onRetry={reload}
       >
-        {data ? <VotingBody state={data} /> : null}
+        {data ? (
+          <VotingBody
+            brief={data}
+            pending={pending}
+            receipt={receipt}
+            voteError={voteError}
+            onVote={vote}
+          />
+        ) : null}
       </DataState>
     </Panel>
   );
 }
 
-function VotingBody({ state }: { state: VotingState }) {
+function VotingBody({
+  brief,
+  pending,
+  receipt,
+  voteError,
+  onVote,
+}: {
+  brief: RiskBrief;
+  pending: "brief" | "without" | null;
+  receipt: ActionReceipt | null;
+  voteError: string | null;
+  onVote: (withBrief: boolean) => void;
+}) {
+  const { state } = brief;
   const total = BigInt(state.forVotes) + BigInt(state.againstVotes) + BigInt(state.abstainVotes);
-  const share = (value: string) =>
-    total === 0n ? 0 : Number((BigInt(value) * 10000n) / total) / 100;
-
+  const share = (value: string) => total === 0n ? 0 : Number((BigInt(value) * 10000n) / total) / 100;
   const forShare = share(state.forVotes);
   const againstShare = share(state.againstVotes);
   const abstainShare = Math.max(0, 100 - forShare - againstShare);
-  const quorumProgress =
-    BigInt(state.quorum) === 0n
-      ? 0
-      : Math.min(100, Number((total * 10000n) / BigInt(state.quorum)) / 100);
+  const quorumProgress = BigInt(state.quorum) === 0n ? 0 : Math.min(100, Number((total * 10000n) / BigInt(state.quorum)) / 100);
+  const canVote = state.state === "VotingOpen" && pending === null;
 
   return (
-    <div className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        <Stat label="For" value={formatTokenUnits(state.forVotes)} tone="success" />
-        <Stat label="Against" value={formatTokenUnits(state.againstVotes)} tone="danger" />
-        <Stat label="Abstain" value={formatTokenUnits(state.abstainVotes)} />
-        <Stat
-          label="Quorum"
-          value={formatTokenUnits(state.quorum)}
-          tone={state.quorumReached ? "success" : "warning"}
-          hint={state.quorumReached ? "reached" : "not reached"}
-        />
-        <Stat label="Informed ratio" value={formatPct(state.informedRatio)} tone="info" />
-        <Stat label="Brief acks" value={state.totalBriefAcks} tone="info" />
-      </div>
+    <div className="space-y-6">
+      <section className="rounded-xl border border-cyan-900/40 bg-cyan-950/5 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-slate-100">One-page risk brief</p>
+            <p className="mt-1 text-xs text-slate-500">Advisory findings precede the deterministic execution gate.</p>
+          </div>
+          <HashChip label="briefHash" value={brief.briefHash} />
+        </div>
 
-      <div>
-        <div className="flex h-3 overflow-hidden rounded-full bg-slate-800">
-          <span
-            className="h-full bg-[#22ff88] shadow-[0_0_12px_rgba(34,255,136,0.45)]"
-            style={{ width: `${forShare}%` }}
-          />
-          <span className="h-full bg-red-500" style={{ width: `${againstShare}%` }} />
-          <span className="h-full bg-slate-600" style={{ width: `${abstainShare}%` }} />
+        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {brief.evaluation.stages.map((stage) => (
+            <article key={stage.stage} className="rounded-lg border border-slate-800 bg-slate-950/50 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.13em] text-slate-500">{stage.stage}</span>
+                <StatusBadge tone={stageTone(stage.status)}>{stage.status}</StatusBadge>
+              </div>
+              <p className="mt-3 font-mono text-xl text-slate-100">
+                {stage.stage === "EXECUTION" ? (stage.status === "GREEN" ? "MATCH" : "MISMATCH") : formatPct(stage.score)}
+              </p>
+              <p className="mt-2 text-[11px] leading-relaxed text-slate-400">{stage.reason}</p>
+              <WhyDrawer className="mt-2">
+                <div className="space-y-2">
+                  {stage.factors.map((factor) => <p key={factor.label}><span className="text-slate-300">{factor.label}: {factor.value}</span><br />{factor.detail}</p>)}
+                </div>
+              </WhyDrawer>
+            </article>
+          ))}
         </div>
-        <div className="mt-2 flex flex-wrap items-center gap-4 text-[10px] uppercase tracking-[0.12em] text-slate-500">
-          <span className="flex items-center gap-1.5">
-            <span className="status-dot text-[#22ff88]" /> for {forShare.toFixed(1)}%
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="status-dot text-red-500" /> against {againstShare.toFixed(1)}%
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="status-dot text-slate-500" /> abstain {abstainShare.toFixed(1)}%
-          </span>
-          <span className="ml-auto normal-case tracking-normal text-slate-500">
-            {formatTokenUnits(total.toString())} votes cast
-          </span>
-        </div>
-      </div>
 
-      <div>
-        <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.12em] text-slate-500">
-          <span>Quorum progress</span>
-          <span className="font-mono tabular-nums text-slate-400">
-            {quorumProgress.toFixed(1)}%
-          </span>
-        </div>
-        <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-800">
-          <span
-            className="block h-full rounded-full bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.5)]"
-            style={{ width: `${quorumProgress}%` }}
+        <div className="mt-4 grid gap-3 lg:grid-cols-3">
+          <Stat
+            label="COI finding"
+            value={`${formatPct(brief.assessment.overallRisk, 1)} ${brief.assessment.riskBand}`}
+            tone={brief.assessment.overallRisk >= 0.7 ? "danger" : "info"}
+            hint={`${brief.assessment.links.filter((link) => !link.disclosed).length} discovered links`}
+            why="Noisy-OR combines disclosed and discovered wallet-link strengths. A high score identifies a potential conflict for review, not proof of wrongdoing."
+          />
+          <Stat
+            label="Treasury impact"
+            value={`${formatTokenUnits(brief.treasuryImpact.amount, 6)} ${brief.treasuryImpact.asset}`}
+            tone="warning"
+            hint={`${brief.treasuryImpact.actionCount} compiled action${brief.treasuryImpact.actionCount === 1 ? "" : "s"}`}
+            why="Transfer upper bounds are summed in USDC base units and formatted with 6 decimals. Parameter changes do not add a token-transfer amount."
+          />
+          <Stat
+            label="Unresolved items"
+            value={brief.intent.unresolved.length}
+            tone={brief.intent.unresolved.length > 0 ? "warning" : "success"}
+            hint={brief.intent.unresolved.length > 0 ? "human review required" : "intent fully grounded"}
+            why="Unresolved count comes directly from the intent draft. These ambiguities remain visible even though this mock ballot is already open."
           />
         </div>
-      </div>
+
+        <div className="mt-3 rounded-lg border border-amber-900/40 bg-amber-950/10 p-3">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.13em] text-amber-300">Claims requiring attention</p>
+          {brief.intent.unresolved.length === 0 ? (
+            <p className="mt-2 text-xs text-slate-400">No unresolved claims in the reviewed intent.</p>
+          ) : (
+            <ul className="mt-2 space-y-1.5">{brief.intent.unresolved.map((item) => <li key={item.question} className="flex gap-2 text-xs leading-relaxed text-amber-200/80"><ShieldAlert size={12} className="mt-0.5 flex-none" />{item.question}</li>)}</ul>
+          )}
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-slate-800 bg-slate-950/40 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-slate-200">Cast a for-vote</p>
+            <p className="mt-1 text-xs text-slate-500">Only the brief-aware option increases the informed-vote ratio.</p>
+          </div>
+          <BookOpenCheck size={20} className="text-cyan-300" />
+        </div>
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+          <button
+            type="button"
+            disabled={!canVote}
+            onClick={() => onVote(true)}
+            className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg border border-emerald-800 bg-emerald-950/30 px-4 py-3 text-xs font-medium text-emerald-300 transition-colors hover:bg-emerald-950/60 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {pending === "brief" ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />} Vote with brief
+          </button>
+          <button
+            type="button"
+            disabled={!canVote}
+            onClick={() => onVote(false)}
+            className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg border border-slate-700 bg-slate-900 px-4 py-3 text-xs font-medium text-slate-300 transition-colors hover:border-slate-500 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {pending === "without" ? <Loader2 size={14} className="animate-spin" /> : <X size={14} />} Vote without brief
+          </button>
+        </div>
+        <p className="mt-2 text-[10px] text-slate-500">{state.state === "VotingOpen" ? "The mock wallet casts 100 governance tokens; the brief hash above is acknowledged only by the first option." : `Voting is ${state.state}; controls are disabled.`}</p>
+        {receipt ? <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-emerald-900/50 bg-emerald-950/20 p-3 text-xs text-emerald-300">{receipt.message}{receipt.hash ? <HashChip label="brief" value={receipt.hash} /> : null}</div> : null}
+        {voteError ? <p className="mt-3 text-xs text-red-400">{voteError}</p> : null}
+      </section>
+
+      <section className="space-y-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+          <Stat label="For" value={formatTokenUnits(state.forVotes)} tone="success" why="Total governance weight currently voting for the committed proposal, denominated in 18-decimal token units." />
+          <Stat label="Against" value={formatTokenUnits(state.againstVotes)} tone="danger" why="Total governance weight currently voting against the committed proposal." />
+          <Stat label="Abstain" value={formatTokenUnits(state.abstainVotes)} why="Weight recorded as abstain. It participates in the displayed vote total but is neither for nor against." />
+          <Stat label="Quorum" value={formatTokenUnits(state.quorum)} tone={state.quorumReached ? "success" : "warning"} hint={state.quorumReached ? "reached" : "not reached"} why={`Current total ${formatTokenUnits(total.toString())} is compared with the required ${formatTokenUnits(state.quorum)} governance weight.`} />
+          <Stat label="Informed ratio" value={formatPct(state.informedRatio)} tone="info" why="Informed for-vote weight divided by all for-vote weight. Abstentions and against votes do not enter this ratio." />
+          <Stat label="Brief acks" value={state.totalBriefAcks} tone="info" why="Number of vote records carrying a non-null briefHash acknowledgment." />
+        </div>
+
+        <VoteBar label="Vote distribution" value={`${formatTokenUnits(total.toString())} votes cast`} why="Each segment is its vote weight divided by total for + against + abstain weight.">
+          <div className="flex h-3 overflow-hidden rounded-full bg-slate-800">
+            <span className="h-full bg-[#22ff88]" style={{ width: `${forShare}%` }} />
+            <span className="h-full bg-red-500" style={{ width: `${againstShare}%` }} />
+            <span className="h-full bg-slate-600" style={{ width: `${abstainShare}%` }} />
+          </div>
+          <div className="mt-2 flex flex-wrap gap-4 text-[10px] text-slate-500"><span>for {forShare.toFixed(1)}%</span><span>against {againstShare.toFixed(1)}%</span><span>abstain {abstainShare.toFixed(1)}%</span></div>
+        </VoteBar>
+
+        <VoteBar label="Informed-vote ratio" value={formatPct(state.informedRatio, 1)} why="The cyan segment is informed for-vote weight divided by all for-vote weight; the remainder voted for without acknowledging the brief.">
+          <div className="h-2 overflow-hidden rounded-full bg-slate-800"><span className="block h-full rounded-full bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.5)]" style={{ width: `${state.informedRatio * 100}%` }} /></div>
+        </VoteBar>
+
+        <VoteBar label="Quorum progress" value={`${quorumProgress.toFixed(1)}%`} why="Total votes cast divided by required quorum, capped at 100% for display.">
+          <div className="h-2 overflow-hidden rounded-full bg-slate-800"><span className="block h-full rounded-full bg-cyan-400" style={{ width: `${quorumProgress}%` }} /></div>
+        </VoteBar>
+      </section>
 
       <div className="overflow-x-auto rounded-xl border border-slate-800">
-        <table className="w-full min-w-[620px] text-left text-sm">
+        <table className="w-full min-w-[680px] text-left text-sm">
           <thead className="bg-slate-900/70 text-[10px] uppercase tracking-[0.12em] text-slate-500">
-            <tr>
-              <th className="px-4 py-2.5 font-semibold">Voter</th>
-              <th className="px-4 py-2.5 font-semibold">Support</th>
-              <th className="px-4 py-2.5 text-right font-semibold">Weight</th>
-              <th className="px-4 py-2.5 font-semibold">Brief acknowledged</th>
-            </tr>
+            <tr><th className="px-4 py-2.5">Voter</th><th className="px-4 py-2.5">Support</th><th className="px-4 py-2.5 text-right"><span className="inline-flex items-center gap-2">Weight <WhyDrawer>Governance token weight formatted from 18-decimal base units.</WhyDrawer></span></th><th className="px-4 py-2.5">Brief acknowledged</th></tr>
           </thead>
-          <tbody>
-            {state.votes.map((vote) => (
-              <VoteRow key={vote.voter} vote={vote} />
-            ))}
-          </tbody>
+          <tbody>{state.votes.map((vote) => <VoteRow key={vote.voter} vote={vote} />)}</tbody>
         </table>
+        {state.votes.length === 0 ? <p className="p-6 text-center text-xs text-slate-500">No votes have been cast.</p> : null}
       </div>
 
       <div className="grid gap-2 sm:grid-cols-2">
-        <div className="flex flex-wrap items-center gap-2 text-[10px] text-slate-500">
-          <span>commitment</span>
-          <HashChip value={state.commitment} />
-        </div>
-        <div className="flex flex-wrap items-center gap-2 text-[10px] text-slate-500">
-          <span>actions</span>
-          <HashChip value={state.actionsHash} />
-        </div>
-        <div className="flex flex-wrap items-center gap-2 text-[10px] text-slate-500">
-          <span>intent</span>
-          <HashChip value={state.intentHash} />
-        </div>
-        <div className="flex flex-wrap items-center gap-2 text-[10px] text-slate-500">
-          <span>disclosure</span>
-          <HashChip value={state.disclosureHash} />
-        </div>
+        <HashChip label="commitment" value={state.commitment} />
+        <HashChip label="actions" value={state.actionsHash} />
+        <HashChip label="intent" value={state.intentHash} />
+        <HashChip label="disclosure" value={state.disclosureHash} />
       </div>
-
       <div className="flex flex-wrap items-center gap-4 text-[10px] text-slate-500">
-        <span>voting opens {formatDateTime(state.voteStart)}</span>
-        <span>closes {formatDateTime(state.voteEnd)}</span>
-        <span>snapshot block {state.snapshotBlock.toLocaleString("en-US")}</span>
+        <span>voting opens {formatDateTime(state.voteStart)}</span><span>closes {formatDateTime(state.voteEnd)}</span>
+        <span className="inline-flex items-center gap-2">snapshot block {state.snapshotBlock.toLocaleString("en-US")}<WhyDrawer>Voting weight is measured at this block so later token transfers cannot change a voter&apos;s weight for this proposal.</WhyDrawer></span>
       </div>
+    </div>
+  );
+}
+
+function VoteBar({ label, value, why, children }: { label: string; value: string; why: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <div className="mb-1.5 flex items-center gap-3 text-[10px] uppercase tracking-[0.12em] text-slate-500"><span>{label}</span><span className="ml-auto font-mono text-slate-400">{value}</span><WhyDrawer>{why}</WhyDrawer></div>
+      {children}
     </div>
   );
 }
@@ -180,27 +277,11 @@ function VotingBody({ state }: { state: VotingState }) {
 function VoteRow({ vote }: { vote: VoteRecord }) {
   const support = SUPPORT[vote.support] ?? SUPPORT[2];
   return (
-    <tr className="border-t border-slate-800/80 transition-colors duration-150 hover:bg-slate-900/40">
-      <td className="px-4 py-2.5">
-        <HashChip value={vote.voter} lead={8} tail={4} />
-      </td>
-      <td className="px-4 py-2.5">
-        <StatusBadge tone={support.tone}>{support.label}</StatusBadge>
-      </td>
-      <td className="px-4 py-2.5 text-right font-mono text-[11px] tabular-nums text-slate-300">
-        {formatTokenUnits(vote.weight)}
-      </td>
-      <td className="px-4 py-2.5">
-        {vote.briefHash ? (
-          <span className="inline-flex items-center gap-1 text-xs text-[#22ff88]">
-            <Check size={13} /> acknowledged
-          </span>
-        ) : (
-          <span className="inline-flex items-center gap-1 text-xs text-slate-500">
-            <X size={13} /> no brief
-          </span>
-        )}
-      </td>
+    <tr className="border-t border-slate-800/80 transition-colors hover:bg-slate-900/40">
+      <td className="px-4 py-2.5"><HashChip value={vote.voter} lead={8} tail={4} /></td>
+      <td className="px-4 py-2.5"><StatusBadge tone={support.tone}>{support.label}</StatusBadge></td>
+      <td className="px-4 py-2.5 text-right font-mono text-[11px] text-slate-300">{formatTokenUnits(vote.weight)}</td>
+      <td className="px-4 py-2.5">{vote.briefHash ? <span className="inline-flex items-center gap-1 text-xs text-[#22ff88]"><Check size={13} /> acknowledged</span> : <span className="inline-flex items-center gap-1 text-xs text-slate-500"><X size={13} /> no brief</span>}</td>
     </tr>
   );
 }
