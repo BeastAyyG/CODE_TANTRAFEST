@@ -198,6 +198,33 @@
   #atlas .link.severed .queue{opacity:1;animation:queueIn .5s ease both;}
   @keyframes queueIn{from{opacity:0;transform:translateX(-6px);}to{opacity:1;transform:none;}}
 
+  /* ---- site-wide motion ---- */
+  .ticker{overflow:hidden;border-top:1px solid var(--hair);border-bottom:1px solid var(--hair);
+    padding:7px 0;margin:4px 0 2px;animation:fade .9s ease 2.0s both;}
+  .ticker-track{display:flex;width:max-content;animation:marquee 38s linear infinite;}
+  .ticker:hover .ticker-track{animation-play-state:paused;}
+  .ticker-track span{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:8.5px;
+    letter-spacing:.18em;text-transform:uppercase;color:var(--muted);white-space:nowrap;}
+  @keyframes marquee{from{transform:translateX(0);}to{transform:translateX(-50%);}}
+
+  .progress{height:1px;background:var(--hair);margin-top:12px;position:relative;}
+  .progress span{display:block;height:1px;width:0;background:var(--red);
+    transition:width .12s linear;}
+
+  .controls{margin-top:8px;}
+  .bump{display:inline-block;animation:bump .38s ease;}
+  @keyframes bump{0%{transform:scale(1);}45%{transform:scale(1.2);color:var(--red);}
+    100%{transform:scale(1);}}
+  .topval .live.flash{animation:dotFlash .55s ease;}
+  @keyframes dotFlash{0%{box-shadow:0 0 0 0 rgba(226,59,40,.55);}
+    100%{box-shadow:0 0 0 11px rgba(226,59,40,0);}}
+
+  #atlas .ring{transition:opacity .35s ease;}
+  #atlas .island.spot .ring{opacity:.8;}
+  #atlas .island.spot{filter:saturate(1.25) brightness(1.05);}
+  .legend .row{cursor:default;transition:color .2s ease,transform .2s ease;}
+  .legend .row[data-island]:hover{color:var(--red);transform:translateX(3px);}
+
   /* plate + footer */
   .plate{position:relative;margin:6px 0 0;padding-top:9px;
     font-family:ui-monospace,Menlo,Consolas,monospace;font-size:8px;letter-spacing:.18em;
@@ -282,6 +309,8 @@
              aria-label="Isometric archipelago: a settlement island with a lighthouse and growing blocks, linked by bridges to rollup, DAO and outpost shores. Chains can degrade or go dark; bridges can sever and queue packets."></svg>
       </div>
 
+      <div class="progress" aria-hidden="true"><span id="fill"></span></div>
+
       <div class="controls">
         <button id="play" aria-label="Pause">&#10073;&#10073;</button>
         <input id="scrub" type="range" min="0" max="280" value="0" step="1"
@@ -305,15 +334,19 @@
         &mdash; so they are the only things worth watching.
       </p>
       <div class="legend">
-        <div class="row"><span class="sw" style="background:#6fae5f"></span>Settlement</div>
-        <div class="row"><span class="sw" style="background:#4f8f45"></span>Rollup</div>
+        <div class="row" data-island="settlement"><span class="sw" style="background:#6fae5f"></span>Settlement</div>
+        <div class="row" data-island="rollup"><span class="sw" style="background:#4f8f45"></span>Rollup</div>
         <div class="row"><span class="sw" style="background:#e23b28"></span>Packet / severed</div>
-        <div class="row"><span class="sw" style="background:#8cb8de"></span>Open water</div>
+        <div class="row" data-island="dao"><span class="sw" style="background:#8cb8de"></span>DAO shore</div>
         <p class="note">Drag the timeline to replay the day: bridges open, a rollup
         degrades, a link severs, a shore goes dark.</p>
       </div>
     </div>
   </main>
+
+  <div class="ticker" aria-hidden="true">
+    <div class="ticker-track"><span id="tickA"></span><span id="tickB"></span></div>
+  </div>
 
   <footer class="footer">
     <div class="col">
@@ -438,6 +471,8 @@
                P.dirt, g, 'cell', d+0.03);
       }
     }
+    E('ellipse',{ cx:cx, cy:cy, rx:A*HW*1.07, ry:B*HH*1.07, fill:'none', stroke:P.red,
+                  'stroke-width':1, 'stroke-dasharray':'3 5', opacity:0 }, g, 'ring');
     groups[cfg.id] = { g:g, iso:iso };
     return iso;
   }
@@ -704,6 +739,58 @@
     return cur;
   }
 
+  var fill = document.getElementById('fill');
+  var tickA = document.getElementById('tickA');
+  var tickB = document.getElementById('tickB');
+  var lastPhase = -1;
+  var dot = document.querySelector('.topval .live');
+  var GLYPHS = '\u2593\u2592\u2591#@%&*+=<>/\\|01';
+
+  function bumpIfChanged(el, text){
+    if (el.textContent === text) return;
+    el.textContent = text;
+    el.classList.remove('bump');
+    void el.offsetWidth;
+    el.classList.add('bump');
+  }
+
+  function scramble(el, text){
+    if (el._sc) clearInterval(el._sc);
+    var frames = 11, i = 0;
+    el._sc = setInterval(function(){
+      i++;
+      var done = Math.floor(text.length * i / frames);
+      var out = text.slice(0, done);
+      for (var k = done; k < text.length; k++){
+        out += text.charAt(k) === ' ' ? ' ' : GLYPHS.charAt((Math.random()*GLYPHS.length)|0);
+      }
+      el.textContent = out;
+      if (i >= frames){ clearInterval(el._sc); el._sc = null; el.textContent = text; }
+    }, 26);
+  }
+
+  function flashDot(){
+    if (!dot) return;
+    dot.classList.remove('flash');
+    void dot.offsetWidth;
+    dot.classList.add('flash');
+  }
+
+  function updateTicker(ph){
+    var live = 0, open = 0, sev = 0, q = 0;
+    MODEL.chains.forEach(function(c){ if ((ph.chains[c.id]||'live') !== 'dark') live++; });
+    MODEL.links.forEach(function(l){
+      var st = ph.links[l.id] || 'idle';
+      if (st === 'open') open++;
+      if (st === 'severed'){ sev++; q += 3; }
+    });
+    var seg = 'SETTLEMENT 12.4S FINALITY \u00b7 SHORES LIVE ' + live + '/4 \u00b7 LINKS OPEN ' +
+              open + ' \u00b7 SEVERED ' + sev + ' \u00b7 QUEUED ' + q + ' \u00b7 ' + ph.note + ' \u00b7 ';
+    var line = seg + seg + seg;
+    tickA.textContent = line;
+    tickB.textContent = line;
+  }
+
   function applyPhase(t){
     var ph = phaseAt(t);
     var live = 0, open = 0, queued = 0;
@@ -725,11 +812,19 @@
       if (st === 'severed') queued += 3;
     });
 
-    elLive.textContent = live + ' / 4';
-    elLinks.textContent = (open < 10 ? '0' + open : open) + ' open';
-    elState.textContent = ph.note;
-    elQueued.textContent = String(queued);
+    bumpIfChanged(elLive, live + ' / 4');
+    bumpIfChanged(elLinks, (open < 10 ? '0' + open : open) + ' open');
+    bumpIfChanged(elQueued, String(queued));
     elClock.textContent = '00:' + String(Math.floor(t)).padStart(2,'0');
+    if (fill) fill.style.width = Math.min(100, (t / MODEL.duration) * 100) + '%';
+
+    var idx = MODEL.phases.indexOf(ph);
+    if (idx !== lastPhase){
+      lastPhase = idx;
+      scramble(elState, ph.note);
+      flashDot();
+      updateTicker(ph);
+    }
   }
 
   /* ============ CLOCK + SCRUB ============ */
@@ -784,6 +879,14 @@
     p.querySelectorAll('.l > span').forEach(function(sp, i){
       sp.style.animationDelay = (1.25 + i*0.09).toFixed(3) + 's';
     });
+  });
+
+  /* legend -> island spotlight */
+  document.querySelectorAll('.legend .row[data-island]').forEach(function(row){
+    var id = row.getAttribute('data-island');
+    if (!groups[id]) return;
+    row.addEventListener('mouseenter', function(){ groups[id].g.classList.add('spot'); });
+    row.addEventListener('mouseleave', function(){ groups[id].g.classList.remove('spot'); });
   });
 
   /* parallax */
