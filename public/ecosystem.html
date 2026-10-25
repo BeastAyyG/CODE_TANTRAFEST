@@ -152,6 +152,40 @@
   #atlas .bridge-dash{animation:dash 1.6s linear infinite;}
   @keyframes dash{to{stroke-dashoffset:-16;}}
 
+  /* ---- life layer ---- */
+  #atlas .walker{animation:walkX 12s ease-in-out infinite alternate;}
+  @keyframes walkX{from{transform:translateX(-12px);}to{transform:translateX(14px);}}
+  #atlas .legA{animation:stepA .7s steps(2,end) infinite;}
+  #atlas .legB{animation:stepB .7s steps(2,end) infinite;}
+  @keyframes stepA{0%,100%{transform:translateY(0);}50%{transform:translateY(-2px);}}
+  @keyframes stepB{0%,100%{transform:translateY(-2px);}50%{transform:translateY(0);}}
+  #atlas .bell{transform-box:fill-box;transform-origin:50% 100%;
+    animation:sway 3.6s ease-in-out infinite alternate;}
+  @keyframes sway{from{transform:rotate(-3deg);}to{transform:rotate(3deg);}}
+  #atlas .tree{transform-box:fill-box;transform-origin:50% 100%;
+    animation:treeSway 4.8s ease-in-out infinite alternate;}
+  @keyframes treeSway{from{transform:rotate(-1.4deg);}to{transform:rotate(1.4deg);}}
+  #atlas .puff{animation:puffUp 3s ease-out infinite;}
+  @keyframes puffUp{0%{transform:translate(0,0);opacity:0;}18%{opacity:.85;}
+    100%{transform:translate(-9px,-44px);opacity:0;}}
+  #atlas .fly{animation:flyAcross 26s linear infinite;}
+  @keyframes flyAcross{from{transform:translate(-40px,0);}to{transform:translate(700px,-26px);}}
+  #atlas .wing{transform-box:fill-box;transform-origin:50% 100%;
+    animation:wingFlap .42s ease-in-out infinite alternate;}
+  @keyframes wingFlap{from{transform:scaleY(1);}to{transform:scaleY(.4);}}
+  #atlas .fish{animation:leap 6.5s ease-out infinite;}
+  @keyframes leap{0%{opacity:0;transform:translateY(0);}
+    6%{opacity:.95;transform:translateY(-8px);}
+    14%{opacity:0;transform:translateY(-1px);}
+    100%{opacity:0;transform:translateY(0);}}
+  #atlas .flag{transform-box:fill-box;transform-origin:0% 100%;
+    animation:flagSway 2.6s ease-in-out infinite alternate;}
+  @keyframes flagSway{from{transform:skewY(-2.5deg) scaleX(1);}
+    to{transform:skewY(2.5deg) scaleX(.92);}}
+  #atlas .wake{animation:wake 13s ease-in-out infinite alternate;}
+  @keyframes wake{from{transform:translateX(-16px);opacity:.5;}
+    to{transform:translateX(26px);opacity:.15;}}
+
   /* link states */
   #atlas .link{transition:opacity .6s ease;}
   #atlas .link .deck{transition:stroke .5s ease;}
@@ -527,6 +561,132 @@
     rect(f[0],f[1],3,3,'#f0a03c',g);
   });
 
+  /* ============ LIFE ============ */
+  function flower(iso, c, r, delay){
+    var q = iso(c,r);
+    var o = E('g',{transform:'translate('+q[0]+','+q[1]+')'},svg,'sprite',2.3);
+    var g = E('g',{},o,'bell'); g.style.animationDelay = delay + 's';
+    rect(-1,-14,2,14,'#4e8f45',g);
+    rect(1,-8,5,2,'#4e8f45',g);
+    rect(-6,-6,5,2,'#4e8f45',g);
+    rect(-4,-16,4,4,'#ffffff',g);
+    rect(1,-12,4,4,'#ffffff',g);
+    rect(-6,-9,4,4,'#ffffff',g);
+    rect(2,-15,4,1,'#4e8f45',g);
+  }
+  function tree(iso, c, r, delay){
+    var q = iso(c,r);
+    var o = E('g',{transform:'translate('+q[0]+','+q[1]+')'},svg,'sprite',2.3);
+    var g = E('g',{},o,'tree'); g.style.animationDelay = delay + 's';
+    rect(-1,-8,2,8,P.trunk,g);
+    rect(-5,-13,10,5,P.pine,g);
+    rect(-4,-17,8,4,P.pine,g);
+    rect(-2,-21,4,4,P.pineHi,g);
+  }
+  function walker(iso, c, r, delay){
+    var q = iso(c,r);
+    var o = E('g',{transform:'translate('+q[0]+','+q[1]+')'},svg,'sprite',2.35);
+    var g = E('g',{},o,'walker'); g.style.animationDelay = delay + 's';
+    rect(-3,-11,7,6,P.body,g);
+    rect(-2,-15,5,4,P.body,g);
+    rect(-1,-14,3,2,'#111110',g);
+    rect(-3,-5,2,5,'#d9d3c4',g,'legA');
+    rect(1,-5,2,5,'#d9d3c4',g,'legB');
+    rect(0,-9,1,3,P.red,g);
+  }
+  function smoke(x, y, delay){
+    for (var i=0;i<4;i++){
+      var g = E('g',{class:'puff'},svg);
+      g.style.animationDelay = (delay + i*0.5) + 's';
+      rect(x + (i%2 ? 2 : -2), y, 4, 4, '#cfc9ba', g);
+    }
+  }
+  function bird(y, delay, dur){
+    var o = E('g',{transform:'translate(40,'+y+')'},svg,'sprite',2.4);
+    var g = E('g',{},o,'fly');
+    g.style.animationDuration = dur + 's';
+    g.style.animationDelay = delay + 's';
+    E('rect',{x:-1,y:-2,width:2,height:2,fill:'#111110'},g);
+    E('rect',{x:-5,y:-1,width:4,height:1,fill:'#111110'},g,'wing');
+    E('rect',{x:1,y:-1,width:4,height:1,fill:'#111110'},g,'wing');
+  }
+  function fish(x, y, delay){
+    var g = E('g',{class:'fish'},svg);
+    g.style.animationDelay = delay + 's';
+    rect(x, y, 3, 3, '#cfe4f4', g);
+    rect(x+4, y-2, 2, 2, '#cfe4f4', g);
+  }
+  function flag(x, y, delay){
+    var o = E('g',{transform:'translate('+x+','+y+')'},svg,'sprite',2.3);
+    var g = E('g',{},o,'flag'); g.style.animationDelay = delay + 's';
+    rect(0,0,1,10,P.trunk,g);
+    E('polygon',{points:'1,0 10,2 1,5',fill:P.red},g);
+  }
+
+  /* flowers across the shores */
+  [[3.9,0.4,0],[-4.6,-1.6,0.7],[5.2,1.6,1.4],[-2.4,2.8,2.1]].forEach(function(f){
+    flower(isoMain, f[0], f[1], f[2]);
+  });
+  [[2.6,0.8,0.4],[-2.6,-0.8,1.1]].forEach(function(f){ flower(isoR, f[0], f[1], f[2]); });
+  [[-2.4,0.9,0.9],[2.2,1.0,1.6]].forEach(function(f){ flower(isoD, f[0], f[1], f[2]); });
+
+  /* trees */
+  [[-6.2,1.0,0],[-5.0,-1.2,0.5],[6.0,0.8,1.0]].forEach(function(t){
+    tree(isoMain, t[0], t[1], t[2]);
+  });
+  tree(isoD, 2.8, -1.2, 0.3);
+
+  /* figures walking the meadows */
+  walker(isoMain, -3.2, 2.6, 0);
+  walker(isoMain, 1.4, 3.4, 6);
+  walker(isoR, 0.8, 1.6, 3);
+  walker(isoD, -1.4, 1.4, 9);
+
+  /* chimney smoke */
+  var rs = isoR(-0.2, -0.2);
+  smoke(rs[0]+6, rs[1]-18, 2.4);
+  var ds = isoD(0.1, -0.1);
+  smoke(ds[0]-4, ds[1]-15, 3.0);
+
+  /* flags on the beacon and the halls */
+  var lf = isoMain(-1.4,-1.2);
+  flag(lf[0]+6, lf[1]-34, 0);
+  flag(rs[0]-11, rs[1]-17, 0.9);
+  flag(ds[0]+9, ds[1]-14, 1.6);
+
+  /* birds crossing the sky */
+  bird(96, 0, 26);
+  bird(120, 9, 31);
+  bird(78, 17, 23);
+
+  /* fish breaking the surface */
+  fish(214, 296, 0.6);
+  fish(506, 300, 3.4);
+  fish(636, 250, 5.1);
+
+  /* extra boats with wakes */
+  [[170,344,'2s'],[420,318,'8s']].forEach(function(b){
+    var w = E('g',{class:'wake'},svg); w.style.animationDelay = b[2];
+    rect(b[0]-16, b[1]+2, 14, 1, '#cfe4f4', w);
+    var g = E('g',{class:'boat'},svg); g.style.animationDelay = b[2];
+    rect(b[0], b[1], 22, 4, P.dirt, g);
+    rect(b[0]+5, b[1]-5, 2, 5, P.trunk, g);
+    rect(b[0]+7, b[1]-4, 9, 4, P.body, g);
+    rect(b[0]+7, b[1]-4, 9, 2, P.red, g);
+  });
+
+  /* more fireflies and ripples */
+  [[190,238,0.7],[420,246,1.9],[540,300,2.6],[300,352,3.4]].forEach(function(f){
+    var g = E('g',{class:'twinkle'},svg); g.style.animationDelay = f[2] + 's';
+    rect(f[0], f[1], 3, 3, '#f0a03c', g);
+  });
+  [[420,282,1.0],[200,320,3.2]].forEach(function(rp){
+    var g = E('g',{transform:'translate('+rp[0]+','+rp[1]+')'},svg,'ripple');
+    g.style.animationDelay = rp[2] + 's';
+    E('polygon',{points:'-26,0 0,13 26,0 0,-13',fill:'none',
+      stroke:'#cfe4f4','stroke-width':1.2}, g);
+  });
+
   MODEL.chains.forEach(function(c){ txt(c.lx, c.ly, c.label, svg, 7); });
 
   /* ============ STATE MACHINE ============ */
@@ -573,7 +733,7 @@
   }
 
   /* ============ CLOCK + SCRUB ============ */
-  var t = 0, playing = true, last = null, raf = null;
+  var t = 8.6, playing = true, last = null, raf = null;
   var scrub = document.getElementById('scrub');
   var playBtn = document.getElementById('play');
 
@@ -643,7 +803,8 @@
     }, {passive:true});
   }
 
-  applyPhase(0);
+  scrub.value = String(Math.round(t * 10));
+  applyPhase(t);
   raf = requestAnimationFrame(loop);
 })();
 </script>
