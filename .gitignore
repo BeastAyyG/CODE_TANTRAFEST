@@ -9,3 +9,7 @@ coverage.json
 .DS_Store
 dist/
 .next/
+*.tsbuildinfo
+*.lock
+packages/shared/fixtures/live-reports.json
+packages/shared/fixtures/execution-bundles.json

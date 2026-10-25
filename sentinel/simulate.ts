@@ -1,4 +1,4 @@
-import { ethers } from "hardhat";
+import { ethers } from "ethers";
 import {
   Action,
   ActionRule,
@@ -41,6 +41,8 @@ export interface SimulationOptions {
   signer?: any;
   gasLimit?: bigint;
   blockTag?: string;
+  /** Within the snapshot, advance EVM time to the queued proposal's ETA. */
+  warpToEta?: boolean;
 }
 
 const DEFAULT_GAS_LIMIT = 8_000_000n;
@@ -77,7 +79,10 @@ export async function simulateProposalExecution(
   accountsToMonitor: string[],
   options: SimulationOptions = {}
 ): Promise<SimulationResult> {
-  const provider = ethers.provider;
+  const provider =
+    options.signer?.provider ??
+    (ethers as any).provider ??
+    (require("hardhat") as any).ethers?.provider;
   const executorAddress = await executor.getAddress();
 
   // ── Static scan of new code introduced by the proposal ──
@@ -167,6 +172,10 @@ export async function simulateProposalExecution(
 
   try {
     snapshotId = await provider.send("evm_snapshot", []);
+
+    if (options.warpToEta && commitment) {
+      await warpSnapshotToEta(provider, executor, commitment);
+    }
 
     const preSnapshot = await captureStateSnapshot(
       provider,
@@ -364,6 +373,30 @@ function collectScanCandidates(
 
 function errorMessage(err: any): string {
   return err?.shortMessage ?? err?.reason ?? err?.message ?? String(err);
+}
+
+/**
+ * The watcher observes proposals immediately after queueing, while the real
+ * timelock is still active. Advance time only inside the snapshot so the
+ * simulation mirrors the timed execution without changing the live chain.
+ */
+async function warpSnapshotToEta(
+  provider: any,
+  executor: any,
+  commitment: string
+): Promise<void> {
+  try {
+    const [proposal, latestBlock] = await Promise.all([
+      executor.getProposal(commitment),
+      provider.getBlock("latest"),
+    ]);
+    const eta = BigInt(proposal.eta ?? 0);
+    if (eta > 0n && latestBlock && BigInt(latestBlock.timestamp) < eta) {
+      await provider.send("evm_setNextBlockTimestamp", [Number(eta + 1n)]);
+    }
+  } catch {
+    // Best effort: execution still runs against the current sandbox clock.
+  }
 }
 
 function extractRevertData(err: any): string {

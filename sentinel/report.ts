@@ -18,27 +18,10 @@ import {
   decodeRule,
   getDecoderRegistry,
 } from "./decode";
+import type { ViolationReport } from "./report-schema";
 
 export type { DecodedAction } from "./decode";
-
-export interface ViolationReport {
-  proposalId: string;
-  scenarioId: string;
-  layer: "executor" | "sentinel";
-  status: "REJECTED" | "FLAGGED" | "PASSED";
-  proposalSaid: string;
-  approved: DecodedAction[];
-  submitted: DecodedAction[];
-  violatedConstraint: { code: string; message: string };
-  evidence: {
-    commitment: string;
-    calldataHash: string;
-    calldata: string;
-    revertData: string;
-    txHash: string | null;
-    traceRef: string | null;
-  };
-}
+export type { ViolationReport } from "./report-schema";
 
 export interface ReportMeta {
   proposalId?: string;

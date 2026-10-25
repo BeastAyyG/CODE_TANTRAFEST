@@ -9,11 +9,15 @@
  */
 
 import { ethers } from "ethers";
+import fs from "node:fs";
+import path from "node:path";
+import { repoRoot } from "./backend";
 import type {
   ActionReceipt,
   ChainVerification,
   DisclosureState,
   EvaluationChain,
+  Proposal,
   VotingState,
   VersionChain,
   VersionEntry,
@@ -459,4 +463,119 @@ export async function liveSubmitDisclosure(
     );
   }
   return { message: `Disclosure submitted. Tx: ${result.hash}`, hash: result.hash };
+}
+
+/** Submit a signed disclosure using the dev signer to sign EIP-712 typed data. */
+export async function livePublishDisclosure(
+  proposalId: string,
+  walletListHash: string,
+  interestsHash: string,
+  bondAmount: bigint = 0n,
+  accountIndex = 0
+): Promise<ActionReceipt> {
+  const signer = await getDevSigner(accountIndex);
+  const dreg = getDisclosureRegistry();
+  const dregAddress = await dreg.getAddress();
+  const provider = getProvider();
+  const network = await provider.getNetwork();
+
+  const nonce: bigint = await dreg.nonces(signer.address);
+
+  const domain = {
+    name: "AegisDAO DisclosureRegistry",
+    version: "1",
+    chainId: Number(network.chainId),
+    verifyingContract: dregAddress,
+  };
+
+  const types = {
+    Disclosure: [
+      { name: "proposalId", type: "uint256" },
+      { name: "proposer", type: "address" },
+      { name: "walletListHash", type: "bytes32" },
+      { name: "interestsHash", type: "bytes32" },
+      { name: "bondAmount", type: "uint256" },
+      { name: "nonce", type: "uint256" },
+    ],
+  };
+
+  const value = {
+    proposalId: BigInt(proposalId),
+    proposer: signer.address,
+    walletListHash,
+    interestsHash,
+    bondAmount,
+    nonce,
+  };
+
+  const signature = await signer.signTypedData(domain, types, value);
+  const sig = ethers.Signature.from(signature);
+
+  return liveSubmitDisclosure(
+    proposalId,
+    signer.address,
+    walletListHash,
+    interestsHash,
+    bondAmount,
+    nonce,
+    sig.v,
+    sig.r,
+    sig.s,
+    accountIndex
+  );
+}
+
+/** Get list of proposals from chain and demo-state. */
+export async function liveGetProposals(): Promise<Proposal[]> {
+  const gov = getIntentGovernor();
+  const nextGovId = await gov.nextGovId();
+
+  let demoState: Record<string, { title: string; govId: string | null }> = {};
+  try {
+    const demoPath = path.join(
+      repoRoot(),
+      "packages",
+      "shared",
+      "fixtures",
+      "demo-state.json"
+    );
+    if (fs.existsSync(demoPath)) {
+      demoState = JSON.parse(fs.readFileSync(demoPath, "utf8"));
+    }
+  } catch {
+    // ignore
+  }
+
+  const proposals: Proposal[] = [];
+  for (let gid = 1n; gid < nextGovId; gid++) {
+    try {
+      const p = await gov.getGovProposal(gid);
+      const pidStr = p.proposalId.toString();
+      const demo = demoState[pidStr];
+      proposals.push({
+        id: pidStr,
+        label: demo?.title ? `Proposal #${pidStr} · ${demo.title}` : `Proposal #${pidStr}`,
+        title: demo?.title ?? `Proposal #${pidStr}`,
+        scenarioId: Number(pidStr),
+        govId: gid.toString(),
+      });
+    } catch {
+      // skip unreadable
+    }
+  }
+
+  // Also include any drafted proposals from demo-state that don't have govId yet
+  for (const [pidStr, demo] of Object.entries(demoState)) {
+    if (!proposals.some((pr) => pr.id === pidStr)) {
+      proposals.push({
+        id: pidStr,
+        label: `Proposal #${pidStr} · ${demo.title}`,
+        title: demo.title,
+        scenarioId: Number(pidStr),
+        govId: demo.govId ?? "",
+      });
+    }
+  }
+
+  return proposals;
 }

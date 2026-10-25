@@ -48,7 +48,7 @@ export async function haltProposal(
     persistEvidence(report, simulation);
   }
 
-  console.log(`SENTINEL GUARDIAN HALT`);
+  console.log(`SENTINEL GUARDIAN HALT (halt-only authority — no execution)`);
   console.log(`  Commitment:  ${commitment}`);
   console.log(`  Report hash: ${reportHash}`);
   console.log(`  Constraint:  ${report.violatedConstraint.code}`);

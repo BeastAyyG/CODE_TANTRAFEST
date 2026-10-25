@@ -29,14 +29,17 @@ import type {
   ErrorEntry,
   EvaluationChain,
   EvidenceDocument,
+  ForcedExecutionResult,
   IntentConfirmation,
   IntentDraft,
   Proposal,
   RiskBrief,
   ScenarioReport,
   ScorecardEntry,
+  SentinelFeed,
   SourceVerification,
   VersionChain,
+  ViolationReport,
   VotingState,
   WalletGraphData,
 } from "./types";
@@ -95,6 +98,9 @@ function liveUnavailable(feature: string): never {
 }
 
 export async function getProposals(): Promise<Proposal[]> {
+  if (DATA_MODE === "live") {
+    return fetchJson<Proposal[]>("/api/live/proposals");
+  }
   return proposalsSeed;
 }
 
@@ -539,12 +545,16 @@ export async function publishDisclosure(
   input: DisclosureInput
 ): Promise<ActionReceipt> {
   if (DATA_MODE === "live") {
-    // Disclosure publishing requires EIP-712 signing — UI must pass the signed
-    // payload; surface this as an error until the signing flow is wired up.
-    throw new Error(
-      "LIVE: submitDisclosure requires an EIP-712 signed payload from the proposer wallet. " +
-      "Use the disclosure signing flow to generate v/r/s, then call the API route directly."
-    );
+    const hashes = disclosureHashes(input);
+    return fetchJson<ActionReceipt>("/api/live/publish-disclosure", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        proposalId,
+        walletListHash: hashes.walletListHash,
+        interestsHash: hashes.interestsHash,
+      }),
+    });
   }
   await delay(350);
   const current = await getDisclosureState(proposalId);
@@ -595,20 +605,88 @@ export async function fileDisclosureChallenge(
   };
 }
 
+export async function getSentinelFeed(): Promise<SentinelFeed> {
+  return fetchJson<SentinelFeed>("/api/watcher/events");
+}
+
+export async function forceExecute(
+  commitment: string
+): Promise<ForcedExecutionResult> {
+  return fetchJson<ForcedExecutionResult>("/api/watcher/execute", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ commitment }),
+  });
+}
+
 export function getErrorCatalog(): Record<string, ErrorEntry> {
   return errorCatalog;
+}
+
+export async function getExecutionState(commitment: string): Promise<{
+  state: number;
+  stateLabel: string;
+  eta: string;
+  queuedBy: string;
+}> {
+  if (DATA_MODE === "live") {
+    return fetchJson<{
+      state: number;
+      stateLabel: string;
+      eta: string;
+      queuedBy: string;
+    }>(`/api/live/execution-state?commitment=${encodeURIComponent(commitment)}`);
+  }
+  return {
+    state: 0,
+    stateLabel: "Empty",
+    eta: new Date(0).toISOString(),
+    queuedBy: ethers.ZeroAddress,
+  };
+}
+
+export function decodeRevert(
+  revertData: string
+): { title: string; explanation: string; signature: string } {
+  if (!revertData || revertData.length < 10) {
+    return {
+      title: "UNKNOWN REVERT",
+      explanation: "Empty or invalid revert data",
+      signature: "0x",
+    };
+  }
+  const selector = revertData.slice(0, 10).toLowerCase();
+  const known = errorCatalog[selector];
+  if (known) {
+    return {
+      title: known.title,
+      explanation: known.explanation,
+      signature: known.signature,
+    };
+  }
+  return {
+    title: `UNKNOWN ERROR ${selector}`,
+    explanation: `Raw revert data: ${revertData}`,
+    signature: selector,
+  };
 }
 
 export function findErrorForReport(
   report: ScenarioReport
 ): ErrorEntry | null {
-  const code = report.violationReport.violatedConstraint.code;
+  return findErrorForViolation(report.violationReport);
+}
+
+export function findErrorForViolation(
+  report: ViolationReport
+): ErrorEntry | null {
+  const code = report.violatedConstraint.code;
   const byName = Object.values(errorCatalog).find((entry) =>
     entry.signature.startsWith(`${code}(`)
   );
   if (byName) return byName;
 
-  const selector = report.violationReport.evidence.revertData
+  const selector = report.evidence.revertData
     ?.slice(0, 10)
     .toLowerCase();
   if (selector && /^0x[0-9a-f]{8}$/.test(selector)) {

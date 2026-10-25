@@ -1,16 +1,47 @@
 "use client";
 
-import { ShieldCheck } from "lucide-react";
+import { useEffect, useRef } from "react";
+import { Radio, ShieldCheck } from "lucide-react";
 import { ActionTree } from "@/components/ActionTree";
 import { DataState } from "@/components/ui/DataState";
 import { HashChip } from "@/components/ui/HashChip";
 import { Panel } from "@/components/ui/Panel";
 import { StatusBadge, type StatusTone } from "@/components/ui/StatusBadge";
-import { findErrorForReport, getReport } from "@/lib/data";
+import {
+  findErrorForViolation,
+  getReport,
+} from "@/lib/data";
 import { useAsync } from "@/lib/useAsync";
-import type { DecodedAction, ScenarioReport } from "@/lib/types";
+import type {
+  DecodedAction,
+  ScenarioOutcome,
+  ViolationReport,
+} from "@/lib/types";
 
-export function ViolationExplainer({ scenarioId }: { scenarioId: number }) {
+export function ViolationExplainer({
+  scenarioId,
+  liveReport,
+  liveTitle,
+  autoOpen = false,
+}: {
+  scenarioId: number;
+  liveReport?: ViolationReport | null;
+  liveTitle?: string;
+  autoOpen?: boolean;
+}) {
+  if (liveReport) {
+    return (
+      <LiveExplainer
+        report={liveReport}
+        title={liveTitle ?? "Live Sentinel observation"}
+        autoOpen={autoOpen}
+      />
+    );
+  }
+  return <ScenarioViolationExplainer scenarioId={scenarioId} />;
+}
+
+function ScenarioViolationExplainer({ scenarioId }: { scenarioId: number }) {
   const { data, loading, error, reload } = useAsync(
     () => getReport(scenarioId),
     [scenarioId]
@@ -25,15 +56,74 @@ export function ViolationExplainer({ scenarioId }: { scenarioId: number }) {
       loadingLabel="Decoding calldata"
       onRetry={reload}
     >
-      {data ? <Explainer report={data} /> : null}
+      {data ? (
+        <Explainer
+          report={data.violationReport}
+          outcome={data.outcome}
+          scenarioName={data.scenarioName}
+          property={data.property}
+          scenarioId={data.scenarioId}
+        />
+      ) : null}
     </DataState>
   );
 }
 
-function Explainer({ report }: { report: ScenarioReport }) {
-  const violation = report.violationReport;
-  const errorEntry = findErrorForReport(report);
-  const isViolation = report.outcome !== "Success";
+function LiveExplainer({
+  report,
+  title,
+  autoOpen,
+}: {
+  report: ViolationReport;
+  title: string;
+  autoOpen: boolean;
+}) {
+  const outcome: ScenarioOutcome =
+    report.status === "PASSED"
+      ? "Success"
+      : report.layer === "executor"
+        ? "Executor Revert"
+        : "Sentinel Halt";
+
+  return (
+    <Explainer
+      report={report}
+      outcome={outcome}
+      scenarioName={title}
+      property="Live queue-time simulation and guardian halt"
+      scenarioId={report.scenarioId}
+      autoOpened={autoOpen}
+    />
+  );
+}
+
+function Explainer({
+  report,
+  outcome,
+  scenarioName,
+  property,
+  scenarioId,
+  autoOpened = false,
+}: {
+  report: ViolationReport;
+  outcome: ScenarioOutcome;
+  scenarioName: string;
+  property: string;
+  scenarioId: number | string;
+  autoOpened?: boolean;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const violation = report;
+  const errorEntry = findErrorForViolation(report);
+  const isViolation = report.status !== "PASSED";
+
+  useEffect(() => {
+    if (!autoOpened) return;
+    const timer = setTimeout(() => {
+      containerRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 120);
+    return () => clearTimeout(timer);
+  }, [autoOpened, report.evidence.commitment]);
 
   const layer: { tone: StatusTone; label: string } =
     violation.layer === "executor"
@@ -43,22 +133,30 @@ function Explainer({ report }: { report: ScenarioReport }) {
         : { tone: "success", label: "Executed on-chain" };
 
   return (
-    <Panel
-      danger={isViolation}
-      title={
-        <span className="flex items-center gap-2">
-          Violation Explainer
-          <StatusBadge tone="neutral">{`scenario ${report.scenarioId}`}</StatusBadge>
-        </span>
-      }
-      subtitle={`${report.scenarioName} · ${report.property}`}
-      actions={
-        <StatusBadge tone={layer.tone} pulse={isViolation}>
-          {layer.label}
-        </StatusBadge>
-      }
-    >
-      <div className="grid gap-4 lg:grid-cols-2">
+    <div ref={containerRef}>
+      <Panel
+        danger={isViolation}
+        title={
+          <span className="flex items-center gap-2">
+            Violation Explainer
+            <StatusBadge tone="neutral">{`scenario ${scenarioId}`}</StatusBadge>
+          </span>
+        }
+        subtitle={`${scenarioName} · ${property}`}
+        actions={
+          <StatusBadge tone={layer.tone} pulse={isViolation}>
+            {layer.label}
+          </StatusBadge>
+        }
+      >
+        {autoOpened ? (
+          <div className="mb-4 flex items-center gap-2 rounded-lg border border-cyan-900/50 bg-cyan-950/20 px-3 py-2 text-[11px] text-cyan-200/85">
+            <Radio size={14} className="text-cyan-300" />
+            Opened automatically by the Live Sentinel halt event.
+          </div>
+        ) : null}
+
+        <div className="grid gap-4 lg:grid-cols-2">
         <section className="rounded-xl border border-slate-800 bg-slate-950/40 p-4">
           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">
             What the proposal said
@@ -90,13 +188,13 @@ function Explainer({ report }: { report: ScenarioReport }) {
             <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">
               What the calldata actually does
             </p>
-            <StatusBadge status={report.outcome} />
+            <StatusBadge status={outcome} />
           </div>
           <div className="mt-3">
             <ActionTree
               actions={violation.submitted}
               constraintCode={violation.violatedConstraint.code}
-              outcome={report.outcome}
+              outcome={outcome}
             />
           </div>
         </section>
@@ -153,7 +251,8 @@ function Explainer({ report }: { report: ScenarioReport }) {
           </div>
         </section>
       </div>
-    </Panel>
+      </Panel>
+    </div>
   );
 }
 

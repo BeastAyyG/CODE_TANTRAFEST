@@ -162,6 +162,28 @@ export interface ContractDiagnostic {
   hasCode: boolean;
 }
 
+export interface DemoProposalCheck {
+  proposalId: string;
+  title: string;
+  govId: string | null;
+  state: string;
+  expectedCommitment: string | null;
+  actualCommitment: string | null;
+  commitmentMatch: boolean;
+  expectedVersionCount: number;
+  actualVersionCount: number;
+  versionChainMatch: boolean;
+  matched: boolean;
+  reason?: string;
+}
+
+export interface DemoStateDiagnostics {
+  checked: boolean;
+  allMatched: boolean;
+  proposals: DemoProposalCheck[];
+  reason?: string;
+}
+
 export interface ChainDiagnostics {
   rpcReachable: boolean;
   chainId: number | null;
@@ -169,6 +191,97 @@ export interface ChainDiagnostics {
   contracts: ContractDiagnostic[];
   manifestChainId: number;
   rpcUrl: string;
+  demoState: DemoStateDiagnostics;
+}
+
+export async function checkDemoStateMatchesChain(): Promise<DemoStateDiagnostics> {
+  const demoPath = path.join(repoRoot(), "packages", "shared", "fixtures", "demo-state.json");
+  if (!fs.existsSync(demoPath)) {
+    return { checked: false, allMatched: false, proposals: [], reason: "demo-state.json not found" };
+  }
+
+  let demoState: Record<
+    string,
+    {
+      title: string;
+      govId: string | null;
+      state: string;
+      commitment: string | null;
+      versionChain: string[];
+      notes: string;
+    }
+  >;
+
+  try {
+    demoState = JSON.parse(fs.readFileSync(demoPath, "utf8"));
+  } catch (err) {
+    return {
+      checked: false,
+      allMatched: false,
+      proposals: [],
+      reason: `Failed to parse demo-state.json: ${String(err)}`,
+    };
+  }
+
+  const checks: DemoProposalCheck[] = [];
+  let allMatched = true;
+
+  const reg = getProposalRegistry();
+  const gov = getIntentGovernor();
+
+  for (const [pidStr, entry] of Object.entries(demoState)) {
+    const pid = BigInt(pidStr);
+    let actualVersions: string[] = [];
+    let actualCommitment: string | null = null;
+    let versionChainMatch = false;
+    let commitmentMatch = false;
+    let reason: string | undefined;
+
+    try {
+      actualVersions = await reg.getVersionChain(pid);
+      versionChainMatch =
+        actualVersions.length === entry.versionChain.length &&
+        actualVersions.every((v, i) => v.toLowerCase() === entry.versionChain[i]?.toLowerCase());
+    } catch (err) {
+      reason = `Failed reading version chain: ${String(err)}`;
+    }
+
+    if (entry.govId !== null) {
+      try {
+        const gid = BigInt(entry.govId);
+        const p = await gov.getGovProposal(gid);
+        actualCommitment = p.commitment;
+        commitmentMatch =
+          actualCommitment !== null &&
+          entry.commitment !== null &&
+          actualCommitment.toLowerCase() === entry.commitment.toLowerCase();
+      } catch (err) {
+        reason = (reason ? reason + "; " : "") + `Failed reading gov proposal: ${String(err)}`;
+      }
+    } else {
+      commitmentMatch = entry.commitment === null;
+    }
+
+    const matched = versionChainMatch && commitmentMatch;
+    if (!matched) allMatched = false;
+
+    checks.push({
+      proposalId: pidStr,
+      title: entry.title,
+      govId: entry.govId,
+      state: entry.state,
+      expectedCommitment: entry.commitment,
+      actualCommitment,
+      commitmentMatch,
+      expectedVersionCount: entry.versionChain.length,
+      actualVersionCount: actualVersions.length,
+      versionChainMatch,
+      matched,
+      reason,
+    });
+  }
+
+  return { checked: true, allMatched, proposals: checks };
 }
 
 export async function getChainDiagnostics(): Promise<ChainDiagnostics> {
@@ -216,6 +329,21 @@ export async function getChainDiagnostics(): Promise<ChainDiagnostics> {
     // manifest missing
   }
 
+  let demoState: DemoStateDiagnostics = {
+    checked: false,
+    allMatched: false,
+    proposals: [],
+    reason: "RPC not reachable",
+  };
+
+  if (rpcReachable) {
+    try {
+      demoState = await checkDemoStateMatchesChain();
+    } catch (err) {
+      demoState = { checked: false, allMatched: false, proposals: [], reason: String(err) };
+    }
+  }
+
   return {
     rpcReachable,
     chainId,
@@ -223,6 +351,7 @@ export async function getChainDiagnostics(): Promise<ChainDiagnostics> {
     contracts,
     manifestChainId,
     rpcUrl,
+    demoState,
   };
 }
 

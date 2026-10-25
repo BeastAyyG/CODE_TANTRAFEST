@@ -1,4 +1,4 @@
-﻿/**
+/**
  * app/app/status/page.tsx
  * Diagnostics: RPC reachable, chain id, contract code presence, scorecard freshness.
  */
@@ -100,6 +100,68 @@ export default async function StatusPage() {
               <tr>
                 <td colSpan={3} style={{ color: "red" }}>
                   deployments/local.json not found or empty.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </section>
+
+      <section style={{ marginBottom: "1.5rem" }}>
+        <h2>Demo State vs Chain (demo-state.json)</h2>
+        <div style={{ marginBottom: "0.5rem" }}>
+          Overall:{" "}
+          <Badge
+            ok={diag.demoState.allMatched}
+            label={
+              diag.demoState.allMatched
+                ? "ALL MATCH"
+                : diag.demoState.checked
+                ? "MISMATCH"
+                : "UNCHECKED"
+            }
+          />
+          {diag.demoState.reason && (
+            <span style={{ marginLeft: "0.75rem", color: "#888", fontSize: "0.85rem" }}>
+              ({diag.demoState.reason})
+            </span>
+          )}
+        </div>
+        <table style={{ borderCollapse: "collapse", width: "100%" }}>
+          <thead>
+            <tr>
+              <th style={{ textAlign: "left", paddingRight: 12 }}>ID</th>
+              <th style={{ textAlign: "left", paddingRight: 12 }}>Title</th>
+              <th style={{ textAlign: "left", paddingRight: 12 }}>Gov ID</th>
+              <th style={{ textAlign: "left", paddingRight: 12 }}>Commitment</th>
+              <th style={{ textAlign: "left", paddingRight: 12 }}>Versions</th>
+              <th style={{ textAlign: "left" }}>Match</th>
+            </tr>
+          </thead>
+          <tbody>
+            {diag.demoState.proposals.map((p) => (
+              <tr key={p.proposalId}>
+                <td style={{ paddingRight: 12, paddingBottom: 4 }}>#{p.proposalId}</td>
+                <td style={{ paddingRight: 12 }}>{p.title}</td>
+                <td style={{ paddingRight: 12 }}>{p.govId ?? "—"}</td>
+                <td style={{ paddingRight: 12 }}>
+                  <Badge ok={p.commitmentMatch} label={p.commitmentMatch ? "OK" : "DIFF"} />
+                </td>
+                <td style={{ paddingRight: 12 }}>
+                  <Badge
+                    ok={p.versionChainMatch}
+                    label={p.versionChainMatch ? `${p.actualVersionCount} OK` : "FAIL"}
+                  />
+                </td>
+                <td>
+                  <Badge ok={p.matched} label={p.matched ? "MATCH" : "FAIL"} />
+                </td>
+              </tr>
+            ))}
+            {diag.demoState.proposals.length === 0 && (
+              <tr>
+                <td colSpan={6} style={{ color: "#888" }}>
+                  {diag.demoState.reason || "No proposals to check."}
                 </td>
               </tr>
             )}

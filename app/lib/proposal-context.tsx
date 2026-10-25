@@ -1,12 +1,13 @@
 "use client";
 
-import { createContext, useContext, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useMemo, useState } from "react";
 import type { Proposal } from "./types";
 
 interface ProposalContextValue {
   proposals: Proposal[];
   proposal: Proposal;
   setProposalId: (id: string) => void;
+  selectProposal: (proposal: Proposal) => void;
 }
 
 const ProposalContext = createContext<ProposalContextValue | null>(null);
@@ -19,11 +20,37 @@ export function ProposalProvider({
   children: React.ReactNode;
 }) {
   const [id, setId] = useState(proposals[0]?.id ?? "");
+  const [liveProposals, setLiveProposals] = useState<Proposal[]>([]);
+
+  const allProposals = useMemo(() => {
+    const merged = [...proposals];
+    for (const candidate of liveProposals) {
+      if (!merged.some((proposal) => proposal.id === candidate.id)) {
+        merged.push(candidate);
+      }
+    }
+    return merged;
+  }, [proposals, liveProposals]);
+
+  const selectProposal = useCallback((proposal: Proposal) => {
+    setLiveProposals((current) =>
+      current.some((item) => item.id === proposal.id)
+        ? current
+        : [...current, proposal]
+    );
+    setId(proposal.id);
+  }, []);
+
   const value = useMemo<ProposalContextValue | null>(() => {
-    const proposal = proposals.find((item) => item.id === id) ?? proposals[0];
+    const proposal = allProposals.find((item) => item.id === id) ?? allProposals[0];
     if (!proposal) return null;
-    return { proposals, proposal, setProposalId: setId };
-  }, [proposals, id]);
+    return {
+      proposals: allProposals,
+      proposal,
+      setProposalId: setId,
+      selectProposal,
+    };
+  }, [allProposals, id, selectProposal]);
 
   if (!value) return <>{children}</>;
   return (

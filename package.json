@@ -11,6 +11,8 @@
     "scorecard": "ts-node scripts/run-arena.ts",
     "deploy": "ts-node scripts/deploy.ts",
     "seed": "hardhat run scripts/seed-demo.ts --network localhost",
+    "sentinel:watch": "hardhat run sentinel/watcher.ts --network localhost",
+    "demo:attack": "hardhat run scripts/demo-attack.ts --network localhost",
     "generate:errors": "ts-node scripts/generate-errors-map.ts",
     "test:intelligence": "ts-mocha --timeout 10000 intelligence/__tests__/intelligence.test.ts"
   },

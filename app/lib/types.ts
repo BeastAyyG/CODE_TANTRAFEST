@@ -361,3 +361,92 @@ export interface AttentionItem {
   reasons: string[];
   state: string;
 }
+
+export type SentinelPhase =
+  | "QUEUED"
+  | "DECODING"
+  | "SIMULATING"
+  | "CLEAN"
+  | "VIOLATION"
+  | "HALTED"
+  | "ERROR";
+
+export interface SentinelSimulationSummary {
+  success: boolean;
+  reverted: boolean;
+  revertReason?: string;
+  staticViolations: string[];
+  diffSummary: string;
+  violationCount: number;
+  categories: string[];
+  traceSource?: string;
+  callCount?: number;
+  delegateCallCount?: number;
+  tokenTransferCount?: number;
+}
+
+export interface SentinelEvent {
+  id: string;
+  at: string;
+  phase: SentinelPhase;
+  proposalId: string;
+  govId: string | null;
+  commitment: string;
+  title: string;
+  blockNumber: number | null;
+  txHash: string | null;
+  detail: string;
+  reportHash?: string;
+  haltTxHash?: string;
+  haltBlockNumber?: number;
+  report?: ViolationReport;
+  simulation?: SentinelSimulationSummary;
+}
+
+export interface SentinelResult {
+  proposalId: string;
+  govId: string | null;
+  commitment: string;
+  title: string;
+  status: "OBSERVED" | "CLEAN" | "HALTED" | "ERROR";
+  updatedAt: string;
+  reason: string;
+  reportHash?: string;
+  haltTxHash?: string;
+  haltBlockNumber?: number;
+  report?: ViolationReport;
+  simulation?: SentinelSimulationSummary;
+}
+
+export interface SentinelWatcher {
+  status: "running" | "stopped";
+  online?: boolean;
+  pid: number;
+  startedAt: string;
+  lastHeartbeat: string;
+  lastBlock: number | null;
+  rpcUrl: string;
+  executor: string;
+  guardian: string;
+  pollIntervalMs: number;
+}
+
+export interface SentinelFeed {
+  version: 1;
+  watcher: SentinelWatcher | null;
+  events: SentinelEvent[];
+  results: Record<string, SentinelResult>;
+}
+
+export interface ForcedExecutionResult {
+  status: "reverted" | "executed";
+  label: "Rejected by executor" | "Executor accepted";
+  boundary: "executor";
+  txHash: string | null;
+  revertData: string;
+  selector: string;
+  signature: string;
+  title: string;
+  explanation: string;
+  commitment: string;
+}
