@@ -1,5 +1,8 @@
 # AegisDAO IntentLock
 
+> **Whole-project atlas (visual):** [PROJECT-ATLAS.html](docs/PROJECT-ATLAS.html) · [PDF](docs/PROJECT-ATLAS.pdf) · [PROJECT-MAP.md](docs/PROJECT-MAP.md)  
+> A standalone architecture document covering both the chain/intelligence and experience layers — not the product site.
+
 A decision-integrity console for DAO treasury proposals. A proposal passes a vote; the queued transaction does something else. IntentLock binds the vote to the exact calldata, anchors the evidence behind the proposal, surfaces conflicts of interest, and makes the executor's rejection legible.
 
 The demo proposal is **AIP-042, "Ecosystem Growth Grant — GrowthLabs × Developer Guild"**, requesting **250,000 USDC**. The committed intent authorizes two one-time transfers and a bounded allowance. The queued transaction is an uncommitted `upgradeTo(maliciousImpl)` on the treasury proxy. The reference executor rejects it with `SelectorNotAuthorized`.

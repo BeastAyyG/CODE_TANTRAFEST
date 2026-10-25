@@ -5,6 +5,8 @@ what is blocked, and where the detail lives.
 
 Last verified: **2026-10-25**. Everything below was executed, not asserted.
 
+> **Whole-project view:** this file describes Person B's experience workspace. Person A's contracts and intelligence modules live on the public `main` branch and are **not merged** here. The visual atlas covers both halves and the integration gap: [PROJECT-ATLAS.html](PROJECT-ATLAS.html) · [PDF](PROJECT-ATLAS.pdf) · [PROJECT-MAP.md](PROJECT-MAP.md).
+
 ---
 
 ## 1. What this is
