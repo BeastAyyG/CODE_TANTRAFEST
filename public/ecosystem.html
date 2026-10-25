@@ -1,0 +1,527 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="description" content="The Archipelago — a blockchain imagined as a sea of shores: one settlement, many rollups, bridges carrying packets between them." />
+<meta name="color-scheme" content="light" />
+<meta name="theme-color" content="#f2efe7" />
+<title>The Archipelago — Aegis Atlas</title>
+<style>
+  :root{
+    --paper:#f2efe7;
+    --ink:#111110;
+    --red:#e23b28;
+    --muted:#8b857a;
+    --hair:#d8d3c6;
+    --ghost:#ffffff;
+    --mx:0;
+    --my:0;
+    color-scheme:light;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:"Helvetica Neue",Helvetica,Arial,system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+    overflow-x:hidden;
+  }
+  .mono{font-family:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;}
+  .label{
+    font-family:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
+    font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);
+    transition:color .25s ease;
+  }
+  .sheet{
+    position:relative;min-height:100vh;
+    padding:32px 46px 26px 92px;
+    display:flex;flex-direction:column;
+  }
+
+  /* curtain */
+  .curtain{position:fixed;inset:0;z-index:90;background:var(--red);
+           display:grid;place-items:center;pointer-events:none;
+           animation:wipe .8s cubic-bezier(.77,0,.18,1) .25s forwards;}
+  .curtain-mark{color:var(--paper);font-size:clamp(20px,3vw,40px);font-weight:700;
+                letter-spacing:.34em;text-indent:.34em;animation:mark .45s ease both;}
+  @keyframes wipe{to{transform:translateY(-101%);}}
+  @keyframes mark{from{opacity:0;letter-spacing:.5em;}to{opacity:1;letter-spacing:.34em;}}
+
+  .grain{position:fixed;inset:-40px;z-index:80;pointer-events:none;opacity:.05;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='2'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+    transform:translateZ(0);}
+
+  /* rails */
+  .rail{position:absolute;left:24px;top:32px;bottom:26px;width:44px;
+        display:flex;flex-direction:column;align-items:center;z-index:4;}
+  .wordmark{writing-mode:vertical-rl;transform:rotate(180deg);
+            font-size:14px;font-weight:700;letter-spacing:.3em;}
+  .rail-rule{width:1px;flex:1;background:var(--hair);margin:14px 0;transform-origin:top;
+             animation:grow 1s cubic-bezier(.77,0,.18,1) .95s both;}
+  @keyframes grow{from{transform:scaleY(0);}to{transform:scaleY(1);}}
+  .rail-meta{writing-mode:vertical-rl;transform:rotate(180deg);
+             font-family:ui-monospace,Menlo,Consolas,monospace;
+             font-size:8px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);}
+  .rail-r{position:absolute;right:22px;top:32px;bottom:26px;width:44px;
+          display:flex;flex-direction:column;align-items:center;gap:16px;z-index:4;}
+  .rail-r .dot{width:7px;height:7px;border-radius:50%;background:var(--red);
+               animation:pulse 2.4s ease-in-out 2.2s infinite;}
+  .rail-r .est{writing-mode:vertical-rl;transform:rotate(180deg);
+               font-family:ui-monospace,Menlo,Consolas,monospace;
+               font-size:8px;letter-spacing:.24em;text-transform:uppercase;color:var(--muted);}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.25;}}
+
+  /* top */
+  .topbar{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:20px;align-items:start;
+          animation:fade .9s ease .85s both;}
+  .menu a{display:block;font-size:10.5px;line-height:1.78;letter-spacing:.07em;
+          text-transform:uppercase;color:var(--ink);text-decoration:none;position:relative;
+          width:max-content;}
+  .menu a::before{content:"";position:absolute;left:-14px;top:calc(50% - .5px);
+                  width:0;height:1px;background:var(--red);transition:width .3s ease;}
+  .menu a:hover{color:var(--red);}
+  .menu a:hover::before{width:10px;}
+  .menu-title{margin-bottom:7px;}
+  .topval{margin:6px 0 0;font-family:ui-monospace,Menlo,Consolas,monospace;
+          font-size:10.5px;letter-spacing:.05em;display:flex;align-items:center;gap:7px;}
+  .topval .live{width:6px;height:6px;border-radius:50%;background:var(--red);
+                animation:pulse 2.4s ease-in-out 2.2s infinite;flex:0 0 auto;}
+  .right{text-align:right;}
+  .right .topval{justify-content:flex-end;}
+  @keyframes fade{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
+
+  /* hero */
+  .hero{position:relative;flex:1;display:grid;
+        grid-template-columns:minmax(0,1.55fr) minmax(250px,.8fr);
+        align-items:center;gap:26px;padding:22px 0 14px;}
+
+  .scene{position:relative;transform:translate(calc(var(--mx)*8px),calc(var(--my)*5px));}
+  .scene-in{animation:fade 1s ease 1.0s both;width:100%;}
+  #atlas{width:100%;height:auto;display:block;}
+
+  .lede{margin:0 0 18px;font-size:clamp(15px,1.5vw,21px);line-height:1.16;font-weight:700;
+        letter-spacing:-.01em;text-transform:uppercase;color:var(--red);}
+  .lede .l{display:block;overflow:hidden;}
+  .lede .l>span{display:block;transform:translateY(112%);animation:rise .85s cubic-bezier(.2,.75,.2,1) both;}
+  @keyframes rise{to{transform:translateY(0);}}
+  .body{margin:0 0 20px;font-size:11.5px;line-height:1.62;color:#3f3b34;max-width:34ch;
+        animation:fade .9s ease 1.7s both;}
+  .legend{border-top:1px solid var(--hair);padding-top:12px;animation:fade .9s ease 1.85s both;}
+  .legend .row{display:flex;align-items:center;gap:9px;margin-bottom:7px;
+               font-family:ui-monospace,Menlo,Consolas,monospace;
+               font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#3f3b34;}
+  .sw{width:9px;height:9px;flex:0 0 auto;}
+  .legend .note{margin-top:10px;font-family:ui-monospace,Menlo,Consolas,monospace;
+                font-size:8.5px;letter-spacing:.06em;color:var(--muted);line-height:1.6;}
+
+  /* island animations */
+  #atlas .cell{transform-box:fill-box;transform-origin:center;shape-rendering:crispEdges;
+               animation:pop .5s cubic-bezier(.2,1.4,.4,1) both;}
+  @keyframes pop{from{transform:scale(0);}to{transform:scale(1);}}
+  #atlas .sprite{animation:spriteIn .7s ease both;}
+  @keyframes spriteIn{from{opacity:0;}to{opacity:1;}}
+  #atlas .beam{transform-box:fill-box;transform-origin:0% 100%;
+               animation:sweep 9s ease-in-out infinite alternate;}
+  @keyframes sweep{from{transform:rotate(-52deg);opacity:.05;}to{transform:rotate(52deg);opacity:.16;}}
+  #atlas .block{transform-box:fill-box;transform-origin:center;
+                animation:chain 7s ease-in-out infinite;}
+  @keyframes chain{0%{opacity:0;transform:translateY(5px) scale(.6);}
+                   12%{opacity:1;transform:none;}
+                   82%{opacity:1;transform:none;}
+                   100%{opacity:0;transform:translateY(-3px);}}
+  #atlas .packet{animation:cross 4.4s linear infinite;}
+  @keyframes cross{from{opacity:0;}8%{opacity:1;}92%{opacity:1;}to{opacity:0;}}
+  #atlas .puff{animation:puff 2.8s ease-out infinite;}
+  @keyframes puff{0%{transform:translate(0,0);opacity:0;}16%{opacity:.95;}
+                  100%{transform:translate(-7px,-46px);opacity:0;}}
+  #atlas .cloud{animation:drift 30s ease-in-out infinite alternate;}
+  @keyframes drift{from{transform:translateX(-20px);}to{transform:translateX(28px);}}
+  #atlas .ripple{transform-box:fill-box;transform-origin:center;
+                 animation:ripple 4.6s ease-out infinite;}
+  @keyframes ripple{0%{transform:scale(.35);opacity:.55;}100%{transform:scale(2.1);opacity:0;}}
+  #atlas .shimmer{animation:shimmer 3.6s steps(2,end) infinite;}
+  @keyframes shimmer{0%,100%{opacity:.4;}50%{opacity:.95;}}
+  #atlas .boat{animation:bob 13s ease-in-out infinite alternate;}
+  @keyframes bob{from{transform:translateX(-16px);}to{transform:translateX(26px);}}
+  #atlas .twinkle{animation:twinkle 3.4s ease-in-out infinite, driftY 8s ease-in-out infinite alternate;}
+  @keyframes twinkle{0%,100%{opacity:.12;}50%{opacity:1;}}
+  @keyframes driftY{from{transform:translate(0,0);}to{transform:translate(5px,-8px);}}
+  #atlas .bridge-dash{animation:dash 1.6s linear infinite;}
+  @keyframes dash{to{stroke-dashoffset:-16;}}
+
+  /* plate + footer */
+  .plate{position:relative;margin:2px 0 0;padding-top:9px;
+         font-family:ui-monospace,Menlo,Consolas,monospace;
+         font-size:8px;letter-spacing:.18em;text-transform:uppercase;
+         color:var(--muted);text-align:center;animation:fade .8s ease 2.3s both;}
+  .plate::before{content:"";position:absolute;left:0;right:0;top:0;height:1px;
+                 background:var(--hair);transform:scaleX(0);transform-origin:center;
+                 animation:ruleIn .9s cubic-bezier(.77,0,.18,1) 2.35s both;}
+  @keyframes ruleIn{to{transform:scaleX(1);}}
+
+  .footer{display:grid;grid-template-columns:1.1fr 1fr 1.15fr .8fr;gap:24px;
+          border-top:1px solid var(--hair);padding-top:13px;}
+  .col{animation:fade .9s ease both;}
+  .col:nth-child(1){animation-delay:1.65s;}
+  .col:nth-child(2){animation-delay:1.75s;}
+  .col:nth-child(3){animation-delay:1.85s;}
+  .col:nth-child(4){animation-delay:1.95s;}
+  .col .label{margin-bottom:8px;}
+  .col:hover .label{color:var(--red);}
+  .col p{margin:0;font-family:ui-monospace,Menlo,Consolas,monospace;
+         font-size:9px;line-height:1.7;color:var(--ink);}
+  .col p span{color:var(--muted);transition:color .25s ease;}
+  .col:hover p span{color:var(--ink);}
+  .col p b{font-weight:600;}
+
+  @media (max-width:1080px){
+    .sheet{padding:26px 24px 24px 74px;}
+    .rail-r{display:none;}
+    .topbar{grid-template-columns:1fr 1fr;row-gap:16px;}
+    .hero{grid-template-columns:1fr;gap:20px;}
+    .footer{grid-template-columns:1fr 1fr;row-gap:16px;}
+  }
+  @media (max-width:620px){
+    .sheet{padding:22px 16px 20px 60px;}
+    .rail{left:14px;}
+    .footer{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+
+<div class="curtain" aria-hidden="true"><div class="curtain-mark">ARCHIPELAGO</div></div>
+<div class="grain" aria-hidden="true"></div>
+
+<div class="sheet">
+
+  <div class="rail">
+    <div class="wordmark">ATLAS</div>
+    <div class="rail-rule"></div>
+    <div class="rail-meta">Fig.&nbsp;02&nbsp;·&nbsp;Shores</div>
+  </div>
+
+  <div class="rail-r" aria-hidden="true">
+    <div class="dot"></div>
+    <div class="est">Live&nbsp;map</div>
+  </div>
+
+  <header class="topbar">
+    <div class="menu">
+      <div class="label menu-title">Menu</div>
+      <a href="#">Atlas</a>
+      <a href="#">Chains</a>
+      <a href="#">Bridges</a>
+      <a href="#">Docs</a>
+    </div>
+    <div>
+      <div class="label">Finality</div>
+      <p class="topval"><span class="live"></span>12.4 s</p>
+    </div>
+    <div>
+      <div class="label">Bridges</div>
+      <p class="topval">03 active</p>
+    </div>
+    <div class="right">
+      <div class="label">Figure</div>
+      <p class="topval">Fig. 02</p>
+    </div>
+  </header>
+
+  <main class="hero">
+    <div class="scene">
+      <div class="scene-in">
+        <svg id="atlas" viewBox="0 0 760 430" role="img"
+             aria-label="Isometric archipelago: a settlement island with a sweeping lighthouse and growing blocks, joined by bridges to a rollup and a DAO island, with packets crossing the water"></svg>
+      </div>
+      <p class="plate">Fig. 02 &middot; The archipelago &mdash; generated in code</p>
+    </div>
+
+    <div>
+      <p class="lede">
+        <span class="l"><span>A chain is not</span></span>
+        <span class="l"><span>a line. It is</span></span>
+        <span class="l"><span>a place.</span></span>
+      </p>
+      <p class="body">
+        One settlement anchors the sea. Rollups keep their own shores, close enough to
+        trade and far enough to fail alone. Bridges are the only things that touch
+        both — so they are the only things worth watching.
+      </p>
+      <div class="legend">
+        <div class="row"><span class="sw" style="background:#6fae5f"></span>Settlement</div>
+        <div class="row"><span class="sw" style="background:#4f8f45"></span>Rollup</div>
+        <div class="row"><span class="sw" style="background:#e23b28"></span>Bridge packet</div>
+        <div class="row"><span class="sw" style="background:#8cb8de"></span>Open water</div>
+        <p class="note">Each island is generated from an ellipse mask and painted cell by
+        cell. Bridges draw themselves, packets cross on their own clocks.</p>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="col">
+      <div class="label">Shores</div>
+      <p>Settlement <b>01</b><br/>Rollups <b>02</b><br/>Outposts <b>01</b><br/>Bridges <b>03</b></p>
+    </div>
+    <div class="col">
+      <div class="label">Traffic</div>
+      <p>Packets <b>live</b><br/>Round trip <b>4.4 s</b><br/>Dropped <b>0</b><br/>Reorgs <b>0</b></p>
+    </div>
+    <div class="col">
+      <div class="label">Reading</div>
+      <p><span>settle</span> 0x6a72…<br/><span>rollup</span> 0x3c20…<br/><span>dao</span> 0x7e4b…<br/><span>bridge</span> 0x1176…</p>
+    </div>
+    <div class="col">
+      <div class="label">Note</div>
+      <p>An illustration,<br/>not a network.<br/><span>No chain is<br/>actually wired.</span></p>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+(function(){
+  var svg = document.getElementById('atlas');
+  var NS = 'http://www.w3.org/2000/svg';
+  function E(name, attrs, parent, cls, delay){
+    var n = document.createElementNS(NS, name);
+    for (var k in attrs) n.setAttribute(k, attrs[k]);
+    if (cls) n.setAttribute('class', cls);
+    if (delay != null) n.style.animationDelay = delay.toFixed(2) + 's';
+    (parent || svg).appendChild(n);
+    return n;
+  }
+  function rect(x,y,w,h,fill,parent,cls,delay){
+    return E('rect',{x:x,y:y,width:w,height:h,fill:fill},parent,cls,delay);
+  }
+  function poly(pts,fill,parent,cls,delay){
+    return E('polygon',{points:pts.map(function(p){return p.join(',');}).join(' ')},parent,cls,delay);
+  }
+  function txt(x,y,str,parent,fill,size,anchor){
+    var t = E('text',{x:x,y:y,fill:fill||'#8b857a','font-size':size||7,
+      'font-family':'ui-monospace,Menlo,monospace','letter-spacing':'.12em',
+      'text-anchor':anchor||'middle'},parent);
+    t.textContent = str;
+    return t;
+  }
+
+  var HW = 8, HH = 4, SIDE = 16;
+  var P = {
+    grass:['#7bb86a','#6fae5f','#8ac47a'],
+    grassB:['#6aa85c','#5f9d52','#74b366'],
+    dirt:'#7a5a3a', dirt2:'#6a4c30',
+    water:'#a6cbe8', water2:'#8cb8de', deep:'#79a9d2',
+    ink:'#111110', body:'#f2efe7', red:'#e23b28',
+    pine:'#3f7d3a', pineHi:'#4f8f45', trunk:'#6a4c30',
+    stone:'#cfc9ba', stone2:'#b8b1a1',
+    cloud:'#ded8c8'
+  };
+
+  /* ---------- islands ---------- */
+  function island(cx, cy, A, B, opts){
+    opts = opts || {};
+    var cols = opts.cool ? P.grassB : P.grass;
+    var iso = function(c,r){ return [cx + (c-r)*HW, cy + (c+r)*HH]; };
+    var inside = function(c,r,a,b){ var x=c/(a||A), y=r/(b||B); return x*x+y*y <= 1; };
+    var base = opts.delay || 1.1;
+
+    /* water ring */
+    for (var c=-Math.ceil(A+3); c<=Math.ceil(A+3); c++){
+      for (var r=-Math.ceil(B+3); r<=Math.ceil(B+3); r++){
+        if (!inside(c,r,A+2.6,B+2.6)) continue;
+        if (inside(c,r,A+0.5,B+0.5)) continue;
+        var w = iso(c,r);
+        var deep = !inside(c,r,A+1.5,B+1.5);
+        var sh = ((c*7+r*13)%9)===0;
+        poly([[w[0],w[1]-HH],[w[0]+HW,w[1]],[w[0],w[1]+HH],[w[0]-HW,w[1]]],
+             deep?P.deep:(sh?P.water2:P.water), svg, 'cell'+(sh?' shimmer':''),
+             base + (Math.abs(c)+Math.abs(r))*0.02);
+      }
+    }
+    /* land */
+    for (var c2=-Math.ceil(A); c2<=Math.ceil(A); c2++){
+      for (var r2=-Math.ceil(B); r2<=Math.ceil(B); r2++){
+        if (!inside(c2,r2)) continue;
+        var t = iso(c2,r2);
+        var h = ((c2*73+r2*151)%7+7)%7;
+        var d = base + 0.15 + Math.hypot(c2/A, r2/B)*0.34;
+        poly([[t[0],t[1]-HH],[t[0]+HW,t[1]],[t[0],t[1]+HH],[t[0]-HW,t[1]]],
+             cols[h%3], svg, 'cell', d);
+        if (!inside(c2+1,r2))
+          poly([[t[0]+HW,t[1]],[t[0],t[1]+HH],[t[0],t[1]+HH+SIDE],[t[0]+HW,t[1]+SIDE]],
+               P.dirt2, svg, 'cell', d+0.03);
+        if (!inside(c2,r2+1))
+          poly([[t[0]-HW,t[1]],[t[0],t[1]+HH],[t[0],t[1]+HH+SIDE],[t[0]-HW,t[1]+SIDE]],
+               P.dirt, svg, 'cell', d+0.03);
+      }
+    }
+    return iso;
+  }
+
+  /* ---------- settlement: lighthouse + growing chain ---------- */
+  var isoMain = island(372, 232, 8.2, 5.1, {delay:1.05});
+
+  var lh = isoMain(-1.4, -1.2);
+  var gL = E('g',{transform:'translate('+lh[0]+','+lh[1]+')'},svg,'sprite',1.85);
+  /* beam first so the tower sits on top of it */
+  poly([[0,-34],[86,-64],[86,-4]], P.red, gL, 'beam', 2.0);
+  rect(-7,-30,14,6,P.stone,gL);      /* gallery */
+  rect(-5,-24,10,24,P.stone2,gL);    /* tower */
+  rect(-6,-12,12,4,P.body,gL);       /* stripe */
+  rect(-3,-32,6,5,P.red,gL);         /* lamp */
+  rect(-9,0,18,3,P.stone,gL);        /* base */
+
+  /* blocks stacking beside the tower */
+  [[3.2,-1.4,0],[3.2,-0.6,0.9],[3.2,0.2,1.8],[3.2,1.0,2.7]].forEach(function(b){
+    var bp = isoMain(b[0], b[1]);
+    var g = E('g',{transform:'translate('+bp[0]+','+bp[1]+')'},svg,'sprite',1.9);
+    var inner = E('g',{},g,'block');
+    inner.style.animationDelay = (2.0 + b[2]) + 's';
+    rect(-7,-9,14,7,P.body,inner);
+    rect(-7,-9,14,2,P.stone,inner);
+    rect(-5,-6,3,2,P.red,inner);
+    rect(0,-6,4,1,P.stone2,inner);
+  });
+
+  /* ---------- rollup island ---------- */
+  var isoR = island(158, 176, 4.6, 2.9, {cool:true, delay:1.35});
+  var rl = isoR(0.2, -0.2);
+  var gR = E('g',{transform:'translate('+rl[0]+','+rl[1]+')'},svg,'sprite',2.05);
+  rect(-10,-16,20,16,P.body,gR);
+  rect(-10,-16,20,3,P.red,gR);
+  rect(-7,-12,5,4,P.stone,gR);
+  rect(0,-12,5,4,P.stone,gR);
+  rect(-6,-4,12,4,P.stone2,gR);
+  [[-3.2,0.6],[2.6,1.0]].forEach(function(t){
+    var tp = isoR(t[0],t[1]);
+    var g = E('g',{transform:'translate('+tp[0]+','+tp[1]+')'},svg,'sprite',2.1);
+    rect(-1,-7,2,7,P.trunk,g);
+    rect(-4,-11,8,4,P.pine,g);
+    rect(-3,-15,6,4,P.pineHi,g);
+  });
+
+  /* ---------- DAO island ---------- */
+  var isoD = island(604, 190, 4.1, 2.7, {cool:true, delay:1.5});
+  var dl = isoD(0.1, -0.1);
+  var gD = E('g',{transform:'translate('+dl[0]+','+dl[1]+')'},svg,'sprite',2.15);
+  rect(-9,-13,18,13,P.body,gD);
+  rect(-9,-13,18,3,P.stone,gD);
+  rect(-4,-10,8,7,P.body,gD);
+  rect(-4,-10,8,1,P.red,gD);
+  rect(-1,-6,2,3,P.stone2,gD);
+  var dd = isoD(1.6, 1.2);
+  var gD2 = E('g',{transform:'translate('+dd[0]+','+dd[1]+')'},svg,'sprite',2.2);
+  rect(-6,-4,12,4,P.stone,gD2);
+  rect(-4,-8,8,4,P.stone2,gD2);
+
+  /* ---------- outpost ---------- */
+  var isoO = island(636, 330, 2.7, 1.8, {cool:true, delay:1.65});
+  var ol = isoO(0,0);
+  var gO = E('g',{transform:'translate('+ol[0]+','+ol[1]+')'},svg,'sprite',2.25);
+  rect(-5,-9,10,9,P.body,gO);
+  rect(-5,-9,10,2,P.red,gO);
+  rect(-2,-5,4,5,P.stone,gO);
+
+  /* ---------- bridges ---------- */
+  var bridges = [
+    { from: isoMain(-6.4, 1.2), to: isoR(3.6, 0.6), delay: 2.0, dur: 3.6 },
+    { from: isoMain(6.2, -1.4), to: isoD(-3.2, 0.8), delay: 2.2, dur: 4.4 },
+    { from: isoMain(5.4, 3.4),  to: isoO(-1.4, -0.6), delay: 2.4, dur: 4.0 }
+  ];
+  bridges.forEach(function(b){
+    var x1=b.from[0], y1=b.from[1], x2=b.to[0], y2=b.to[1];
+    var midY = Math.min(y1,y2) - 14;
+    E('path',{ d:'M'+x1+' '+y1+' Q'+((x1+x2)/2)+' '+midY+' '+x2+' '+y2,
+               fill:'none', stroke:'#b8b1a1', 'stroke-width':3, 'stroke-linecap':'round' },
+      svg, 'sprite', b.delay);
+    E('path',{ d:'M'+x1+' '+y1+' Q'+((x1+x2)/2)+' '+midY+' '+x2+' '+y2,
+               fill:'none', stroke:P.red, 'stroke-width':1, 'stroke-dasharray':'4 12',
+               'stroke-linecap':'round' },
+      svg, 'bridge-dash', b.delay + 0.2);
+
+    /* packets: two per bridge, opposite directions */
+    for (var i=0;i<2;i++){
+      var fwd = i === 0;
+      var g = E('g',{ class:'packet' }, svg);
+      g.style.animationDuration = b.dur + 's';
+      g.style.animationDelay = (b.delay + 0.4 + i*b.dur/2) + 's';
+      if (!fwd) g.setAttribute('transform','translate('+x2+','+y2+')');
+      else g.setAttribute('transform','translate('+x1+','+y1+')');
+      var inner = E('g',{},g);
+      rect(-3,-3,6,6, P.red, inner);
+      var dx = (fwd ? x2-x1 : x1-x2), dy = (fwd ? y2-y1 : y1-y2);
+      inner.animate(
+        [{ transform:'translate(0px,0px)' }, { transform:'translate('+dx+'px,'+dy+'px)' }],
+        { duration: b.dur*1000, delay: (b.delay+0.4+i*b.dur/2)*1000,
+          iterations: Infinity, easing:'linear' }
+      );
+    }
+  });
+
+  /* ---------- ambience ---------- */
+  [[300,300,0],[120,262,1.4],[560,268,2.8]].forEach(function(rp){
+    var g = E('g',{transform:'translate('+rp[0]+','+rp[1]+')'},svg,'ripple');
+    g.style.animationDelay = rp[2] + 's';
+    poly([[-26,0],[0,13],[26,0],[0,-13]],'none',g);
+    g.lastChild.setAttribute('stroke','#cfe4f4');
+    g.lastChild.setAttribute('stroke-width','1.2');
+  });
+
+  [[52,300,'0s'],[300,364,'5s']].forEach(function(b){
+    var g = E('g',{class:'boat'},svg);
+    g.style.animationDelay = b[2];
+    rect(b[0], b[1], 24, 4, P.dirt, g);
+    rect(b[0]+6, b[1]-6, 2, 6, P.trunk, g);
+    rect(b[0]+8, b[1]-5, 10, 5, P.body, g);
+    rect(b[0]+8, b[1]-5, 10, 2, P.red, g);
+  });
+
+  [[70,54,0],[300,40,9],[520,66,17]].forEach(function(cl){
+    var g = E('g',{class:'cloud'},svg);
+    g.style.animationDelay = cl[2] + 's';
+    rect(cl[0], cl[1], 40, 6, P.cloud, g);
+    rect(cl[0]+9, cl[1]-5, 22, 5, P.cloud, g);
+    rect(cl[0]+4, cl[1]+6, 30, 4, P.cloud, g);
+  });
+
+  [[262,196,0],[470,214,1.2],[330,286,2.4],[596,246,3.1]].forEach(function(f){
+    var g = E('g',{class:'twinkle'},svg);
+    g.style.animationDelay = f[2] + 's';
+    rect(f[0], f[1], 3, 3, '#f0a03c', g);
+  });
+
+  /* island labels */
+  [['SETTLEMENT',372,318],['ROLLUP',158,232],['DAO',604,244],['OUTPOST',636,372]]
+    .forEach(function(l){ txt(l[1], l[2], l[0], svg, '#8b857a', 7); });
+
+  /* lede line stagger */
+  document.querySelectorAll('.lede').forEach(function(p, pi){
+    p.querySelectorAll('.l > span').forEach(function(sp, i){
+      sp.style.animationDelay = (1.25 + pi*0.3 + i*0.09).toFixed(3) + 's';
+    });
+  });
+
+  /* pointer parallax */
+  if (window.matchMedia('(pointer: fine)').matches) {
+    var tx=0,ty=0,cx=0,cy=0,raf=null;
+    function tick(){
+      cx += (tx-cx)*0.08; cy += (ty-cy)*0.08;
+      document.documentElement.style.setProperty('--mx', cx.toFixed(4));
+      document.documentElement.style.setProperty('--my', cy.toFixed(4));
+      if (Math.abs(tx-cx)>0.001 || Math.abs(ty-cy)>0.001) raf = requestAnimationFrame(tick);
+      else raf = null;
+    }
+    window.addEventListener('mousemove', function(e){
+      tx = (e.clientX/window.innerWidth)-0.5;
+      ty = (e.clientY/window.innerHeight)-0.5;
+      if (!raf) raf = requestAnimationFrame(tick);
+    }, {passive:true});
+  }
+})();
+</script>
+</body>
+</html>
