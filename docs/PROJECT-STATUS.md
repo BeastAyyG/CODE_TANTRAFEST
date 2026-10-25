@@ -29,14 +29,14 @@ Runs fully offline — no chain, no network, no live model.
 
 | Check | Command | Result |
 | :--- | :--- | :--- |
-| Tests | `npm test` | **52 passing** in 8 files |
+| Tests | `npm test` | **57 passing** in 9 files |
 | Scorecard | `npm run scorecard` | **25 PASS · 0 FAIL · 9 TEST_REQUIRED** (34 entries) |
 | Types | `npm run typecheck` | clean |
 | Lint | `npm run lint` | clean |
 | Build | `npm run build` | **passes** — 21 pages, all 11 `/arena/*` prerendered |
 | Demo consistency | `npm run demo:check` | 11/11 scenarios match expected |
 | Arena CLI | `npm run arena -- 3` | prints `REJECTED SelectorNotAuthorized` step by step |
-| Routes | `npm run dev` | 7 routes, all 200 |
+| Routes | `npm run dev` | 7 app routes + `/present` + 11 reports, all 200 |
 
 Headline numbers, computed live (nothing is hardcoded in the UI):
 
@@ -80,6 +80,7 @@ The single most important table. Do not upgrade a row without changing the code 
 
 - Hashing, Merkle evidence, validator, decoder, reference executor, report, graph, scoring.
 - Seven routes, arena runner, scorecard, fixtures and regeneration scripts.
+- Judge Mode (guided seven-stop bar), `/present` seven-slide deck, and self-contained HTML/JSON report downloads.
 - Verdicts for the sentinel and disclosure layers are **derived from evidence**, not from the
   scenario's layer label. Both scorecard rows fail if that derivation is removed.
 - Docs: this file, `README.md`, `docs/demo-script.md`, `docs/person-a-handoff.md`,
@@ -111,7 +112,7 @@ guardian halt · real Sentinel trace · on-chain disclosure verification.
 ```bash
 npm install
 npm run dev            # http://localhost:3000
-npm test               # 52 tests
+npm test               # 57 tests
 npm run demo:check     # read-only consistency check, writes nothing
 npm run build          # production build
 ```

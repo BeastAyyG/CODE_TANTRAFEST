@@ -37,7 +37,7 @@ This is a hackathon demo, not a deployed governance system. There are **no Solid
 | Solidity/TypeScript hash parity | **Pending Person A** | `hash-vectors.json` contains **TypeScript reference vectors** only. |
 | Real per-scenario evidence and Hardhat scorecard | **Pending Person A** | Current fixtures and scorecard come from the reference model. |
 
-Current verification state: **52 Vitest tests in 8 files pass**. The reference scorecard is **25 PASS, 0 FAIL, 9 TEST_REQUIRED**.
+Current verification state: **57 Vitest tests in 9 files pass**. The reference scorecard is **25 PASS, 0 FAIL, 9 TEST_REQUIRED**.
 
 ---
 
@@ -49,7 +49,7 @@ Requires Node.js 22.12+ (tested on Node 24) and npm. No network access is needed
 npm install
 
 npm run dev          # http://localhost:3000
-npm test             # 52 tests, 8 files
+npm test             # 57 tests, 9 files
 npm run test:watch   # watch mode
 npm run scorecard    # regenerates fixtures/scorecard.json + scorecard-meta.json
 npm run arena -- 3   # runs scenario 3 (jargon upgrade) and prints raw evidence
@@ -74,7 +74,7 @@ It prints validation, hashes, scores, versions, the treasury brief and all scena
 
 ---
 
-## Demo path (7 routes)
+## Demo path (7 app routes + presentation)
 
 | Route | What it shows |
 | :--- | :--- |
@@ -85,6 +85,12 @@ It prints validation, hashes, scores, versions, the treasury brief and all scena
 | `/vote` | Risk brief and informed-vote receipt with quorum, support, informed ratio, concentration and flagged-wallet overlap. |
 | `/arena` | Eleven red-team scenarios with layer labels; run an attack and see `PASSED`, `REJECTED` or `FLAGGED`. |
 | `/scorecard` | The 25 PASS / 0 FAIL / 9 TEST_REQUIRED governance-security scorecard. |
+
+| `/present` | Seven-slide cinematic deck for a projector: verdict, trail, gap, conflict, vote, execution, honesty. |
+
+**Judge Mode:** click **Judge** in the header. The bottom bar walks the seven stops with Next/Back, `Alt+←/→`, `Esc` to exit, and **Present** to open the deck.
+**Presentation:** `/present` runs fully offline; arrow keys or space advance, `F` toggles fullscreen, and the final slide downloads the report.
+**Takeaway:** any report page has a **Takeaway** panel that downloads a self-contained HTML report or a machine-readable JSON bundle.
 
 `/arena/[id]` opens a single violation report; the primary demo report is `/arena/03-jargon-upgrade`.
 
@@ -105,7 +111,7 @@ flowchart LR
     DEC --> REP["deterministic<br/>violation report"]
     EXE --> SCORE["claims / COI / voting<br/>execution scoring"]
     GR["simulated wallet graph<br/>real link + noisy-OR code"] --> SCORE
-    REP --> UI["Next.js App Router UI<br/>7 routes"]
+    REP --> UI["Next.js App Router UI<br/>7 routes + presentation"]
     SCORE --> UI
   end
 
@@ -131,7 +137,7 @@ The execution guarantee is designed to be on-chain; in this workspace it is a de
 
 | Path | Role |
 | :--- | :--- |
-| `app/` | Next.js 16 App Router pages, including the seven demo routes and client views. |
+| `app/` | Next.js 16 App Router pages, including the seven demo routes, `/present`, and client views. |
 | `components/` | Shared UI: app shell, stage pipeline, source chips, status pills, layout primitives. |
 | `lib/demo.ts` | Builds the single cached demo object: hydration, hashes, graph, scores, all scenario runs. |
 | `ai/` | Extraction validation, reviewer resolutions, treasury brief. |
@@ -142,7 +148,7 @@ The execution guarantee is designed to be on-chain; in this workspace it is a de
 | `graph/` | Link discovery, disclosure damping, noisy-OR risk, challenge payload. |
 | `chain-scoring/` | Claims, COI, voting and execution stage scoring plus the Decision Trail. |
 | `scripts/` | Evidence build, vector/error generation, scorecard, arena runner, demo consistency check. |
-| `tests/` | Eight Vitest files covering hashing, evidence, AI validation, decoding, executor, reporting, graph and scoring. |
+| `tests/` | Nine Vitest files covering hashing, evidence, AI validation, decoding, executor, report export, reporting, graph and scoring. |
 | `docs/` | Project status brief, demo script, Person A handoff, and the independent audit. |
 
 ---
@@ -228,5 +234,5 @@ The exact swap points, interface rules and current schemas are in [`docs/person-
 - **AI is advisory.** Extraction is pre-baked; the validator, reviewer confirmation and hashing are real. No live LLM is called. Claims without document spans are rejected, but extraction quality is not proven.
 - **No on-chain evidence.** Evidence roots and disclosure hashes are computed locally; nothing is anchored in a registry yet.
 - **Voting data is a fixture.** Quorum, weights and brief acknowledgements are not read from `IntentGovernor`.
-- **Test coverage is modest and not 80%.** There are 52 tests across 8 files. No coverage threshold is configured, and no coverage claim is made. The scorecard measures specific properties, not line coverage.
+- **Test coverage is modest and not 80%.** There are 57 tests across 9 files. No coverage threshold is configured, and no coverage claim is made. The scorecard measures specific properties, not line coverage.
 - **No live chain and no live LLM at demo time.** The whole demo runs offline from bundled assets and fixtures.

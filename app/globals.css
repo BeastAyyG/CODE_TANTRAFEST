@@ -354,3 +354,19 @@ samp {
     transition-duration: 0.001ms !important;
   }
 }
+
+
+/* Judge Mode: make room for the fixed bottom command bar. */
+body.judge-open {
+  padding-bottom: 200px;
+}
+@media (min-width: 768px) {
+  body.judge-open {
+    padding-bottom: 160px;
+  }
+}
+@media (min-width: 1024px) {
+  body.judge-open {
+    padding-bottom: 124px;
+  }
+}

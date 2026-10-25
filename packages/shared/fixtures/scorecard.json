@@ -28,7 +28,7 @@
     "property": "Version chain links content hashes and preserves rules across v2→v3",
     "status": "PASS",
     "testFile": "tests/hash.test.ts",
-    "durationMs": 1,
+    "durationMs": 0,
     "evidenceKind": "unit"
   },
   {
@@ -172,7 +172,7 @@
     "property": "Claim score reacts to unresolved items and reviewer resolutions",
     "status": "PASS",
     "testFile": "tests/scoring.test.ts",
-    "durationMs": 1,
+    "durationMs": 0,
     "evidenceKind": "unit"
   },
   {

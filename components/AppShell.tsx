@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ShieldCheck } from "lucide-react";
+import { MonitorPlay, ShieldCheck } from "lucide-react";
+import { JudgeMode } from "@/components/JudgeMode";
 
 const NAV = [
   { href: "/", label: "Trail" },
@@ -21,6 +22,10 @@ function isActive(pathname: string, href: string): boolean {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+
+  if (pathname === "/present") {
+    return <>{children}</>;
+  }
 
   return (
     <div className="relative flex min-h-screen flex-col">
@@ -65,11 +70,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </nav>
 
           <div className="ml-auto flex items-center gap-2 lg:ml-3">
-            <span className="hidden items-center gap-2 rounded border border-edge bg-white/2 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.1em] text-dim sm:inline-flex">
+            <JudgeMode />
+            <Link
+              href="/present"
+              aria-label="Presentation mode"
+              title="Full-screen presentation"
+              className="inline-flex items-center gap-1.5 rounded border border-edge bg-white/2 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.1em] text-dim transition-colors hover:border-edge2 hover:text-body"
+            >
+              <MonitorPlay size={11} strokeWidth={1.8} />
+              <span className="hidden xl:inline">Present</span>
+            </Link>
+            <span className="hidden items-center gap-2 rounded border border-edge bg-white/2 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.1em] text-dim xl:inline-flex">
               <span className="status-dot text-safe" />
               local · chain 31337
             </span>
-            <span className="hidden items-center gap-1.5 rounded border border-signal/30 bg-signal/8 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.1em] text-signal md:inline-flex">
+            <span className="hidden items-center gap-1.5 rounded border border-signal/30 bg-signal/8 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.1em] text-signal lg:inline-flex">
               reference model
             </span>
           </div>

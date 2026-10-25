@@ -33,6 +33,7 @@ import type { DecodedAction, ViolationConstraint } from "@/packages/shared/schem
 import type { RunResult, RunStepStatus, ScenarioLayer } from "@/reference/types";
 import sentinelTraceJson from "@/packages/shared/fixtures/sentinel-trace-06.json";
 import { CopyButton } from "@/components/CopyButton";
+import { ReportDownload } from "@/components/ReportDownload";
 import {
   Callout,
   HashLine,
@@ -800,6 +801,17 @@ export function ArenaDetail({ scenarioId }: { scenarioId: string }) {
             label="Reproduce command"
           />
         </div>
+      </Panel>
+
+      <Panel id="download" className="mt-3 flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <div className="mono-label">Takeaway</div>
+          <p className="mt-1 max-w-2xl text-[11px] leading-relaxed text-dim">
+            A self-contained HTML report and a machine-readable JSON bundle. The quote, decoded
+            call, violated constraint and evidence hashes travel with you.
+          </p>
+        </div>
+        <ReportDownload run={run} proposalId={demo.proposal.id} />
       </Panel>
 
       <Panel className={cn("mt-4 overflow-hidden", styles.border)}>
