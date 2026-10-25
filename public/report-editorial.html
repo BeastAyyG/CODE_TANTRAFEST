@@ -133,6 +133,7 @@
     font-variant-numeric:tabular-nums;
     font-feature-settings:"tnum" 1;
     will-change:transform;
+    animation:breathe 11s ease-in-out infinite alternate;
   }
   .numeral.left{text-align:center;
     transform:translate(calc(var(--mx)*-12px),calc(var(--my)*-8px));}
@@ -187,7 +188,8 @@
     white-space:nowrap;
     mix-blend-mode:multiply;
     opacity:.92;
-    animation:stamp .55s cubic-bezier(.2,1.5,.35,1) 2.15s both;
+    animation:stamp .55s cubic-bezier(.2,1.5,.35,1) 2.15s both,
+                wobble .45s ease-out 2.72s both;
   }
   .stamp i{display:block;font-style:normal;font-size:7.5px;letter-spacing:.2em;
            margin-top:3px;opacity:.85;}
@@ -231,19 +233,54 @@
   #island .floater{animation:float 5.5s ease-in-out infinite alternate;}
   #island .cloud{animation:drift 27s ease-in-out infinite alternate;}
   #island .boat{animation:bob 11s ease-in-out infinite alternate;}
-  #island .twinkle{animation:twinkle 3.2s ease-in-out infinite;}
+  #island .twinkle{animation:twinkle 3.2s ease-in-out infinite,
+                             driftY 7s ease-in-out infinite alternate;}
   @keyframes flicker{0%,100%{transform:scaleY(1);opacity:1;}
                      50%{transform:scaleY(.82);opacity:.85;}}
   @keyframes float{from{transform:translate(-7px,4px);}to{transform:translate(9px,-8px);}}
   @keyframes drift{from{transform:translateX(-18px);}to{transform:translateX(26px);}}
   @keyframes bob{from{transform:translateX(-14px);}to{transform:translateX(24px);}}
   @keyframes twinkle{0%,100%{opacity:.15;}50%{opacity:1;}}
+  @keyframes driftY{from{transform:translate(0,0);}to{transform:translate(5px,-8px);}}
+
+  /* nested wrappers so animation never fights a positioning transform attribute */
+  #island .rv{animation:idle .45s ease-in-out infinite;}
+  #island .tree{transform-box:fill-box;transform-origin:50% 100%;
+                animation:treeSway 4.6s ease-in-out infinite alternate;}
+  #island .wingL{transform-box:fill-box;transform-origin:100% 50%;
+                 animation:flap .3s ease-in-out infinite;}
+  #island .wingR{transform-box:fill-box;transform-origin:0% 50%;
+                 animation:flap .3s ease-in-out infinite;}
+  #island .legA{animation:stepA .72s steps(2,end) infinite;}
+  #island .legB{animation:stepB .72s steps(2,end) infinite;}
+  #island .ripple{transform-box:fill-box;transform-origin:center;
+                  animation:ripple 4.4s ease-out infinite;}
+  @keyframes idle{0%,100%{transform:translateY(0);}50%{transform:translateY(-1px);}}
+  @keyframes treeSway{from{transform:rotate(-1.3deg);}to{transform:rotate(1.3deg);}}
+  @keyframes flap{0%,100%{transform:scaleX(1);}50%{transform:scaleX(.55);}}
+  @keyframes stepA{0%,100%{transform:translateY(0);}50%{transform:translateY(-2px);}}
+  @keyframes stepB{0%,100%{transform:translateY(-2px);}50%{transform:translateY(0);}}
+  @keyframes ripple{0%{transform:scale(.35);opacity:.6;}
+                    100%{transform:scale(2.1);opacity:0;}}
+
+  /* seal counter-rotation + stamp settle + numeral breathe */
+  .badge .counter{transform-box:fill-box;transform-origin:center;
+                  animation:spinBack 19s linear infinite;}
+  @keyframes spinBack{to{transform:rotate(-360deg);}}
+  @keyframes wobble{0%{transform:rotate(-7deg) scale(1);}
+                    45%{transform:rotate(-5.1deg) scale(1.012);}
+                    100%{transform:rotate(-7deg) scale(1);}}
+  @keyframes breathe{from{opacity:1;}to{opacity:.955;}}
+  @keyframes ruleIn{to{transform:scaleX(1);}}
 
   /* plate caption under the illustration */
-  .plate{margin:12px 0 0;padding-top:9px;border-top:1px solid var(--hair);
+  .plate{position:relative;margin:12px 0 0;padding-top:9px;
          font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
          font-size:8px;letter-spacing:.18em;text-transform:uppercase;
          color:var(--muted);text-align:center;animation:fade .8s ease 2.35s both;}
+  .plate::before{content:"";position:absolute;left:0;right:0;top:0;height:1px;
+                 background:var(--hair);transform:scaleX(0);transform-origin:center;
+                 animation:ruleIn .9s cubic-bezier(.77,0,.18,1) 2.4s both;}
 
   /* registration marks */
   .mark{position:absolute;width:11px;height:11px;opacity:.55;z-index:3;
@@ -377,6 +414,8 @@
       <svg viewBox="0 0 120 120">
         <defs><path id="circ" d="M60,60 m-45,0 a45,45 0 1,1 90,0 a45,45 0 1,1 -90,0"/></defs>
         <circle class="ring" cx="60" cy="60" r="30"/>
+        <circle class="counter" cx="60" cy="60" r="21" fill="none"
+                stroke="#c3bdb0" stroke-width="0.8" stroke-dasharray="1 3"/>
         <text textLength="278" lengthAdjust="spacingAndGlyphs">
           <textPath href="#circ" startOffset="0">DECISION&#160;INTEGRITY&#160;·&#160;AEGIS&#160;INTENTLOCK&#160;·&#160;</textPath>
         </text>
@@ -542,7 +581,8 @@
 
     /* RV sprite at the back of the island */
     var rv = iso(-2.5, -1.7);
-    var g = E('g', { transform: 'translate(' + rv[0] + ',' + rv[1] + ')' }, svg, 'sprite', 2.0);
+    var gOuter = E('g', { transform: 'translate(' + rv[0] + ',' + rv[1] + ')' }, svg, 'sprite', 2.0);
+    var g = E('g', {}, gOuter, 'rv');
     rect(-20, -18, 40, 18, P.body, g);
     rect(-20, -8, 40, 5, P.stripe, g);
     rect(-16, -15, 7, 6, P.dark, g);
@@ -568,7 +608,8 @@
     /* lily of the valley — swaying bell clusters */
     [[3.4,1.1,0],[5.3,-0.5,0.9],[-4.8,0.5,1.7],[1.9,3.3,2.5]].forEach(function(f){
       var fp = iso(f[0], f[1]);
-      var fg = E('g', { transform: 'translate(' + fp[0] + ',' + fp[1] + ')' }, svg, 'sprite bell', 2.0);
+      var fo = E('g', { transform: 'translate(' + fp[0] + ',' + fp[1] + ')' }, svg, 'sprite', 2.0);
+      var fg = E('g', {}, fo, 'bell');
       fg.style.animationDelay = f[2] + 's';
       rect(-1, -15, 2, 15, P.stem, fg);
       rect(1, -9, 5, 2, P.stem, fg);
@@ -582,20 +623,23 @@
     /* two tiny figures crossing the front meadow */
     [[0.6,3.5,0],[-1.9,3.9,6.5]].forEach(function(w){
       var wp = iso(w[0], w[1]);
-      var wg = E('g', { transform: 'translate(' + wp[0] + ',' + wp[1] + ')' }, svg, 'sprite walker', 2.0);
+      var wo = E('g', { transform: 'translate(' + wp[0] + ',' + wp[1] + ')' }, svg, 'sprite', 2.0);
+      var wg = E('g', {}, wo, 'walker');
       wg.style.animationDelay = w[2] + 's';
       rect(-3, -12, 7, 6, P.body, wg);
       rect(-2, -16, 5, 4, P.body, wg);
       rect(-1, -15, 3, 2, P.dark, wg);
-      rect(-3, -6, 2, 6, '#d9d3c4', wg);
-      rect(1, -6, 2, 6, '#d9d3c4', wg);
+      rect(-3, -6, 2, 6, '#d9d3c4', wg, 'legA');
+      rect(1, -6, 2, 6, '#d9d3c4', wg, 'legB');
       rect(0, -10, 1, 3, P.stripe, wg);
     });
 
     /* conifers on the meadow */
     [[-6.2,0.6,0],[-4.7,-1.4,0.3],[6.5,-0.9,0.6],[5.1,1.7,0.9]].forEach(function(t){
       var tp = iso(t[0], t[1]);
-      var tg = E('g', { transform: 'translate(' + tp[0] + ',' + tp[1] + ')' }, svg, 'sprite', 2.05 + t[2]);
+      var to = E('g', { transform: 'translate(' + tp[0] + ',' + tp[1] + ')' }, svg, 'sprite', 2.05 + t[2]);
+      var tg = E('g', {}, to, 'tree');
+      tg.style.animationDelay = t[2] + 's';
       rect(-1, -8, 2, 8, P.trunk, tg);
       rect(-5, -13, 10, 5, P.pine, tg);
       rect(-4, -17, 8, 4, P.pine, tg);
@@ -616,11 +660,12 @@
     /* butterflies drifting over the flowers */
     [[2.6,0.4,'0.6s'],[4.7,1.5,'1.9s'],[-3.6,2.3,'3.1s']].forEach(function(b){
       var bp = iso(b[0], b[1]);
-      var bg = E('g', { transform: 'translate(' + bp[0] + ',' + (bp[1] - 28) + ')' },
-                 svg, 'sprite floater', 2.15);
+      var bo2 = E('g', { transform: 'translate(' + bp[0] + ',' + (bp[1] - 28) + ')' },
+                  svg, 'sprite', 2.15);
+      var bg = E('g', {}, bo2, 'floater');
       bg.style.animationDelay = b[2];
-      rect(-4, 0, 3, 3, P.stripe, bg);
-      rect(1, 0, 3, 3, P.stripe, bg);
+      rect(-4, 0, 3, 3, P.stripe, bg, 'wingL');
+      rect(1, 0, 3, 3, P.stripe, bg, 'wingR');
       rect(-1, 0, 1, 3, P.dark, bg);
     });
 
@@ -639,6 +684,17 @@
       rect(cl[0], cl[1], 34, 6, P.cloud, cd);
       rect(cl[0] + 8, cl[1] - 5, 18, 5, P.cloud, cd);
       rect(cl[0] + 4, cl[1] + 6, 26, 4, P.cloud, cd);
+    });
+
+    /* water ripples expanding on the shallows */
+    [[-8,2,0],[7.5,2.5,1.5],[0,-6.5,3]].forEach(function(rp){
+      var p0 = iso(rp[0], rp[1]);
+      var rg = E('polygon', {
+        points: [[p0[0], p0[1]-HH],[p0[0]+HW,p0[1]],[p0[0],p0[1]+HH],[p0[0]-HW,p0[1]]]
+                  .map(function(q){ return q.join(','); }).join(' '),
+        fill: 'none', stroke: '#cfe4f4', 'stroke-width': 1.2
+      }, svg, 'ripple');
+      rg.style.animationDelay = rp[2] + 's';
     });
 
     /* fireflies blinking among the flowers */
