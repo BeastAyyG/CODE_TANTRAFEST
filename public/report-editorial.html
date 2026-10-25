@@ -307,6 +307,45 @@
   .col:hover p span{color:var(--ink);}
   .col p b{font-weight:600;}
 
+  /* ---- site-wide motion (ported from the archipelago) ---- */
+  .progress{position:fixed;top:0;left:0;right:0;height:2px;background:transparent;z-index:85;}
+  .progress span{display:block;height:2px;width:0;background:var(--red);transition:width .1s linear;}
+
+  .ticker{overflow:hidden;border-top:1px solid var(--hair);border-bottom:1px solid var(--hair);
+    padding:7px 0;margin:6px 0 2px;}
+  .ticker-track{display:flex;width:max-content;animation:marquee 42s linear infinite;}
+  .ticker:hover .ticker-track{animation-play-state:paused;}
+  .ticker-track span{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:8.5px;
+    letter-spacing:.18em;text-transform:uppercase;color:var(--muted);white-space:nowrap;}
+  @keyframes marquee{from{transform:translateX(0);}to{transform:translateX(-50%);}}
+
+  .statusbar{display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+    border-top:1px solid var(--hair);padding-top:12px;margin-top:6px;
+    font-family:ui-monospace,Menlo,Consolas,monospace;font-size:9px;
+    letter-spacing:.12em;text-transform:uppercase;color:var(--muted);}
+  .statusbar .dot{width:6px;height:6px;border-radius:50%;background:var(--red);flex:0 0 auto;
+    animation:pulse 2.4s ease-in-out 2.2s infinite;}
+  .statusbar .statusline{color:var(--ink);flex:1;min-width:160px;}
+  .statusbar .metric{display:flex;align-items:center;gap:7px;}
+  .statusbar .metric b{color:var(--ink);font-weight:600;}
+
+  .bump{display:inline-block;animation:bump .38s ease;}
+  @keyframes bump{0%{transform:scale(1);}45%{transform:scale(1.2);color:var(--red);}
+    100%{transform:scale(1);}}
+  .topval .live.flash{animation:dotFlash .55s ease;}
+  @keyframes dotFlash{0%{box-shadow:0 0 0 0 rgba(226,59,40,.55);}
+    100%{box-shadow:0 0 0 11px rgba(226,59,40,0);}}
+
+  /* legend spotlight on the pixel island */
+  #island .spot{filter:saturate(1.3) brightness(1.07);transition:filter .3s ease;}
+  .legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px;
+    font-family:ui-monospace,Menlo,Consolas,monospace;font-size:8.5px;
+    letter-spacing:.1em;text-transform:uppercase;color:#3f3b34;}
+  .legend .row{display:flex;align-items:center;gap:6px;cursor:pointer;
+    transition:color .2s ease,transform .2s ease;}
+  .legend .row:hover{color:var(--red);transform:translateX(3px);}
+  .legend .sw{width:9px;height:9px;flex:0 0 auto;}
+
 
 
   @media (max-width:1080px){
@@ -334,6 +373,8 @@
 <div class="grain" aria-hidden="true"></div>
 
 <div class="sheet">
+
+  <div class="progress" aria-hidden="true"><span id="scrollFill"></span></div>
 
   <div class="rail">
     <div class="wordmark">AEGIS</div>
@@ -381,6 +422,13 @@
       <svg id="island" viewBox="0 0 320 320" role="img"
            aria-label="Pixel-art island: trees, a campfire, an RV with animated smoke, lily-of-the-valley flowers, butterflies, drifting clouds and a boat"></svg>
         <p class="plate">Fig. 01 &middot; Pixel island &mdash; generated in code</p>
+        <div class="legend">
+          <div class="row" data-part="rv"><span class="sw" style="background:#f2efe7;border:1px solid #d8d3c6"></span>RV</div>
+          <div class="row" data-part="trees"><span class="sw" style="background:#3f7d3a"></span>Conifers</div>
+          <div class="row" data-part="flowers"><span class="sw" style="background:#ffffff;border:1px solid #d8d3c6"></span>Lilies</div>
+          <div class="row" data-part="boat"><span class="sw" style="background:#7a5a3a"></span>Boat</div>
+          <div class="row" data-part="fire"><span class="sw" style="background:#e2622f"></span>Fire</div>
+        </div>
       </div>
     </div>
 
@@ -428,6 +476,17 @@
       <i>0x1420732b</i>
     </div>
   </main>
+
+  <div class="statusbar">
+    <span class="dot"></span>
+    <span class="statusline"><span id="statusText">INTENTLOCK ARMED</span></span>
+    <span class="metric"><span class="label">Flagged</span> <b id="mFlagged">02</b></span>
+    <span class="metric"><span class="label">USDC</span> <b id="mUSDC">250,000</b></span>
+  </div>
+
+  <div class="ticker" aria-hidden="true">
+    <div class="ticker-track"><span id="tickA"></span><span id="tickB"></span></div>
+  </div>
 
   <footer class="footer">
     <div class="col">
@@ -581,7 +640,7 @@
 
     /* RV sprite at the back of the island */
     var rv = iso(-2.5, -1.7);
-    var gOuter = E('g', { transform: 'translate(' + rv[0] + ',' + rv[1] + ')' }, svg, 'sprite', 2.0);
+    var gOuter = E('g', { transform: 'translate(' + rv[0] + ',' + rv[1] + ')' }, svg, 'sprite part-rv', 2.0);
     var g = E('g', {}, gOuter, 'rv');
     rect(-20, -18, 40, 18, P.body, g);
     rect(-20, -8, 40, 5, P.stripe, g);
@@ -608,7 +667,7 @@
     /* lily of the valley — swaying bell clusters */
     [[3.4,1.1,0],[5.3,-0.5,0.9],[-4.8,0.5,1.7],[1.9,3.3,2.5]].forEach(function(f){
       var fp = iso(f[0], f[1]);
-      var fo = E('g', { transform: 'translate(' + fp[0] + ',' + fp[1] + ')' }, svg, 'sprite', 2.0);
+      var fo = E('g', { transform: 'translate(' + fp[0] + ',' + fp[1] + ')' }, svg, 'sprite part-flowers', 2.0);
       var fg = E('g', {}, fo, 'bell');
       fg.style.animationDelay = f[2] + 's';
       rect(-1, -15, 2, 15, P.stem, fg);
@@ -637,7 +696,7 @@
     /* conifers on the meadow */
     [[-6.2,0.6,0],[-4.7,-1.4,0.3],[6.5,-0.9,0.6],[5.1,1.7,0.9]].forEach(function(t){
       var tp = iso(t[0], t[1]);
-      var to = E('g', { transform: 'translate(' + tp[0] + ',' + tp[1] + ')' }, svg, 'sprite', 2.05 + t[2]);
+      var to = E('g', { transform: 'translate(' + tp[0] + ',' + tp[1] + ')' }, svg, 'sprite part-trees', 2.05 + t[2]);
       var tg = E('g', {}, to, 'tree');
       tg.style.animationDelay = t[2] + 's';
       rect(-1, -8, 2, 8, P.trunk, tg);
@@ -648,7 +707,7 @@
 
     /* campfire beside the RV */
     var cp = iso(-0.6, 0.4);
-    var cg = E('g', { transform: 'translate(' + cp[0] + ',' + cp[1] + ')' }, svg, 'sprite', 2.1);
+    var cg = E('g', { transform: 'translate(' + cp[0] + ',' + cp[1] + ')' }, svg, 'sprite part-fire', 2.1);
     rect(-7, -2, 14, 2, P.log, cg);
     rect(-5, -4, 10, 2, P.log, cg);
     var fl = E('g', { class: 'flame' }, cg);
@@ -670,7 +729,7 @@
     });
 
     /* a small boat crossing the shallows */
-    var bo = E('g', { class: 'boat' }, svg);
+    var bo = E('g', { class: 'boat part-boat' }, svg);
     bo.style.animationDelay = '2.4s';
     rect(52, 236, 26, 4, P.dirt, bo);
     rect(58, 230, 2, 6, P.trunk, bo);
@@ -725,6 +784,96 @@
   }
 
   playMotion();
+
+  /* ---- site-wide motion (ported from the archipelago) ---- */
+  var scrollFill = document.getElementById('scrollFill');
+  function scrollMax(){
+    var h = document.documentElement;
+    return h.scrollHeight - h.clientHeight;
+  }
+  function onScroll(){
+    if (!scrollFill) return;
+    var max = scrollMax();
+    if (max <= 0) return;
+    var h = document.documentElement;
+    var p = (h.scrollTop || document.body.scrollTop) / max * 100;
+    scrollFill.style.width = p.toFixed(1) + '%';
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  if (scrollMax() > 0){
+    onScroll();
+  } else {
+    /* single-viewport report: sweep the bar once as the entrance settles */
+    var s0 = null;
+    function sweep(ts){
+      if (s0 === null) s0 = ts;
+      var k = Math.min(1, (ts - s0) / 2400);
+      if (scrollFill) scrollFill.style.width = (k * 100).toFixed(1) + '%';
+      if (k < 1) requestAnimationFrame(sweep);
+    }
+    requestAnimationFrame(sweep);
+  }
+
+  var GLYPHS = '\u2593\u2592\u2591#@%&*+=<>/\\|01';
+  function scramble(el, text){
+    if (el._sc) clearInterval(el._sc);
+    var frames = 11, i = 0;
+    el._sc = setInterval(function(){
+      i++;
+      var done = Math.floor(text.length * i / frames);
+      var out = text.slice(0, done);
+      for (var k = done; k < text.length; k++){
+        out += text.charAt(k) === ' ' ? ' ' : GLYPHS.charAt((Math.random()*GLYPHS.length)|0);
+      }
+      el.textContent = out;
+      if (i >= frames){ clearInterval(el._sc); el._sc = null; el.textContent = text; }
+    }, 26);
+  }
+  function flashDot(){
+    var d = document.querySelector('.topval .live');
+    if (!d) return;
+    d.classList.remove('flash'); void d.offsetWidth; d.classList.add('flash');
+  }
+  var statusText = document.getElementById('statusText');
+  var STATUSES = ['INTENTLOCK ARMED','AIP-042 REJECTED','BYTES BOUND','GATE HARD','CLAIMS 0.81'];
+  var si = 0;
+  function rotateStatus(){
+    si = (si + 1) % STATUSES.length;
+    scramble(statusText, STATUSES[si]);
+    flashDot();
+  }
+  if (statusText){ scramble(statusText, STATUSES[0]); setInterval(rotateStatus, 5000); }
+
+  function bump(el, text){
+    if (!el || el.textContent === text) return;
+    el.textContent = text;
+    el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump');
+  }
+  var mFlagged = document.getElementById('mFlagged');
+  var mUSDC = document.getElementById('mUSDC');
+  setInterval(function(){
+    var fl = 1 + ((Math.random()*4)|0);
+    bump(mFlagged, (fl < 10 ? '0' : '') + fl);
+    var usdc = 240 + ((Math.random()*22)|0);
+    bump(mUSDC, usdc.toLocaleString('en-US') + ',000');
+  }, 4200);
+
+  var tickA = document.getElementById('tickA'), tickB = document.getElementById('tickB');
+  var TICK = 'AEGIS INTENTLOCK \u00b7 AIP-042 REJECTED \u00b7 250,000 USDC AUTHORISED \u00b7 ONE SELECTOR UNVOTED \u00b7 HARD GATE ENGAGED \u00b7 DECISION INTEGRITY \u00b7 ';
+  var TICKLINE = TICK + TICK + TICK;
+  if (tickA){ tickA.textContent = TICKLINE; tickB.textContent = TICKLINE; }
+
+  var islandSvg = document.getElementById('island');
+  document.querySelectorAll('.legend .row').forEach(function(row){
+    var part = row.getAttribute('data-part');
+    if (!part || !islandSvg) return;
+    row.addEventListener('mouseenter', function(){
+      islandSvg.querySelectorAll('.part-' + part).forEach(function(g){ g.classList.add('spot'); });
+    });
+    row.addEventListener('mouseleave', function(){
+      islandSvg.querySelectorAll('.part-' + part).forEach(function(g){ g.classList.remove('spot'); });
+    });
+  });
 
   performance.mark('editorial:script-end');
   try { performance.measure('editorial:script', 'editorial:script-start', 'editorial:script-end'); } catch (e) {}

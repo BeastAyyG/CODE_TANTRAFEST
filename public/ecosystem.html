@@ -83,7 +83,7 @@
     align-items:center;gap:26px;padding:20px 0 10px;}
   .scene{position:relative;transform:translate(calc(var(--mx)*8px),calc(var(--my)*5px));}
   .scene-in{animation:fade 1s ease 1.0s both;width:100%;}
-  #atlas{width:100%;height:auto;display:block;}
+  #atlas{width:100%;height:auto;display:block;transition:filter .35s linear;}
 
   .lede{margin:0 0 16px;font-size:clamp(15px,1.45vw,20px);line-height:1.16;font-weight:700;
     letter-spacing:-.01em;text-transform:uppercase;color:var(--red);}
@@ -225,6 +225,37 @@
   .legend .row{cursor:default;transition:color .2s ease,transform .2s ease;}
   .legend .row[data-island]:hover{color:var(--red);transform:translateX(3px);}
 
+  /* ---- attack surface ---- */
+  .controls button.on{color:var(--red);border-color:var(--red);background:rgba(226,59,40,.06);}
+  #atlas .burst-in{opacity:0;transform-box:fill-box;transform-origin:center;}
+  .attack .link .deck{stroke:#d9c6be;}
+  .attack .link.idle .deck{stroke:#e9d7d1;stroke-dasharray:2 6;opacity:.7;}
+  .attack .link:not(.severed) .bridge-dash{opacity:.2;}
+  .attack .link.severed .deck{stroke:var(--red);stroke-width:4;}
+  .attack .link.severed .bridge-dash{animation-play-state:running;opacity:.9;}
+  .attack .link.severed .burst-in{opacity:1;animation:burst 1.5s ease-out infinite;}
+  @keyframes burst{0%{transform:scale(.5);opacity:.9;}70%{opacity:.3;}100%{transform:scale(1.8);opacity:0;}}
+  .attack .island.degraded{filter:saturate(.5) hue-rotate(-6deg);}
+  .attack .island.dark{filter:saturate(.06) hue-rotate(-10deg);}
+
+  /* ---- inspect panel ---- */
+  .panel{position:fixed;top:0;right:0;bottom:0;width:300px;max-width:84vw;background:var(--paper);
+    border-left:1px solid var(--hair);padding:30px 26px;z-index:96;transform:translateX(106%);
+    transition:transform .42s cubic-bezier(.77,0,.18,1);box-shadow:-14px 0 44px rgba(17,17,16,.10);}
+  .panel.open{transform:none;}
+  .panel-close{position:absolute;top:12px;right:16px;all:unset;cursor:pointer;font-size:22px;line-height:1;color:var(--muted);}
+  .panel-close:hover{color:var(--red);}
+  .panel h2{margin:4px 0 18px;font-size:22px;font-weight:700;letter-spacing:-.01em;}
+  .panel dl{display:grid;grid-template-columns:auto 1fr;gap:9px 14px;margin:0;
+    font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;}
+  .panel dt{color:var(--muted);text-transform:uppercase;letter-spacing:.08em;}
+  .panel dd{margin:0;text-align:right;color:var(--ink);}
+  .panel .label{color:var(--muted);}
+  .panel-note-txt{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:9.5px;line-height:1.6;
+    color:#3f3b34;margin:6px 0 0;}
+  .panel .bar{height:3px;background:var(--hair);position:relative;margin-top:2px;}
+  .panel .bar span{position:absolute;left:0;top:0;bottom:0;background:var(--red);transition:width .4s ease;}
+
   /* plate + footer */
   .plate{position:relative;margin:6px 0 0;padding-top:9px;
     font-family:ui-monospace,Menlo,Consolas,monospace;font-size:8px;letter-spacing:.18em;
@@ -312,6 +343,7 @@
       <div class="progress" aria-hidden="true"><span id="fill"></span></div>
 
       <div class="controls">
+        <button id="attack" aria-label="Toggle attack-surface view" title="Attack surface">&#9888;</button>
         <button id="play" aria-label="Pause">&#10073;&#10073;</button>
         <input id="scrub" type="range" min="0" max="280" value="0" step="1"
                aria-label="Scrub the timeline" />
@@ -366,6 +398,17 @@
       <p>An illustration,<br/>not a network.<br/><span>No chain is<br/>actually wired.</span></p>
     </div>
   </footer>
+
+  <aside class="panel" id="panel" aria-hidden="true">
+    <button class="panel-close" id="panelClose" aria-label="Close">&times;</button>
+    <div class="panel-head">
+      <div class="label">Island detail</div>
+      <h2 id="panelTitle">&mdash;</h2>
+    </div>
+    <dl id="panelBody"></dl>
+    <div class="label">Current phase</div>
+    <p id="panelNote" class="panel-note-txt">&mdash;</p>
+  </aside>
 
 </div>
 
@@ -568,6 +611,14 @@
           iterations: Infinity, easing:'linear' }
       );
     }
+    /* breach burst at midpoint — only revealed in attack-surface mode */
+    var burst = E('g', { class:'burst' }, g);
+    var mx = (from[0] + to[0]) / 2, my = (from[1] + to[1]) / 2 - 8;
+    burst.setAttribute('transform', 'translate(' + mx + ',' + my + ')');
+    var bi = E('g', { class:'burst-in' }, burst);
+    E('circle', { cx:0, cy:0, r:5, fill:'none', stroke:P.red, 'stroke-width':1.4 }, bi);
+    E('circle', { cx:0, cy:0, r:9, fill:'none', stroke:P.red, 'stroke-width':1, opacity:.6 }, bi);
+
     linkGroups[l.id] = g;
   });
 
@@ -724,6 +775,25 @@
 
   MODEL.chains.forEach(function(c){ txt(c.lx, c.ly, c.label, svg, 7); });
 
+  /* ============ SKY (day / night) ============ */
+  var sun, moon, stars;
+  (function buildSky(){
+    var g = E('g', { id:'sky' }, svg);
+    svg.insertBefore(g, svg.firstChild);
+    stars = E('g', { id:'stars' }, g);
+    var pts = [[60,40],[140,70],[220,36],[300,84],[380,52],[460,30],[540,90],[610,46],
+               [90,120],[260,140],[420,120],[560,150],[180,30],[500,60],[330,20],[640,110]];
+    pts.forEach(function(p){ E('circle', { cx:p[0], cy:p[1], r:1.6, fill:'#f0f4ff' }, stars); });
+    stars.style.transition = 'opacity .35s linear';
+    sun = E('g', { id:'sun' }, g);
+    E('circle', { cx:0, cy:0, r:18, fill:'#ffd27a', opacity:.18 }, sun);
+    E('circle', { cx:0, cy:0, r:10, fill:'#ffce6e' }, sun);
+    moon = E('g', { id:'moon' }, g);
+    E('circle', { cx:0, cy:0, r:9, fill:'#e6edf5' }, moon);
+    E('circle', { cx:-3, cy:-2, r:2, fill:'#cfd8e4' }, moon);
+    E('circle', { cx:3, cy:3, r:1.4, fill:'#cfd8e4' }, moon);
+  })();
+
   /* ============ STATE MACHINE ============ */
   var elLive = document.getElementById('liveCount');
   var elLinks = document.getElementById('linkCount');
@@ -776,7 +846,7 @@
     dot.classList.add('flash');
   }
 
-  function updateTicker(ph){
+  function updateTicker(ph, attack){
     var live = 0, open = 0, sev = 0, q = 0;
     MODEL.chains.forEach(function(c){ if ((ph.chains[c.id]||'live') !== 'dark') live++; });
     MODEL.links.forEach(function(l){
@@ -784,7 +854,8 @@
       if (st === 'open') open++;
       if (st === 'severed'){ sev++; q += 3; }
     });
-    var seg = 'SETTLEMENT 12.4S FINALITY \u00b7 SHORES LIVE ' + live + '/4 \u00b7 LINKS OPEN ' +
+    var tag = attack ? 'ATTACK SURFACE \u00b7 ' : '';
+    var seg = tag + 'SETTLEMENT 12.4S FINALITY \u00b7 SHORES LIVE ' + live + '/4 \u00b7 LINKS OPEN ' +
               open + ' \u00b7 SEVERED ' + sev + ' \u00b7 QUEUED ' + q + ' \u00b7 ' + ph.note + ' \u00b7 ';
     var line = seg + seg + seg;
     tickA.textContent = line;
@@ -793,13 +864,14 @@
 
   function applyPhase(t){
     var ph = phaseAt(t);
-    var live = 0, open = 0, queued = 0;
+    var live = 0, open = 0, queued = 0, sevCount = 0;
 
     MODEL.chains.forEach(function(c){
       var st = ph.chains[c.id] || 'live';
       var g = groups[c.id].g;
       g.classList.toggle('degraded', st === 'degraded');
       g.classList.toggle('dark', st === 'dark');
+      groups[c.id].state = st;
       if (st !== 'dark') live++;
     });
 
@@ -809,7 +881,7 @@
       g.classList.toggle('idle', st === 'idle');
       g.classList.toggle('severed', st === 'severed');
       if (st === 'open') open++;
-      if (st === 'severed') queued += 3;
+      if (st === 'severed'){ queued += 3; sevCount++; }
     });
 
     bumpIfChanged(elLive, live + ' / 4');
@@ -818,13 +890,16 @@
     elClock.textContent = '00:' + String(Math.floor(t)).padStart(2,'0');
     if (fill) fill.style.width = Math.min(100, (t / MODEL.duration) * 100) + '%';
 
+    var sNote = (attackOn && sevCount > 0) ? 'BREACH · ' + ph.note : ph.note;
     var idx = MODEL.phases.indexOf(ph);
     if (idx !== lastPhase){
       lastPhase = idx;
-      scramble(elState, ph.note);
+      scramble(elState, sNote);
       flashDot();
-      updateTicker(ph);
+      updateTicker(ph, attackOn);
     }
+    curT = t; curNote = sNote;
+    applySky(t);
   }
 
   /* ============ CLOCK + SCRUB ============ */
@@ -905,6 +980,83 @@
       if (!praf) praf = requestAnimationFrame(tick);
     }, {passive:true});
   }
+
+  /* ============ DAY / NIGHT ============ */
+  function applySky(t){
+    var hour = (t / MODEL.duration) * 24;
+    var b = (Math.cos((hour - 12) / 24 * 2 * Math.PI) + 1) / 2;   /* 1 at noon, 0 at midnight */
+    var night = 1 - b;
+    var warm = Math.pow(Math.abs(Math.cos((hour - 6) / 24 * 2 * Math.PI)), 3); /* peaks at dawn & dusk */
+    var br = (0.68 + 0.32 * b).toFixed(3);
+    var sat = (0.85 + 0.20 * b).toFixed(3);
+    var f = 'brightness(' + br + ') saturate(' + sat + ')';
+    if (night > 0.5) f += ' hue-rotate(' + ((night - 0.5) * 28).toFixed(1) + 'deg)';
+    if (warm > 0.05) f += ' sepia(' + (warm * 0.22).toFixed(3) + ')';
+    svg.style.filter = f;
+    var above = hour > 6 && hour < 18;
+    var posH = above ? (hour - 6) / 12 : (hour >= 18 ? (hour - 18) / 12 : (hour + 6) / 12);
+    var cx = 90 + posH * 580;
+    var cy = 300 - (1 - Math.pow((posH - 0.5) * 2, 2)) * 250;
+    if (above){ sun.setAttribute('transform','translate('+cx+','+cy+')'); sun.style.opacity = 1; moon.style.opacity = 0; }
+    else { moon.setAttribute('transform','translate('+cx+','+cy+')'); moon.style.opacity = 1; sun.style.opacity = 0; }
+    stars.style.opacity = night.toFixed(3);
+  }
+
+  /* ============ ATTACK SURFACE ============ */
+  var attackOn = false;
+  var attackBtn = document.getElementById('attack');
+  attackBtn.addEventListener('click', function(){
+    attackOn = !attackOn;
+    document.body.classList.toggle('attack', attackOn);
+    attackBtn.classList.toggle('on', attackOn);
+    applyPhase(curT);
+    /* phase index is unchanged, so refresh the framed copy explicitly */
+    scramble(elState, curNote);
+    updateTicker(phaseAt(curT), attackOn);
+  });
+
+  /* ============ INSPECT PANEL ============ */
+  var curT = 8.6, curNote = '';
+  var panel = document.getElementById('panel');
+  var panelClose = document.getElementById('panelClose');
+  var panelTitle = document.getElementById('panelTitle');
+  var panelBody = document.getElementById('panelBody');
+  var panelNote = document.getElementById('panelNote');
+  function closePanel(){ panel.classList.remove('open'); panel.setAttribute('aria-hidden','true'); }
+  function openPanel(id){
+    var c = null;
+    for (var i=0;i<MODEL.chains.length;i++) if (MODEL.chains[i].id === id) c = MODEL.chains[i];
+    if (!c) return;
+    var st = groups[id].state || 'live';
+    var nice = c.label.charAt(0) + c.label.slice(1).toLowerCase();
+    panelTitle.textContent = nice;
+    var health = st === 'dark' ? 0 : (st === 'degraded' ? 58 : 99);
+    var myLinks = MODEL.links.filter(function(l){ return l.from === id || l.to === id; });
+    var openLinks = 0;
+    myLinks.forEach(function(l){ var ls = (phaseAt(curT).links[l.id]) || 'idle'; if (ls === 'open') openLinks++; });
+    var rows = [
+      ['Type', id === 'settlement' ? 'Settlement' : (id === 'dao' ? 'DAO shore' : (id === 'rollup' ? 'Rollup' : 'Outpost'))],
+      ['Status', st === 'dark' ? 'Dark' : (st === 'degraded' ? 'Degraded' : 'Live')],
+      ['Open links', openLinks + ' / ' + myLinks.length],
+      ['Round trip', '4.4 s'],
+      ['Throughput', (openLinks * 3) + ' pkts/s']
+    ];
+    var html = rows.map(function(r){ return '<dt>' + r[0] + '</dt><dd>' + r[1] + '</dd>'; }).join('');
+    html += '<dt>Finality</dt><dd><div class="bar"><span style="width:' + health + '%"></span></div></dd>';
+    panelBody.innerHTML = html;
+    panelNote.textContent = curNote || '—';
+    panel.classList.add('open'); panel.setAttribute('aria-hidden','false');
+  }
+  panelClose.addEventListener('click', closePanel);
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closePanel(); });
+  MODEL.chains.forEach(function(c){
+    groups[c.id].g.style.cursor = 'pointer';
+    groups[c.id].g.addEventListener('click', function(e){ e.stopPropagation(); openPanel(c.id); });
+  });
+  document.querySelectorAll('.legend .row[data-island]').forEach(function(row){
+    row.style.cursor = 'pointer';
+    row.addEventListener('click', function(){ openPanel(row.getAttribute('data-island')); });
+  });
 
   scrub.value = String(Math.round(t * 10));
   applyPhase(t);
