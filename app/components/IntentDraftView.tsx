@@ -20,6 +20,7 @@ import {
   getIntentDraft,
 } from "@/lib/data";
 import { cn, formatPct } from "@/lib/format";
+import { proposalRef } from "@/lib/proposal-naming";
 import { useAsync } from "@/lib/useAsync";
 import type {
   IntentConfirmation,
@@ -71,7 +72,10 @@ export function IntentDraftView({ proposalId }: { proposalId: string }) {
       actions={
         data ? (
           <div className="flex flex-wrap items-center gap-2">
-            <StatusBadge tone="info">{data.draft.actions.length} claims</StatusBadge>
+            <StatusBadge tone="info">
+              {data.draft.actions.length}{" "}
+              {data.draft.actions.length === 1 ? "claim" : "claims"}
+            </StatusBadge>
             {unresolved.length > 0 ? <StatusBadge tone="warning">{unresolved.length} unresolved</StatusBadge> : <StatusBadge tone="success">Ready to compile</StatusBadge>}
             <WhyDrawer>Claim count is the number of extracted executable actions. Every UNRESOLVED item must be resolved in the source or explicitly accepted before the bridge will hash the intent.</WhyDrawer>
           </div>
@@ -92,7 +96,7 @@ export function IntentDraftView({ proposalId }: { proposalId: string }) {
               <FileText size={16} className="text-cyan-300" />
               <h3 className="text-sm font-semibold text-slate-100">{data.draft.title}</h3>
               <StatusBadge tone="neutral">v{data.draft.version}</StatusBadge>
-              <StatusBadge tone="neutral">{data.draft.proposalId}</StatusBadge>
+              <StatusBadge tone="neutral">{proposalRef(data.draft.proposalId)}</StatusBadge>
               <HashChip label="doc" value={data.document.docHash} />
             </div>
 

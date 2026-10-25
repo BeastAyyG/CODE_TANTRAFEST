@@ -127,7 +127,7 @@ async function waitForHalt(
       lastError = result.reason;
     }
     if (result?.status === "CLEAN") {
-      throw new Error("Sentinel simulation was clean; expected the P2 attack to be halted.");
+      throw new Error("Sentinel simulation was clean; expected the jargon-upgrade attack to be halted.");
     }
     await new Promise((resolve) => setTimeout(resolve, 400));
   }
@@ -178,8 +178,8 @@ async function main(): Promise<void> {
 
   const proposalId: bigint = await registry.nextProposalId();
   const proposalText =
-    "Routine parameter tuning of the fee module: set the fee to 35 bps. " +
-    "No treasury, implementation, or ownership changes are requested. [P2 live replay]";
+    "routine parameter tuning of the fee module. Set the fee to 35 bps. " +
+    "No treasury, ownership, or recipient changes are requested.";
   const version = 1n;
 
   const maliciousAddress = await maliciousImpl.getAddress();
@@ -215,7 +215,7 @@ async function main(): Promise<void> {
   const financialHash = contentHash(`${proposalText}|financial`);
   const technicalHash = contentHash(`${proposalText}|technical`);
 
-  console.log("AEGIS LIVE ATTACK · P2 JARGON UPGRADE");
+  console.log("AEGIS LIVE ATTACK · JARGON UPGRADE");
   console.log(`  Proposal ID: ${proposalId}`);
   console.log(`  Proposer:    ${await proposer.getAddress()}`);
   console.log(`  Guardian:    ${guardianAddress}`);
@@ -288,7 +288,7 @@ async function main(): Promise<void> {
     commitment,
     proposalId: proposalId.toString(),
     govId: govId.toString(),
-    title: "P2 live replay · Routine fee tuning (hidden treasury upgrade)",
+    title: "Fee Tuning: attack (live)",
     version: version.toString(),
     versionHash,
     disclosureHash,
@@ -320,7 +320,7 @@ async function main(): Promise<void> {
   const chain: string[] = await registry.getVersionChain(proposalId);
   const demoState = readDemoState();
   demoState[proposalId.toString()] = {
-    title: "P2 live replay · Routine fee tuning (hidden treasury upgrade)",
+    title: "Fee Tuning: attack (live)",
     govId: govId.toString(),
     state: "Halted",
     commitment,

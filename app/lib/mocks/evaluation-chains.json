@@ -1,27 +1,27 @@
 [
   {
-    "proposalId": "sim-42",
+    "proposalId": "8",
     "stages": [
       {
         "stage": "CLAIMS",
-        "score": 0.78,
-        "status": "AMBER",
-        "reason": "2 unresolved claims: delegated discretion and a recurring grant.",
+        "score": 0.97,
+        "status": "GREEN",
+        "reason": "One grounded PARAM_SET claim: setFee(35 bps) on FeeModule, with no unresolved items.",
         "factors": [
           {
             "label": "Grounded actions",
-            "value": "2 / 2",
-            "detail": "Both executable actions carry verbatim source spans."
+            "value": "1 / 1",
+            "detail": "The setFee parameter is grounded in a verbatim source span."
           },
           {
             "label": "Draft confidence",
-            "value": "0.95",
-            "detail": "USDC transfer and setFee(35 bps) resolved against known contracts."
+            "value": "0.97",
+            "detail": "The committed intent contains only the PARAM_SET rule."
           },
           {
             "label": "Unresolved",
-            "value": "2",
-            "detail": "Recurring commitment and delegated discretion over the recipient."
+            "value": "0",
+            "detail": "No unresolved claims in the reviewed intent."
           }
         ],
         "drilldown": "intent-draft"
@@ -106,7 +106,7 @@
     ]
   },
   {
-    "proposalId": "sim-41",
+    "proposalId": "41",
     "stages": [
       {
         "stage": "CLAIMS",

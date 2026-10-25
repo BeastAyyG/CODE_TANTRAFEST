@@ -1,6 +1,7 @@
 /** Shapes mirrored from the real backend fixtures and contracts. */
 
 export type DataMode = "mock" | "live";
+export type Provenance = "LIVE" | "RECORDED" | "SIMULATED" | "MOCK";
 
 export interface ScorecardEntry {
   id: string;
@@ -15,6 +16,7 @@ export interface DecodedAction {
   targetLabel: string;
   function: string;
   args: Record<string, string>;
+  argumentLabels?: Record<string, string>;
   humanText: string;
   nested: DecodedAction[];
 }
@@ -45,6 +47,7 @@ export interface ScenarioReport {
   scenarioName: string;
   property: string;
   outcome: ScenarioOutcome;
+  recordedAt?: string;
   violationReport: ViolationReport;
   rawEvidence: {
     commitment: string;
@@ -76,6 +79,23 @@ export interface ErrorEntry {
   explanation: string;
 }
 
+export interface SentinelFinding {
+  code: string;
+  title: string;
+  explanation: string;
+  layer: "sentinel";
+}
+
+export interface FindingExplanation {
+  code: string;
+  title: string;
+  explanation: string;
+  layer: "executor" | "sentinel";
+  source: "errors" | "sentinel-findings";
+  contract?: string;
+  signature?: string;
+}
+
 export interface StageFactor {
   label: string;
   value: string;
@@ -83,7 +103,7 @@ export interface StageFactor {
 }
 
 export type StageName = "CLAIMS" | "COI" | "VOTING" | "EXECUTION";
-export type StageStatus = "GREEN" | "AMBER" | "RED";
+export type StageStatus = "GREEN" | "AMBER" | "RED" | "UNAVAILABLE";
 
 export interface Stage {
   stage: StageName;
@@ -221,6 +241,7 @@ export interface IntentDraft {
   proposalId: string;
   version: number;
   title: string;
+  document?: string;
   actions: IntentAction[];
   unresolved: UnresolvedItem[];
   assumptions: Assumption[];
@@ -232,6 +253,7 @@ export interface Proposal {
   title: string;
   scenarioId: number;
   govId: string;
+  provenance?: Provenance;
 }
 
 export interface CoiLink {

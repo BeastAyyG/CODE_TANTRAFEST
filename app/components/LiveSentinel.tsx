@@ -16,6 +16,10 @@ import { Panel } from "@/components/ui/Panel";
 import { StatusBadge, type StatusTone } from "@/components/ui/StatusBadge";
 import { forceExecute } from "@/lib/data";
 import { cn, truncateMiddle } from "@/lib/format";
+import {
+  normalizeProposalTitle,
+  proposalRef,
+} from "@/lib/proposal-naming";
 import type {
   ForcedExecutionResult,
   SentinelEvent,
@@ -214,7 +218,7 @@ function EventRow({
           )}
           title="Select this proposal"
         >
-          proposal {event.proposalId}
+          {proposalRef(event.proposalId)}
         </button>
         {violation ? (
           <StatusBadge tone="warning">
@@ -228,7 +232,9 @@ function EventRow({
         ) : null}
       </div>
 
-      <p className="mt-1.5 text-xs font-medium text-slate-200">{event.title}</p>
+      <p className="mt-1.5 text-xs font-medium text-slate-200">
+        {normalizeProposalTitle(event.title, "LIVE")}
+      </p>
       <p className="mt-1 text-[11px] leading-relaxed text-slate-400">{event.detail}</p>
 
       <div className="mt-2 flex flex-wrap items-center gap-1.5">

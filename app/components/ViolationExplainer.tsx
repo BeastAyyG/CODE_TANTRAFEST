@@ -8,9 +8,10 @@ import { HashChip } from "@/components/ui/HashChip";
 import { Panel } from "@/components/ui/Panel";
 import { StatusBadge, type StatusTone } from "@/components/ui/StatusBadge";
 import {
-  findErrorForViolation,
+  findExplanationForViolation,
   getReport,
 } from "@/lib/data";
+import { normalizeLegacyAttackText } from "@/lib/proposal-naming";
 import { useAsync } from "@/lib/useAsync";
 import type {
   DecodedAction,
@@ -114,7 +115,7 @@ function Explainer({
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const violation = report;
-  const errorEntry = findErrorForViolation(report);
+  const explanation = findExplanationForViolation(report);
   const isViolation = report.status !== "PASSED";
 
   useEffect(() => {
@@ -162,7 +163,7 @@ function Explainer({
             What the proposal said
           </p>
           <p className="mt-2 text-sm leading-relaxed text-slate-200">
-            “{violation.proposalSaid}”
+            “{normalizeLegacyAttackText(violation.proposalSaid)}”
           </p>
 
           <div className="mt-4 border-t border-slate-800 pt-3">
@@ -212,25 +213,18 @@ function Explainer({
                   {violation.violatedConstraint.code}
                 </span>
                 <StatusBadge tone="danger">{violation.status}</StatusBadge>
-                {errorEntry ? (
-                  <span className="font-mono text-[10px] text-slate-500">
-                    {errorEntry.contract}
-                  </span>
-                ) : null}
+                <span className="font-mono text-[10px] text-slate-500">
+                  {explanation.layer === "sentinel"
+                    ? "Sentinel finding"
+                    : explanation.contract}
+                </span>
               </div>
-              {errorEntry ? (
-                <p className="mt-2 text-sm font-medium text-slate-200">
-                  {errorEntry.title}
-                </p>
-              ) : null}
-              <p className="mt-1 text-xs leading-relaxed text-slate-400">
-                {errorEntry?.explanation ?? violation.violatedConstraint.message}
+              <p className="mt-2 text-sm font-medium text-slate-200">
+                {explanation.title}
               </p>
-              {errorEntry ? (
-                <p className="mt-2 text-[11px] leading-relaxed text-slate-500">
-                  {violation.violatedConstraint.message}
-                </p>
-              ) : null}
+              <p className="mt-1 text-xs leading-relaxed text-slate-400">
+                {explanation.explanation}
+              </p>
             </>
           ) : (
             <p className="mt-2 text-sm text-[#22ff88]">

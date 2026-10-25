@@ -1,16 +1,18 @@
 [
   {
-    "id": "sim-42",
-    "label": "sim-42 · Fee Tuning (attack)",
-    "title": "Routine parameter tuning of the fee module",
+    "id": "8",
+    "label": "Proposal #8 · Fee Tuning: attack (recorded)",
+    "title": "Fee Tuning: attack (recorded)",
     "scenarioId": 3,
-    "govId": "1"
+    "govId": "1",
+    "provenance": "RECORDED"
   },
   {
-    "id": "sim-41",
-    "label": "sim-41 · Benign Dev Grant",
-    "title": "Q3 developer grant",
+    "id": "41",
+    "label": "Proposal #41 · Q3 Developer Grant",
+    "title": "Q3 Developer Grant",
     "scenarioId": 0,
-    "govId": "2"
+    "govId": "2",
+    "provenance": "MOCK"
   }
 ]

@@ -33,6 +33,10 @@ import {
   ProposalState,
   decodeRevert,
 } from "./chain";
+import {
+  normalizeProposalTitle,
+  proposalLabel,
+} from "./proposal-naming";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Utilities
@@ -552,12 +556,17 @@ export async function liveGetProposals(): Promise<Proposal[]> {
       const p = await gov.getGovProposal(gid);
       const pidStr = p.proposalId.toString();
       const demo = demoState[pidStr];
+      const title = normalizeProposalTitle(
+        demo?.title ? demo.title : "Untitled proposal",
+        "LIVE"
+      );
       proposals.push({
         id: pidStr,
-        label: demo?.title ? `Proposal #${pidStr} · ${demo.title}` : `Proposal #${pidStr}`,
-        title: demo?.title ?? `Proposal #${pidStr}`,
+        label: proposalLabel(pidStr, title),
+        title,
         scenarioId: Number(pidStr),
         govId: gid.toString(),
+        provenance: "LIVE",
       });
     } catch {
       // skip unreadable
@@ -567,12 +576,14 @@ export async function liveGetProposals(): Promise<Proposal[]> {
   // Also include any drafted proposals from demo-state that don't have govId yet
   for (const [pidStr, demo] of Object.entries(demoState)) {
     if (!proposals.some((pr) => pr.id === pidStr)) {
+      const title = normalizeProposalTitle(demo.title, "LIVE");
       proposals.push({
         id: pidStr,
-        label: `Proposal #${pidStr} · ${demo.title}`,
-        title: demo.title,
+        label: proposalLabel(pidStr, title),
+        title,
         scenarioId: Number(pidStr),
         govId: demo.govId ?? "",
+        provenance: "LIVE",
       });
     }
   }

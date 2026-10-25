@@ -1,13 +1,14 @@
 import { ethers } from "ethers";
 import scorecardJson from "./mocks/scorecard.json";
 import reportsJson from "./mocks/sentinel-reports.json";
+import findingsJson from "./mocks/sentinel-findings.json";
 import errorsJson from "./mocks/errors.json";
 import evaluationJson from "./mocks/evaluation-chains.json";
 import walletGraphJson from "./mocks/wallet-graph.json";
 import coiAssessmentJson from "./mocks/coi-assessment.json";
 import versionChainsJson from "./mocks/version-chains.json";
 import votingStatesJson from "./mocks/voting-states.json";
-import intentDraftJson from "./mocks/intent-draft.json";
+import intentDraftsJson from "./mocks/intent-drafts.json";
 import proposalsJson from "./mocks/proposals.json";
 
 import { bridgeIntent } from "../../intelligence/intent-bridge";
@@ -17,6 +18,11 @@ import {
 } from "../../intelligence/evidence-verify";
 import { hashRules } from "../../packages/shared/hash";
 import { CHAIN_ID, DATA_MODE } from "./config";
+import {
+  normalizeProposalTitle,
+  proposalFamily,
+  proposalRef,
+} from "./proposal-naming";
 import type {
   ActionReceipt,
   ArenaRunResult,
@@ -29,6 +35,7 @@ import type {
   ErrorEntry,
   EvaluationChain,
   EvidenceDocument,
+  FindingExplanation,
   ForcedExecutionResult,
   IntentConfirmation,
   IntentDraft,
@@ -37,6 +44,7 @@ import type {
   ScenarioReport,
   ScorecardEntry,
   SentinelFeed,
+  SentinelFinding,
   SourceVerification,
   VersionChain,
   ViolationReport,
@@ -51,20 +59,14 @@ export const SCENARIO_IDS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 const scorecardSeed = scorecardJson as ScorecardEntry[];
 const reportsSeed = reportsJson as unknown as ScenarioReport[];
 const errorCatalog = errorsJson as unknown as Record<string, ErrorEntry>;
+const findingCatalog = findingsJson as unknown as Record<string, SentinelFinding>;
 const evaluationSeed = evaluationJson as unknown as EvaluationChain[];
 const walletGraphSeed = walletGraphJson as unknown as WalletGraphData;
 const coiAssessmentSeed = coiAssessmentJson as unknown as CoiAssessment;
 const versionChainsSeed = versionChainsJson as unknown as VersionChain[];
 const votingStatesSeed = votingStatesJson as unknown as VotingState[];
-const intentDraftSeed = intentDraftJson as unknown as IntentDraft;
+const intentDraftsSeed = intentDraftsJson as unknown as IntentDraft[];
 const proposalsSeed = proposalsJson as unknown as Proposal[];
-
-const INTENT_DOCUMENT = `Proposal: Q3 Developer Grant and Fee Tuning
-
-Transfer 5,000 USDC from the DAO treasury to the development wallet 0x000000000000000000000000000000000000b001 for the Q3 audit engagement.
-Set the fee module parameter to 35 bps to keep the protocol competitive.
-The team may adjust the recipient at its discretion if the developer changes.
-The grant is expected to recur monthly through the end of the year.`;
 
 const mockScorecard: ScorecardEntry[] = scorecardSeed.map((entry) => ({
   ...entry,
@@ -101,7 +103,11 @@ export async function getProposals(): Promise<Proposal[]> {
   if (DATA_MODE === "live") {
     return fetchJson<Proposal[]>("/api/live/proposals");
   }
-  return proposalsSeed;
+  return proposalsSeed.map((proposal) => ({
+    ...proposal,
+    title: normalizeProposalTitle(proposal.title, proposal.provenance),
+    provenance: proposal.provenance ?? "MOCK",
+  }));
 }
 
 export async function getScorecard(): Promise<ScorecardEntry[]> {
@@ -263,12 +269,17 @@ export async function getEvidenceDocument(
   const draft = await getIntentDraft(proposalId);
   const source = draft.actions[0]?.source;
   if (!source) throw new Error("No source document is attached to this draft.");
+  if (!draft.document) {
+    throw new Error(
+      `No source text is attached to the intent draft for ${proposalRef(proposalId)}.`
+    );
+  }
   return {
     proposalId,
     version,
     docHash: source.docHash,
     title: draft.title,
-    content: INTENT_DOCUMENT,
+    content: draft.document,
     span: source.span,
   };
 }
@@ -423,7 +434,11 @@ export async function getAttentionQueue(): Promise<AttentionItem[]> {
         .filter((stage) => stage.status !== "GREEN")
         .map((stage) => `${stage.stage}: ${stage.reason}`);
       return [{
-        proposal,
+        proposal: {
+          ...proposal,
+          title: normalizeProposalTitle(proposal.title, proposal.provenance),
+          provenance: proposal.provenance ?? "MOCK",
+        },
         rank: 0,
         riskScore,
         reasons: reasons.length > 0 ? reasons : ["No active advisory flags."],
@@ -437,23 +452,29 @@ export async function getAttentionQueue(): Promise<AttentionItem[]> {
 export async function getIntentDraft(
   proposalId: string
 ): Promise<IntentDraft> {
-  // Intent drafts live off-chain (AI extraction) — same in both modes.
-  if (DATA_MODE === "live") {
-    // Return the mock seed as the draft basis (AI extraction would run here).
-    // This is not mocked-then-silently-swapped; it's an explicit advisory.
-    void proposalId;
-  }
   await delay(80);
-  if (proposalId === intentDraftSeed.proposalId) {
-    return { ...intentDraftSeed };
+  const proposals = await getProposals();
+  const proposal = proposals.find((item) => item.id === proposalId);
+  const proposalTitle = normalizeProposalTitle(
+    proposal?.title ?? "",
+    proposal?.provenance
+  );
+  const proposalDraftFamily = proposalFamily(proposalTitle);
+  const seed =
+    intentDraftsSeed.find((draft) => draft.proposalId === proposalId) ??
+    intentDraftsSeed.find(
+      (draft) => proposalFamily(draft.title) === proposalDraftFamily
+    );
+  if (!seed) {
+    throw new Error(
+      `No source-grounded intent draft is attached to ${proposalRef(proposalId)}.`
+    );
   }
-  const proposal = proposalsSeed.find((item) => item.id === proposalId);
+  const draft = JSON.parse(JSON.stringify(seed)) as IntentDraft;
   return {
-    ...intentDraftSeed,
+    ...draft,
     proposalId,
-    title: proposal?.title ?? intentDraftSeed.title,
-    actions: intentDraftSeed.actions.slice(0, 1).map((action) => ({ ...action })),
-    unresolved: [],
+    title: normalizeProposalTitle(draft.title, proposal?.provenance),
   };
 }
 
@@ -466,7 +487,7 @@ export async function confirmIntent(
   if (acceptedUnresolved < draft.unresolved.length) {
     throw new Error("Resolve or explicitly accept every UNRESOLVED item first.");
   }
-  const finalized = { ...draft, unresolved: [] };
+  const { document: _sourceDocument, ...finalized } = { ...draft, unresolved: [] };
   const output = bridgeIntent(
     finalized as unknown as Parameters<typeof bridgeIntent>[0]
   );
@@ -675,6 +696,62 @@ export function findErrorForReport(
   report: ScenarioReport
 ): ErrorEntry | null {
   return findErrorForViolation(report.violationReport);
+}
+
+export function findExplanationForViolation(
+  report: ViolationReport
+): FindingExplanation {
+  const code = report.violatedConstraint.code;
+
+  if (report.layer === "sentinel") {
+    const finding = findingCatalog[code];
+    if (finding) {
+      return {
+        code,
+        title: finding.title,
+        explanation: finding.explanation,
+        layer: "sentinel",
+        source: "sentinel-findings",
+      };
+    }
+    return {
+      code,
+      title: `UNKNOWN FINDING ${code}`,
+      explanation: `No Sentinel finding is registered for ${code}.`,
+      layer: "sentinel",
+      source: "sentinel-findings",
+    };
+  }
+
+  const byName = Object.values(errorCatalog).find((entry) =>
+    entry.signature.startsWith(`${code}(`)
+  );
+  const selector = report.evidence.revertData?.slice(0, 10).toLowerCase();
+  const bySelector =
+    selector && /^0x[0-9a-f]{8}$/.test(selector)
+      ? errorCatalog[selector]
+      : undefined;
+  const entry = byName ?? bySelector;
+
+  if (entry) {
+    return {
+      code,
+      title: entry.title,
+      explanation: entry.explanation,
+      layer: "executor",
+      source: "errors",
+      contract: entry.contract,
+      signature: entry.signature,
+    };
+  }
+
+  return {
+    code,
+    title: `UNKNOWN ERROR ${selector || code}`,
+    explanation: `No executor error explanation is registered for ${code}.`,
+    layer: "executor",
+    source: "errors",
+  };
 }
 
 export function findErrorForViolation(

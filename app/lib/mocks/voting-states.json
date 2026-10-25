@@ -1,7 +1,7 @@
 [
   {
     "govId": "1",
-    "proposalId": "sim-42",
+    "proposalId": "8",
     "state": "VotingOpen",
     "stateCode": 2,
     "versionHash": "0xb17bb4499c110eebb24571965db45dec6d1afb93f8c02ed1c95a3536181bd72e",
@@ -55,7 +55,7 @@
   },
   {
     "govId": "2",
-    "proposalId": "sim-41",
+    "proposalId": "41",
     "state": "Passed",
     "stateCode": 4,
     "versionHash": "0x70e5ea0c1268e01802969eae099644505d09d4f2a228db680691668b3bde376a",

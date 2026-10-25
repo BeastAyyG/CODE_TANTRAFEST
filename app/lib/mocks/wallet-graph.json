@@ -3,7 +3,7 @@
   "schema": "aegisdao.wallet-graph.v1",
   "snapshotAt": "2026-09-12T00:00:00.000Z",
   "disclaimer": "SIMULATED DATA. Wallets, transactions, amounts, and timestamps are fabricated for the AegisDAO demo.",
-  "proposalId": "sim-42",
+  "proposalId": "8",
   "disclosure": {
     "walletListHash": "0x69ff2b4fa5dc9a9211e9e0eb625ad1ff2bbc7a88a679d27ada793fff7f05851b",
     "disclosedWallets": [

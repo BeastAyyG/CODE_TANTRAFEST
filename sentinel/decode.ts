@@ -23,6 +23,7 @@ export interface DecodedAction {
   targetLabel: string;
   function: string;
   args: Record<string, string>;
+  argumentLabels?: Record<string, string>;
   humanText: string;
   nested: DecodedAction[];
 }
@@ -178,8 +179,14 @@ export function decodeAction(
     if (!parsed) continue;
 
     const args: Record<string, string> = {};
+    const argumentLabels: Record<string, string> = {};
     parsed.fragment.inputs.forEach((input, index) => {
-      args[input.name || `arg${index}`] = stringifyArg(parsed!.args[index]);
+      const raw = parsed!.args[index];
+      const name = input.name || `arg${index}`;
+      args[name] = stringifyArg(raw);
+      if (input.type === "address" && typeof raw === "string" && ethers.isAddress(raw)) {
+        argumentLabels[name] = labelFor(raw, registry, labels);
+      }
     });
 
     const nested: DecodedAction[] = [];
@@ -210,6 +217,7 @@ export function decodeAction(
       targetLabel,
       function: parsed.signature,
       args,
+      argumentLabels,
       humanText: `Calls ${parsed.name}(${argList}) on ${targetLabel}`,
       nested,
     };

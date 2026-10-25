@@ -32,7 +32,14 @@ export function ArenaControl() {
     setRuns((prev) => ({ ...prev, [id]: { state: "running" } }));
     try {
       const result = await runScenario(id);
-      setRuns((prev) => ({ ...prev, [id]: { state: "done", result } }));
+      setRuns((prev) => ({
+        ...prev,
+        [id]: {
+          state: "done",
+          result,
+          finishedAt: new Date().toISOString(),
+        },
+      }));
       setSelected(id);
 
       try {

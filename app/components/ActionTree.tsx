@@ -79,6 +79,16 @@ export function ActionTree({
                 >
                   {action.function}
                 </span>
+                {Object.entries(action.argumentLabels ?? {})
+                  .filter(([name, label]) => label !== action.args[name])
+                  .map(([name, label]) => (
+                    <span
+                      key={name}
+                      className="font-mono text-[10px] text-slate-500"
+                    >
+                      {name} → <span className="text-slate-300">{label}</span>
+                    </span>
+                  ))}
                 {danger ? (
                   <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-red-400">
                     outside committed intent

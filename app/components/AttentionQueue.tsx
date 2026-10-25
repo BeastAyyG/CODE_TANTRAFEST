@@ -7,6 +7,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { WhyDrawer } from "@/components/ui/WhyDrawer";
 import { getAttentionQueue } from "@/lib/data";
 import { formatPct } from "@/lib/format";
+import { proposalRef } from "@/lib/proposal-naming";
 import { useProposal } from "@/lib/proposal-context";
 import { useAsync } from "@/lib/useAsync";
 
@@ -38,6 +39,9 @@ export function AttentionQueue() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-mono text-[10px] text-cyan-300">
+                      {proposalRef(item.proposal.id)}
+                    </span>
                     <h3 className="text-sm font-medium text-slate-200">{item.proposal.title}</h3>
                     <StatusBadge tone="neutral">{item.state}</StatusBadge>
                   </div>

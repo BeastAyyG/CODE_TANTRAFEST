@@ -156,7 +156,7 @@ const KIND_SELECTORS: Partial<Record<ActionKindName, string>> = {
 
 export const SAMPLE_PROPOSAL = `Proposal: Q3 Developer Grant and Fee Tuning
 
-Transfer 5,000 USDC from the DAO treasury to the development wallet 0x000000000000000000000000000000000000b001 for the Q3 audit engagement.
+Transfer 5,000 USDC from the DAO treasury to the development wallet 0x14dC79964da2C08b23698B3D3cc7Ca32193d9955 for the Q3 audit engagement.
 Set the fee module parameter to 35 bps to keep the protocol competitive.
 The team may adjust the recipient at its discretion if the developer changes.
 The grant is expected to recur monthly through the end of the year.`;

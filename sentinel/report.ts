@@ -9,6 +9,7 @@
 
 import { ethers } from "ethers";
 import errorMap from "../packages/shared/errors.json";
+import findingMap from "../packages/shared/sentinel-findings.json";
 import { Action, ActionRule, hashActions } from "../packages/shared/hash";
 import { SimulationResult } from "./simulate";
 import {
@@ -81,7 +82,10 @@ export function buildViolationReport(
       meta.proposalSaid ?? describeRules(simulation.rules, registry, labels),
     approved,
     submitted,
-    violatedConstraint: buildViolatedConstraint(simulation, submitted),
+    violatedConstraint: buildViolatedConstraint(
+      simulation,
+      meta.layer ?? "sentinel"
+    ),
     evidence: {
       commitment: simulation.commitment,
       calldataHash: calldataHash(simulation.actions),
@@ -119,35 +123,63 @@ export function stableStringify(value: unknown): string {
 }
 
 /**
- * Pair the decoded reality with the error explanation from errors.json. This
- * is the jargon-vs-reality gap: what the proposal claimed (proposalSaid)
- * versus what the calldata actually does (decoded humanText) versus why the
- * constraint fired (errors.json explanation).
+ * Pair the decoded reality with the explanation that belongs to the layer that
+ * fired. Sentinel findings are not Solidity errors and must never be looked up
+ * in errors.json; executor findings are Solidity errors and keep that catalog.
  */
 function buildViolatedConstraint(
   simulation: SimulationResult,
-  submitted: DecodedAction[]
+  layer: "executor" | "sentinel"
 ): { code: string; message: string } {
   if (!simulation.shouldHalt) {
     return { code: "None", message: "No violation detected" };
   }
 
-  const code = violationCode(simulation);
-  const error = lookupError(simulation.revertData);
-  const reality = submitted.map((d) => d.humanText).join("; ");
+  const code = violationCode(simulation, layer);
 
-  let message: string;
-  if (error) {
-    message = reality
-      ? `${reality} — ${error.title}: ${error.explanation}`
-      : `${error.title}: ${error.explanation}`;
-  } else if (simulation.haltReason) {
-    message = simulation.haltReason;
-  } else {
-    message = "Sentinel detected a violation";
+  if (layer === "sentinel") {
+    const finding = lookupFinding(code);
+    return {
+      code,
+      message: finding
+        ? `${finding.title}: ${finding.explanation}`
+        : `UNKNOWN FINDING ${code}`,
+    };
   }
 
-  return { code, message };
+  const error = lookupError(simulation.revertData);
+  if (error) {
+    return {
+      code,
+      message: `${error.title}: ${error.explanation}`,
+    };
+  }
+
+  return {
+    code,
+    message: simulation.haltReason
+      ? simulation.haltReason
+      : `UNKNOWN ERROR ${code}`,
+  };
+}
+
+interface SentinelFinding {
+  code?: string;
+  title?: string;
+  explanation?: string;
+  layer?: string;
+}
+
+function lookupFinding(code: string): {
+  title: string;
+  explanation: string;
+} | null {
+  const entry = (findingMap as Record<string, SentinelFinding>)[code];
+  if (!entry?.explanation) return null;
+  return {
+    title: entry.title ?? `UNKNOWN FINDING ${code}`,
+    explanation: entry.explanation,
+  };
 }
 
 interface ErrorEntry {
@@ -172,10 +204,23 @@ function lookupError(revertData?: string): {
   };
 }
 
-function violationCode(simulation: SimulationResult): string {
+function violationCode(
+  simulation: SimulationResult,
+  layer: "executor" | "sentinel"
+): string {
   const staticHalt =
     simulation.staticScan && simulation.staticScan.violations.length > 0;
   if (staticHalt) return "DangerousBytecode";
+
+  if (layer === "sentinel") {
+    if (simulation.commitmentMismatch) return "CommitmentMismatch";
+    const sentinelCategory = simulation.diffReport.violations[0]?.category;
+    if (sentinelCategory) {
+      return VIOLATION_CODES[sentinelCategory] ?? "SentinelViolation";
+    }
+    if (simulation.reverted) return "ExecutionReverted";
+    return "SentinelViolation";
+  }
 
   const selector = simulation.revertData?.slice(0, 10).toLowerCase();
   if (selector && selector.length === 10 && selector !== "0x") {
