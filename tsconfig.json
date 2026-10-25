@@ -19,7 +19,8 @@
     "./test/**/*.ts",
     "./packages/**/*.ts",
     "./sentinel/**/*.ts",
-    "./scripts/**/*.ts"
+    "./scripts/**/*.ts",
+    "./intelligence/**/*.ts"
   ],
   "files": ["./hardhat.config.ts"]
 }

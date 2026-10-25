@@ -11,7 +11,7 @@
     "property": "Post-vote payload substitution rejected",
     "status": "PASS",
     "testFile": "test/redteam/scenario1-recipient-swap.test.ts",
-    "durationMs": 304
+    "durationMs": 898
   },
   {
     "id": "S2",

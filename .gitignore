@@ -8,3 +8,4 @@ coverage.json
 *.log
 .DS_Store
 dist/
+.next/

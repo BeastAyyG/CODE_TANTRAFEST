@@ -6,17 +6,17 @@
  *
  * Person B only ever calls these functions — never reimplements hashing.
  *
- * This module uses ethers v6 utilities but avoids top-level await by
- * importing only the specific submodules needed.
+ * Standardized on the ethers v6 namespace so frontend and backend share
+ * identical ABI encoding and hashing.
  */
 
-import { keccak256, toUtf8Bytes, AbiCoder, concat } from "ethers";
+import { ethers } from "ethers";
 
 // ──────────────────────────────────────────────
 // COMMIT_TYPEHASH — identical to Solidity constant
 // ──────────────────────────────────────────────
-export const COMMIT_TYPEHASH = keccak256(
-  toUtf8Bytes(
+export const COMMIT_TYPEHASH = ethers.keccak256(
+  ethers.toUtf8Bytes(
     "Commitment(uint256 chainId,address executor,uint256 proposalId,uint256 version,bytes32 versionHash,bytes32 actionsHash,bytes32 intentHash,bytes32 disclosureHash)"
   )
 );
@@ -70,20 +70,20 @@ export interface CommitmentInput {
  * actionsHash = keccak256(abi.encodePacked(leaves))
  */
 export function hashActions(actions: Action[]): string {
-  const abiCoder = AbiCoder.defaultAbiCoder();
+  const abiCoder = ethers.AbiCoder.defaultAbiCoder();
 
   const leaves: string[] = actions.map((a) => {
-    const dataHash = keccak256(a.data);
+    const dataHash = ethers.keccak256(a.data);
     const encoded = abiCoder.encode(
       ["address", "uint256", "bytes32"],
       [a.target, a.value, dataHash]
     );
-    return keccak256(encoded);
+    return ethers.keccak256(encoded);
   });
 
   // abi.encodePacked(bytes32[]) = just concatenate the raw 32-byte values
-  const packed = concat(leaves);
-  return keccak256(packed);
+  const packed = ethers.concat(leaves);
+  return ethers.keccak256(packed);
 }
 
 // ──────────────────────────────────────────────
@@ -98,7 +98,7 @@ export function hashActions(actions: Action[]): string {
  * ))
  */
 export function computeCommitment(input: CommitmentInput): string {
-  const abiCoder = AbiCoder.defaultAbiCoder();
+  const abiCoder = ethers.AbiCoder.defaultAbiCoder();
 
   const encoded = abiCoder.encode(
     [
@@ -125,7 +125,7 @@ export function computeCommitment(input: CommitmentInput): string {
     ]
   );
 
-  return keccak256(encoded);
+  return ethers.keccak256(encoded);
 }
 
 // ──────────────────────────────────────────────
@@ -166,7 +166,7 @@ export const ACTION_RULE_TUPLE =
  * Matches Solidity keccak256(abi.encode(rules)) in ActionDecoder.
  */
 export function hashRules(rules: ActionRule[]): string {
-  const abiCoder = AbiCoder.defaultAbiCoder();
+  const abiCoder = ethers.AbiCoder.defaultAbiCoder();
   const encoded = abiCoder.encode(
     [`${ACTION_RULE_TUPLE}[]`],
     [
@@ -181,6 +181,6 @@ export function hashRules(rules: ActionRule[]): string {
       ]),
     ]
   );
-  return keccak256(encoded);
+  return ethers.keccak256(encoded);
 }
 

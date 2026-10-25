@@ -1,0 +1,83 @@
+{
+  "proposalId": "draft-30a7121d",
+  "version": 1,
+  "title": "Q3 Developer Grant and Fee Tuning",
+  "actions": [
+    {
+      "kind": "ERC20_TRANSFER",
+      "target": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+      "selector": "0xa9059cbb",
+      "counterparty": "0x000000000000000000000000000000000000b001",
+      "maxAmount": "5000000000",
+      "codeHash": null,
+      "children": [],
+      "source": {
+        "docHash": "0x30a7121d887db1ee4e90b9f512db4c0378966c8ee06fa61344e6b4fdb84a2b4f",
+        "page": 1,
+        "section": "1",
+        "span": [
+          45,
+          184
+        ]
+      },
+      "confidence": 0.95
+    },
+    {
+      "kind": "PARAM_SET",
+      "target": "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
+      "selector": "0x69fe0e2d",
+      "counterparty": "",
+      "maxAmount": "35",
+      "codeHash": null,
+      "children": [],
+      "source": {
+        "docHash": "0x30a7121d887db1ee4e90b9f512db4c0378966c8ee06fa61344e6b4fdb84a2b4f",
+        "page": 1,
+        "section": "1",
+        "span": [
+          185,
+          257
+        ]
+      },
+      "confidence": 0.95
+    }
+  ],
+  "unresolved": [
+    {
+      "question": "The proposal delegates discretion. What exact recipient and value should be committed before voting?",
+      "source": {
+        "docHash": "0x30a7121d887db1ee4e90b9f512db4c0378966c8ee06fa61344e6b4fdb84a2b4f",
+        "page": 1,
+        "section": "1",
+        "span": [
+          258,
+          335
+        ]
+      }
+    },
+    {
+      "question": "Is this a one-time action or a recurring commitment? The current ActionKind model encodes one-time actions only.",
+      "source": {
+        "docHash": "0x30a7121d887db1ee4e90b9f512db4c0378966c8ee06fa61344e6b4fdb84a2b4f",
+        "page": 1,
+        "section": "1",
+        "span": [
+          336,
+          403
+        ]
+      }
+    }
+  ],
+  "assumptions": [
+    {
+      "name": "USDC_decimals",
+      "value": "USDC amounts are expressed in base units with 6 decimals.",
+      "source": {}
+    },
+    {
+      "name": "fee_unit",
+      "value": "1 bps = 0.01%; percentage values are converted to bps.",
+      "source": {}
+    }
+  ]
+}
