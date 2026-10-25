@@ -105,7 +105,7 @@ function sanitizeAbi(node: unknown): void {
   }
 }
 
-function main(): void {
+export function cleanAbis(): void {
   if (!fs.existsSync(ARTIFACTS_DIR)) {
     throw new Error(`Artifacts directory not found: ${ARTIFACTS_DIR}. Run "npx hardhat compile" first.`);
   }
@@ -172,4 +172,6 @@ function main(): void {
   );
 }
 
-main();
+if (require.main === module) {
+  cleanAbis();
+}

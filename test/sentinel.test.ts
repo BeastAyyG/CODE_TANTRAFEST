@@ -93,6 +93,68 @@ describe("Sentinel · Simulation, Bytecode Analysis & Guardian Halting", () => {
     expect(await f.executor.getState(q.commitment)).to.equal(1);
   });
 
+  it("warps the sandbox to the queue ETA without changing live chain time", async () => {
+    const f = await deployAegisFixture();
+    const usdcAddr = await f.usdc.getAddress();
+    const amount = 5_000n * 1_000_000n;
+    const rules: ActionRule[] = [
+      {
+        kind: ActionKind.ERC20_TRANSFER,
+        target: usdcAddr,
+        selector: "0xa9059cbb",
+        counterparty: f.devWallet.address,
+        maxAmount: amount,
+        codeHash: ethers.ZeroHash,
+        childCount: 0,
+      },
+    ];
+    const actions = [
+      {
+        target: usdcAddr,
+        value: 0n,
+        data: f.usdc.interface.encodeFunctionData("transfer", [
+          f.devWallet.address,
+          amount,
+        ]),
+      },
+    ];
+
+    const q = await proposeAndQueue(f, actions, rules, "Warp Test", {
+      advanceTimelock: false,
+    });
+    const before = await ethers.provider.getBlock("latest");
+    expect(before).to.exist;
+
+    const sim = await simulateProposalExecution(
+      f.executor,
+      q.proposalId,
+      q.version,
+      q.versionHash,
+      q.disclosureHash,
+      actions,
+      rules,
+      {
+        treasuryProxy: await f.treasuryProxy.getAddress(),
+        feeModule: await f.feeModule.getAddress(),
+        executor: await f.executor.getAddress(),
+        usdc: usdcAddr,
+      },
+      [f.devWallet.address, f.attacker.address],
+      { signer: f.deployer, warpToEta: true }
+    );
+
+    expect(sim.commitment).to.equal(q.commitment);
+    expect(sim.shouldHalt).to.be.false;
+    expect(sim.reverted).to.be.false;
+    expect(sim.txHash).to.exist;
+
+    const after = await ethers.provider.getBlock("latest");
+    expect(after!.number).to.equal(before!.number);
+    expect(after!.timestamp).to.equal(before!.timestamp);
+    expect(await f.executor.getState(q.commitment)).to.equal(1);
+    expect(await f.usdc.balanceOf(f.devWallet.address)).to.equal(0n);
+  });
+
   it("flags an on-chain-valid action that drains treasury funds as a side effect", async () => {
     const f = await deployAegisFixture();
     const treasuryAddr = await f.treasuryProxy.getAddress();

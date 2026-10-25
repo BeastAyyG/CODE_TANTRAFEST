@@ -1,7 +1,7 @@
 {
   "network": "local",
   "chainId": 31337,
-  "deployedAt": "2026-10-25T09:53:21.516Z",
+  "deployedAt": "2026-10-25T15:40:06.102Z",
   "contracts": {
     "MockUSDC": {
       "address": "0x5FbDB2315678afecb367f032d93F642f64180aa3",

@@ -25,7 +25,7 @@ import {
   ActionRule,
   ActionKind,
 } from "../packages/shared/hash";
-import { IntentSpec, IntentAction, ActionKindName } from "./ai-draft";
+import type { IntentSpec, IntentAction, ActionKindName } from "./ai-draft";
 
 // ---------------------------------------------------------------------------
 // Output type
