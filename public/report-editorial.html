@@ -63,6 +63,8 @@
   }
   @keyframes wipe{to{transform:translateY(-101%);}}
   @keyframes mark{from{opacity:0;letter-spacing:.5em;}to{opacity:1;letter-spacing:.34em;}}
+  /* keep the handoff title card static across the atlas -> editorial cut */
+  .from-atlas .curtain-mark{animation:none;opacity:1;letter-spacing:.32em;text-indent:.32em;}
 
   /* ---- grain ---- */
   .grain{
@@ -390,6 +392,7 @@
   <header class="topbar">
     <div class="menu">
       <div class="label menu-title">Menu</div>
+      <a href="ecosystem.html">Atlas</a>
       <a href="#">Console</a>
       <a href="#">Arena</a>
       <a href="#">Scorecard</a>
@@ -514,6 +517,13 @@
 (function(){
   /* perf instrumentation: marks let the QA harness attribute main-thread time (no visual effect) */
   performance.mark('editorial:script-start');
+
+  /* arrived from the atlas handoff: keep the red sheet continuous */
+  if (new URLSearchParams(location.search).get('from') === 'atlas') {
+    document.documentElement.classList.add('from-atlas');
+    var cm = document.querySelector('.curtain-mark');
+    if (cm) cm.textContent = 'INTENTLOCK';
+  }
 
   var html = document.documentElement;
   var playing = false;
