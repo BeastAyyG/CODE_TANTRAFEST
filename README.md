@@ -149,7 +149,7 @@ The execution guarantee is designed to be on-chain; in this workspace it is a de
 | `chain-scoring/` | Claims, COI, voting and execution stage scoring plus the Decision Trail. |
 | `scripts/` | Evidence build, vector/error generation, scorecard, arena runner, demo consistency check. |
 | `tests/` | Nine Vitest files covering hashing, evidence, AI validation, decoding, executor, report export, reporting, graph and scoring. |
-| `docs/` | Project status brief, demo script, Person A handoff, and the independent audit. |
+| `docs/` | Project status brief, demo script, Person A handoff and direction, and the independent audit. |
 
 ---
 
@@ -219,9 +219,19 @@ Determinism notes: evidence hashes, vectors and scorecard entries are determinis
 
 ---
 
+## Prior art and positioning
+
+Vote-to-calldata binding is **already solved**: OpenZeppelin and Compound governors derive the proposal id from the encoded calls, so the vote is over the exact bytes. Do not claim that as novel — in the Tornado Cash takeover the malicious calldata *was* in the proposal.
+
+What is not solved is that nobody could read those bytes, nothing required the description to match them, and the code at an approved address can change after approval. That is the gap this project works in. It is also measured: *Understanding Security Issues in the DAO Governance Process* (IEEE TSE 2025) asks exactly whether proposals keep descriptions consistent with code, and finds **32,500 of the proposals it examined — over 90% — did not**.
+
+The nearest existing neighbour is Zodiac Roles Modifier, which enforces calldata-level permissions at execution — but as a standing *policy* rather than a per-proposal *commitment*. Full comparison and build-order guidance: [`docs/person-a-direction.md`](docs/person-a-direction.md).
+
+---
+
 ## Person A handoff
 
-The exact swap points, interface rules and current schemas are in [`docs/person-a-handoff.md`](docs/person-a-handoff.md). In short: Person A must deliver the Solidity contracts and ABIs, a local deployment manifest, stable error selectors, Solidity-generated hash vectors, real evidence fixtures per scenario, Sentinel traces for scenarios 3/4/6, a Hardhat-derived scorecard, and the `npm run arena` bridge. Until then, the UI labels the executor as a reference model and keeps the nine unproven properties amber.
+The exact swap points, interface rules and current schemas are in [`docs/person-a-handoff.md`](docs/person-a-handoff.md). Read [`docs/person-a-direction.md`](docs/person-a-direction.md) first for build order, the prior-art boundary and the five traps that break hash parity. In short: Person A must deliver the Solidity contracts and ABIs, a local deployment manifest, stable error selectors, Solidity-generated hash vectors, real evidence fixtures per scenario, Sentinel traces for scenarios 3/4/6, a Hardhat-derived scorecard, and the `npm run arena` bridge. Until then, the UI labels the executor as a reference model and keeps the nine unproven properties amber.
 
 ---
 

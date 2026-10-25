@@ -74,7 +74,44 @@ The single most important table. Do not upgrade a row without changing the code 
 
 ---
 
-## 4. What is done vs what is blocked
+## 4. Positioning and prior art
+
+Read this before describing the project to anyone technical.
+
+**What is already solved.** OpenZeppelin and Compound governors derive the proposal id from the
+encoded calldata (`hashProposal(targets, values, calldatas, descriptionHash)`), so the vote already
+binds to the exact bytes. Do not claim that as novel — it has been standard since 2020, and in the
+Tornado Cash takeover the malicious calldata *was* in the proposal.
+
+**What is not solved.** Nobody could read those bytes, nothing required the description to match
+them, and the code at an approved address can change after approval. That is the gap.
+
+| System | Already does | Leaves open |
+| :--- | :--- | :--- |
+| Compound / OZ Governor | Vote = hash of calldata | Description is a separate string |
+| Tally | Decodes and simulates proposals | Advisory; the governor never consults it |
+| Tenderly, OZ Defender | Fork simulation | Catches reverts, not intent mismatch |
+| Zodiac Roles Modifier | Enforces calldata-level permissions at execution | Standing **policy**, not a per-proposal **commitment** |
+| Forta | Runtime monitoring | After the fact |
+
+**The problem is peer-reviewed.** *Understanding Security Issues in the DAO Governance Process*,
+IEEE TSE 2025 (SUSTech / PolyU / ZJU), asks exactly "does the proposal ensure consistency between
+descriptions and code?" Across 3,348 DAOs and 65,436 proposals, **32,500 — over 90% of those
+examined — were inconsistent.** The authors built detection; nobody in that line built enforcement.
+
+**The claim that survives scrutiny:**
+
+> Vote-to-calldata binding is solved. What is not solved is that over 90% of proposals describe
+> something different from what they execute, and that the evidence and conflicts behind them live
+> in a forum post nothing verifies. We bind the evidence, the disclosures and the compiled rules
+> into the same commitment the vote signs, and the executor refuses anything that does not match.
+
+Full build-order guidance and the technical traps are in
+[`docs/person-a-direction.md`](person-a-direction.md).
+
+---
+
+## 5. What is done vs what is blocked
 
 ### Done — Person B (this workspace)
 
@@ -107,7 +144,7 @@ guardian halt · real Sentinel trace · on-chain disclosure verification.
 
 ---
 
-## 5. Run it
+## 6. Run it
 
 ```bash
 npm install
@@ -122,7 +159,7 @@ Run them intentionally, then re-run `npm test`.
 
 ---
 
-## 6. Environment gotchas (each cost real time)
+## 7. Environment gotchas (each cost real time)
 
 - **`vitest` needs a writable TEMP.** In this sandbox it dies with `EPERM` on `%TEMP%` unless you
   redirect: `TMPDIR=./.tmp TEMP=./.tmp TMP=./.tmp npx vitest run`.
@@ -136,18 +173,19 @@ Run them intentionally, then re-run `npm test`.
 
 ---
 
-## 7. Where to read next
+## 8. Where to read next
 
 | Doc | Read it for |
 | :--- | :--- |
 | `README.md` | Full architecture, hash scheme, formulas, fixture map, limitations. |
 | `docs/demo-script.md` | The rehearsable 5-minute click path with exact expected values. |
 | `docs/person-a-handoff.md` | Exact swap points, schemas, interface rules, acceptance checklist. |
+| `docs/person-a-direction.md` | Build order, prior art, and the five traps that break hash parity. |
 | `docs/audit-2026-10-25.md` | Independent audit: what was claimed vs what was proven, and what was fixed. |
 
 ---
 
-## 8. The one-line summary
+## 9. The one-line summary
 
 The decision trail, the evidence binding, the conflict detection and the enforcement logic are
 real code over labelled fixtures. The on-chain guarantee is a specification, not a fact — and the
