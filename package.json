@@ -1,0 +1,32 @@
+{
+  "name": "aegisdao",
+  "version": "1.0.0",
+  "description": "AegisDAO IntentLock - Verifiable governance execution",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "test:parity": "hardhat test test/commitment-parity.test.ts",
+    "test:redteam": "ts-node scripts/run-arena.ts",
+    "arena": "ts-node scripts/run-arena.ts",
+    "scorecard": "ts-node scripts/run-arena.ts",
+    "deploy": "ts-node scripts/deploy.ts",
+    "generate:errors": "ts-node scripts/generate-errors-map.ts"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "@types/chai": "^4.3.0",
+    "@types/mocha": "^10.0.0",
+    "@types/node": "^20.0.0",
+    "hardhat": "^2.22.0",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.4.0"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.6.1",
+    "ethers": "^6.13.0"
+  },
+  "allowScripts": {
+    "keccak@3.0.4": true,
+    "secp256k1@4.0.5": true
+  }
+}

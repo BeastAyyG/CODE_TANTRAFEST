@@ -1,0 +1,250 @@
+{
+  "scenario_3_jargon_upgrade": {
+    "scenarioId": 3,
+    "scenarioName": "Jargon Upgrade",
+    "proposalTitle": "Routine parameter tuning of the fee module",
+    "submittedExecution": {
+      "target": "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318",
+      "selector": "0x3659cfe6 (upgradeTo)",
+      "implementation": "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
+      "calldata": "0x3659cfe60000000000000000000000002279b7a0a67db372996a5fab50d91eaa73d2ebe6"
+    },
+    "sentinelDetection": {
+      "shouldHalt": true,
+      "haltReason": "Static bytecode analysis detected: Dangerous opcode detected: DELEGATECALL (0xf4) in implementation bytecode; Dangerous opcode detected: SELFDESTRUCT (0xff) in implementation bytecode",
+      "bytecodeScan": {
+        "target": "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
+        "codeHash": "0xf054c06d078d59d6f53294cedfc7d07e25dabf79753080fc40bbb7be1a5b622e",
+        "hasDelegateCall": true,
+        "hasSelfDestruct": true,
+        "violations": [
+          "Dangerous opcode detected: DELEGATECALL (0xf4) in implementation bytecode",
+          "Dangerous opcode detected: SELFDESTRUCT (0xff) in implementation bytecode"
+        ]
+      },
+      "diffReport": {
+        "timestamp": "2026-10-25T10:24:20.544Z",
+        "hasViolations": false,
+        "violations": [],
+        "summary": "Simulation passed all state invariant and rule checks.",
+        "traceSummary": {
+          "source": "structLogs",
+          "calls": 1,
+          "delegateCalls": 0,
+          "tokenTransfers": 0,
+          "tokenApprovals": 0,
+          "storageWrites": 1,
+          "criticalStorageWrites": 0,
+          "failed": true
+        }
+      }
+    },
+    "violationReport": {
+      "proposalId": "1",
+      "scenarioId": "3",
+      "layer": "sentinel",
+      "status": "FLAGGED",
+      "proposalSaid": "Routine parameter tuning of the fee module.",
+      "approved": [
+        {
+          "target": "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
+          "targetLabel": "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
+          "function": "PARAM_SET",
+          "args": {
+            "target": "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
+            "selector": "0x694b8e39",
+            "counterparty": "0x0000000000000000000000000000000000000000",
+            "maxAmount": "100",
+            "codeHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "childCount": "0"
+          },
+          "humanText": "Call 0x694b8e39 on 0xa513E6E4b8f2a923D98304ec87F64353C4D5C853 (max value 100)",
+          "nested": []
+        }
+      ],
+      "submitted": [
+        {
+          "target": "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318",
+          "targetLabel": "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318",
+          "function": "upgradeTo(address)",
+          "args": {
+            "newImplementation": "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6"
+          },
+          "humanText": "upgradeTo(address) on 0x8A791620dd6260079BF849Dc5567aDC3F2FdC318",
+          "nested": []
+        }
+      ],
+      "violatedConstraint": {
+        "code": "DangerousBytecode",
+        "message": "Static bytecode analysis detected: Dangerous opcode detected: DELEGATECALL (0xf4) in implementation bytecode; Dangerous opcode detected: SELFDESTRUCT (0xff) in implementation bytecode"
+      },
+      "evidence": {
+        "commitment": "0x7526ad703ea28a2f119207325ad400035c69064e9fddca944b2dec9f052f005e",
+        "calldataHash": "0x3871ee459aefcea38280801cdbd1394175dcf3d78c0349efb0a7b3575fdff19d",
+        "calldata": "0x3659cfe60000000000000000000000002279b7a0a67db372996a5fab50d91eaa73d2ebe6",
+        "revertData": "0x17d60e4700000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000",
+        "txHash": "0x169f1fe5c1e44b97c5f7085d2536c0ab1bfe57b9666b228fd56abc15e33c27c6",
+        "traceRef": null
+      }
+    },
+    "explainerCard": {
+      "proposalSaid": "Routine parameter tuning of the fee module.",
+      "approvedExecution": "Set feeBps on FeeModule to a value <= 100.",
+      "submittedExecution": "upgradeTo(0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6) on TreasuryProxy",
+      "violatedConstraint": "No approved rule permits an upgrade; implementation code hash contains DELEGATECALL and SELFDESTRUCT backdoors.",
+      "verifiableEvidence": {
+        "approvedCommitment": "0x63d07d802adf448035bbc2415a6599cf584cb4f77f46d86eb1510ca6de55cd85",
+        "submittedCalldata": "0x3659cfe60000000000000000000000002279b7a0a67db372996a5fab50d91eaa73d2ebe6",
+        "revertReason": "VM Exception while processing transaction: reverted with custom error 'ProposalNotInState(1, 0)'"
+      }
+    }
+  },
+  "scenario_4_nested_multicall": {
+    "scenarioId": 4,
+    "scenarioName": "Nested Multicall Hiding Ownership Transfer",
+    "proposalTitle": "Tweak Fee via Multicall",
+    "submittedExecution": {
+      "target": "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
+      "selector": "0xac9650d8 (multicall)",
+      "innerCallsCount": 2,
+      "calldata": "0xac9650d800000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000002469fe0e2d0000000000000000000000000000000000000000000000000000000000000028000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000024f2fde38b0000000000000000000000009965507d1a55bcc2695c58ba16fb37d819b0a4dc00000000000000000000000000000000000000000000000000000000"
+    },
+    "sentinelDetection": {
+      "shouldHalt": true,
+      "haltReason": "Submitted actions/rules do not match a queued commitment (commitment mismatch)",
+      "diffReport": {
+        "timestamp": "2026-10-25T10:24:20.671Z",
+        "hasViolations": false,
+        "violations": [],
+        "summary": "Simulation passed all state invariant and rule checks.",
+        "traceSummary": {
+          "source": "structLogs",
+          "calls": 1,
+          "delegateCalls": 0,
+          "tokenTransfers": 0,
+          "tokenApprovals": 0,
+          "storageWrites": 1,
+          "criticalStorageWrites": 0,
+          "failed": true
+        }
+      }
+    },
+    "violationReport": {
+      "proposalId": "2",
+      "scenarioId": "4",
+      "layer": "sentinel",
+      "status": "FLAGGED",
+      "proposalSaid": "Tweak fee module parameter via batch multicall.",
+      "approved": [
+        {
+          "target": "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
+          "targetLabel": "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
+          "function": "MULTICALL",
+          "args": {
+            "target": "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
+            "selector": "0xac9650d8",
+            "counterparty": "0x0000000000000000000000000000000000000000",
+            "maxAmount": "0",
+            "codeHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "childCount": "1"
+          },
+          "humanText": "Multicall with 1 inner call(s) on 0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
+          "nested": []
+        },
+        {
+          "target": "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
+          "targetLabel": "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
+          "function": "PARAM_SET",
+          "args": {
+            "target": "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
+            "selector": "0x694b8e39",
+            "counterparty": "0x0000000000000000000000000000000000000000",
+            "maxAmount": "100",
+            "codeHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "childCount": "0"
+          },
+          "humanText": "Call 0x694b8e39 on 0xa513E6E4b8f2a923D98304ec87F64353C4D5C853 (max value 100)",
+          "nested": []
+        }
+      ],
+      "submitted": [
+        {
+          "target": "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
+          "targetLabel": "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
+          "function": "multicall(bytes[])",
+          "args": {
+            "data": "[0x69fe0e2d0000000000000000000000000000000000000000000000000000000000000028, 0xf2fde38b0000000000000000000000009965507d1a55bcc2695c58ba16fb37d819b0a4dc]"
+          },
+          "humanText": "multicall(bytes[]) on 0xa513E6E4b8f2a923D98304ec87F64353C4D5C853 (2 nested call(s))",
+          "nested": [
+            {
+              "target": "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
+              "targetLabel": "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
+              "function": "setFee(uint256)",
+              "args": {
+                "newFee": "40"
+              },
+              "humanText": "setFee(uint256) on 0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
+              "nested": []
+            },
+            {
+              "target": "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
+              "targetLabel": "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
+              "function": "transferOwnership(address)",
+              "args": {
+                "newOwner": "0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc"
+              },
+              "humanText": "transferOwnership(address) on 0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
+              "nested": []
+            }
+          ]
+        }
+      ],
+      "violatedConstraint": {
+        "code": "ProposalNotInState",
+        "message": "Submitted actions/rules do not match a queued commitment (commitment mismatch)"
+      },
+      "evidence": {
+        "commitment": "0x29f03e1bc38097cd6f299aea4b3adfa54f7419fa3c2675c2c76f56cc8d7df898",
+        "calldataHash": "0xf0c8c9b91224a64dd286a5c225904638194aff07c460934822227fbddf3c1d07",
+        "calldata": "0xac9650d800000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000002469fe0e2d0000000000000000000000000000000000000000000000000000000000000028000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000024f2fde38b0000000000000000000000009965507d1a55bcc2695c58ba16fb37d819b0a4dc00000000000000000000000000000000000000000000000000000000",
+        "revertData": "0x17d60e4700000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000",
+        "txHash": "0xffe1ae7e578756a2f81b120218fea4ac9d27ef16a21e2498cdfc73d40213c35b",
+        "traceRef": null
+      }
+    },
+    "explainerCard": {
+      "proposalSaid": "Tweak fee module parameter via batch multicall.",
+      "approvedExecution": "multicall([setFee(40)]) with exactly 1 inner call.",
+      "submittedExecution": "multicall([setFee(40), transferOwnership(0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc)])",
+      "violatedConstraint": "Multicall childCount mismatch and unapproved transferOwnership inner call.",
+      "verifiableEvidence": {
+        "approvedCommitment": "0xa26d6b155eed2846a192468942004439fd8626942f2ffe7c9430d591f179e82e",
+        "submittedCalldata": "0xac9650d800000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000002469fe0e2d0000000000000000000000000000000000000000000000000000000000000028000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000024f2fde38b0000000000000000000000009965507d1a55bcc2695c58ba16fb37d819b0a4dc00000000000000000000000000000000000000000000000000000000",
+        "revertReason": "VM Exception while processing transaction: reverted with custom error 'ProposalNotInState(1, 0)'"
+      }
+    }
+  },
+  "scenario_6_delegatecall_payload": {
+    "scenarioId": 6,
+    "scenarioName": "Delegatecall Payload Protection",
+    "proposalTitle": "Arbitrary execution via delegatecall",
+    "sentinelDetection": {
+      "executorHasDelegateCall": false,
+      "maliciousTargetHasDelegateCall": true,
+      "maliciousTargetHasSelfDestruct": true,
+      "shouldHalt": true,
+      "haltReason": "Target contract contains dangerous DELEGATECALL (0xf4) instruction"
+    },
+    "explainerCard": {
+      "proposalSaid": "Deploy helper and delegatecall state migration.",
+      "approvedExecution": "Only CALL opcode supported by IntentLockExecutor.",
+      "submittedExecution": "delegatecall payload routed to 0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
+      "violatedConstraint": "IntentLockExecutor architecturally rejects delegatecall; static scan detected DELEGATECALL in target bytecode.",
+      "verifiableEvidence": {
+        "executorBytecodeScan": "NO DELEGATECALL (0xf4) opcode present",
+        "targetBytecodeScan": "DELEGATECALL and SELFDESTRUCT present in MaliciousImpl"
+      }
+    }
+  }
+}
