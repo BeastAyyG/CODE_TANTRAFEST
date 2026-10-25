@@ -256,6 +256,42 @@
   .panel .bar{height:3px;background:var(--hair);position:relative;margin-top:2px;}
   .panel .bar span{position:absolute;left:0;top:0;bottom:0;background:var(--red);transition:width .4s ease;}
 
+  /* ---- handoff to the editorial ---- */
+  .handoff{position:relative;min-height:100vh;display:flex;flex-direction:column;
+    justify-content:center;padding:0 0 60px;border-top:1px solid var(--hair);}
+  .handoff-inner{max-width:640px;}
+  .handoff .label{margin-bottom:20px;}
+  .handoff-lede{margin:0 0 20px;font-size:clamp(26px,4.4vw,60px);line-height:.98;font-weight:700;
+    letter-spacing:-.02em;text-transform:uppercase;color:var(--red);}
+  .handoff-lede .l{display:block;overflow:hidden;}
+  .handoff-lede .l>span{display:block;transform:translateY(112%);}
+  .handoff.in .handoff-lede .l>span{animation:rise .8s cubic-bezier(.2,.75,.2,1) both;}
+  .handoff.in .handoff-lede .l:nth-child(1)>span{animation-delay:.04s;}
+  .handoff.in .handoff-lede .l:nth-child(2)>span{animation-delay:.12s;}
+  .handoff-body{margin:0 0 28px;font-size:12px;line-height:1.62;color:#3f3b34;max-width:40ch;}
+  .handoff-cta{display:inline-flex;align-items:center;gap:10px;width:max-content;
+    font-family:ui-monospace,Menlo,Consolas,monospace;font-size:10px;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--ink);text-decoration:none;
+    border-bottom:1px solid var(--hair);padding-bottom:7px;
+    transition:color .25s ease,border-color .25s ease;}
+  .handoff-cta:hover{color:var(--red);border-color:var(--red);}
+  .handoff-cta span{transition:transform .3s ease;}
+  .handoff-cta:hover span{transform:translateY(4px);}
+  .handoff-line{position:absolute;left:0;right:0;bottom:40px;height:1px;background:var(--hair);}
+  .handoff-line span{display:block;height:1px;width:0;background:var(--red);transition:width .2s linear;}
+
+  .plate .more{display:inline-flex;align-items:center;gap:5px;margin-left:12px;color:var(--red);}
+  .plate .more i{display:inline-block;font-style:normal;animation:nudge 1.6s ease-in-out infinite;}
+  @keyframes nudge{0%,100%{transform:translateY(0);}50%{transform:translateY(3px);}}
+
+  .handoff-curtain{position:fixed;inset:0;z-index:97;background:var(--red);
+    transform:translateY(101%);transition:transform .62s cubic-bezier(.77,0,.18,1);
+    display:grid;place-items:center;pointer-events:none;}
+  .handoff-curtain.go{transform:translateY(0);}
+  .handoff-curtain .hc-mark{color:var(--paper);font-size:clamp(18px,2.8vw,38px);font-weight:700;
+    letter-spacing:.32em;text-indent:.32em;opacity:0;transition:opacity .3s ease .34s;}
+  .handoff-curtain.go .hc-mark{opacity:1;}
+
   /* plate + footer */
   .plate{position:relative;margin:6px 0 0;padding-top:9px;
     font-family:ui-monospace,Menlo,Consolas,monospace;font-size:8px;letter-spacing:.18em;
@@ -297,6 +333,8 @@
 
 <div class="curtain" aria-hidden="true"><div class="curtain-mark">ARCHIPELAGO</div></div>
 <div class="grain" aria-hidden="true"></div>
+
+<div class="handoff-curtain" id="handoffCurtain" aria-hidden="true"><div class="hc-mark">INTENTLOCK</div></div>
 
 <div class="sheet">
 
@@ -351,7 +389,8 @@
         <span class="mono" id="state">Genesis &middot; 4 shores</span>
       </div>
 
-      <p class="plate">Fig. 02 &middot; The archipelago &mdash; generated in code</p>
+      <p class="plate">Fig. 02 &middot; The archipelago &mdash; generated in code
+        <span class="more">Scroll <i aria-hidden="true">&darr;</i></span></p>
     </div>
 
     <div>
@@ -398,6 +437,20 @@
       <p>An illustration,<br/>not a network.<br/><span>No chain is<br/>actually wired.</span></p>
     </div>
   </footer>
+
+  <section class="handoff" id="handoff" aria-label="Continue to the editorial">
+    <div class="handoff-inner">
+      <div class="label">Fig. 03 &middot; The decision</div>
+      <p class="handoff-lede">
+        <span class="l"><span>The map ends.</span></span>
+        <span class="l"><span>The decision begins.</span></span>
+      </p>
+      <p class="handoff-body">Every shore is a vote. Every bridge is a promise.
+        Keep scrolling for the ledger of intent &mdash; the same sea, read as a decision.</p>
+      <a class="handoff-cta" href="report-editorial.html?from=atlas">Continue to IntentLock <span aria-hidden="true">&darr;</span></a>
+    </div>
+    <div class="handoff-line" aria-hidden="true"><span id="handoffFill"></span></div>
+  </section>
 
   <aside class="panel" id="panel" aria-hidden="true">
     <button class="panel-close" id="panelClose" aria-label="Close">&times;</button>
@@ -1057,6 +1110,43 @@
     row.style.cursor = 'pointer';
     row.addEventListener('click', function(){ openPanel(row.getAttribute('data-island')); });
   });
+
+  /* ============ HANDOFF TO THE EDITORIAL ============ */
+  var handoff = document.getElementById('handoff');
+  var hcurtain = document.getElementById('handoffCurtain');
+  var handoffFill = document.getElementById('handoffFill');
+  var leaving = false;
+
+  function goEditorial(){
+    if (leaving) return;
+    leaving = true;
+    if (hcurtain) hcurtain.classList.add('go');
+    setTimeout(function(){ location.href = 'report-editorial.html?from=atlas'; }, 640);
+  }
+
+  if (handoff){
+    if ('IntersectionObserver' in window){
+      new IntersectionObserver(function(es){
+        es.forEach(function(e){ if (e.isIntersecting) handoff.classList.add('in'); });
+      }, { threshold: 0.22 }).observe(handoff);
+    }
+    var cta = handoff.querySelector('.handoff-cta');
+    if (cta) cta.addEventListener('click', function(e){ e.preventDefault(); goEditorial(); });
+
+    var dwell = null;
+    var hScroll = function(){
+      var r = handoff.getBoundingClientRect();
+      var vh = window.innerHeight;
+      var p = Math.min(1, Math.max(0, (vh - r.top) / (vh + r.height)));
+      if (handoffFill) handoffFill.style.width = (p * 100).toFixed(1) + '%';
+      /* wait until the section is essentially full-screen, then give it a beat */
+      if (!leaving && r.top < vh * 0.06){
+        if (!dwell) dwell = setTimeout(goEditorial, 650);
+      } else if (dwell){ clearTimeout(dwell); dwell = null; }
+    };
+    window.addEventListener('scroll', hScroll, { passive: true });
+    hScroll();
+  }
 
   scrub.value = String(Math.round(t * 10));
   applyPhase(t);
