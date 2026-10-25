@@ -8,7 +8,8 @@ import {
 import {
   ProposalState,
   decodeRevert,
-  getDevSigner,
+  explorerTxUrl,
+  getServerSigner,
   getIntentLockExecutor,
   getProvider,
 } from "../../../../lib/chain";
@@ -16,6 +17,9 @@ import {
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
+// A manual gas limit is required on Sepolia: without it the node rejects the
+// transaction before it is mined, so the failed attempt would have no hash or
+// Etherscan link to show.
 const FORCED_GAS_LIMIT = 8_000_000n;
 
 export async function POST(request: Request) {
@@ -52,7 +56,7 @@ export async function POST(request: Request) {
 
     const actions = bundleToActions(bundle);
     const rules = bundleToRules(bundle);
-    const signer = await getDevSigner(0);
+    const signer = await getServerSigner("deployer");
     const from = await signer.getAddress();
     const executorAddress = await executor.getAddress();
     const calldata = executor.interface.encodeFunctionData("execute", [
@@ -115,6 +119,7 @@ export async function POST(request: Request) {
         title: decoded.title,
         explanation: decoded.explanation,
         commitment,
+        explorerUrl: txHash ? explorerTxUrl(txHash) : null,
       },
       { headers: { "Cache-Control": "no-store" } }
     );

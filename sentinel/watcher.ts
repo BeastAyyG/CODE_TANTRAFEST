@@ -12,7 +12,7 @@
 import { randomUUID } from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { ethers } from "hardhat";
+import hre, { ethers } from "hardhat";
 import type {
   Contract,
   ContractRunner,
@@ -45,10 +45,18 @@ import {
   type SentinelSimulationSummary,
 } from "./live-store";
 
-const POLL_INTERVAL_MS = Number(process.env.SENTINEL_POLL_MS ?? 1000);
+const SENTINEL_NETWORK =
+  process.env.SENTINEL_NETWORK ??
+  (hre.network.name === "sepolia" ? "sepolia" : "local");
+const IS_SEPOLIA = SENTINEL_NETWORK === "sepolia";
+
+const POLL_INTERVAL_MS = Number(
+  process.env.SENTINEL_POLL_MS ?? (IS_SEPOLIA ? 12_000 : 1000)
+);
 const HEARTBEAT_MS = 4000;
 const BUNDLE_WAIT_ATTEMPTS = 10;
 const BUNDLE_WAIT_MS = 300;
+const LOG_CHUNK_SIZE = Number(process.env.SENTINEL_LOG_CHUNK ?? 2000);
 const ZERO_ADDRESS = ethers.ZeroAddress;
 
 let watcherLock: string | null = null;
@@ -126,6 +134,7 @@ interface Contracts {
 interface ManifestContract {
   address: string;
   abi: InterfaceAbi;
+  blockNumber?: number;
 }
 
 interface Runtime {
@@ -134,25 +143,34 @@ interface Runtime {
   monitorAccounts: string[];
   simulator: Signer;
   guardian: Signer;
+  haltExecutor: Contract;
   chainId: bigint;
   executorAddress: string;
   rpcUrl: string;
+  deploymentBlock: number;
+  network: string;
   lastBlock: number | null;
   lastHeartbeatWrite: number;
 }
 
-function loadDeployment(): Record<string, ManifestContract> {
-  const file = path.join(repositoryRoot(), "deployments", "local.json");
+interface DeploymentManifest {
+  network?: string;
+  deploymentBlock?: number;
+  contracts: Record<string, ManifestContract>;
+}
+
+function loadDeployment(): DeploymentManifest {
+  const file = path.join(repositoryRoot(), "deployments", `${SENTINEL_NETWORK}.json`);
   if (!fs.existsSync(file)) {
-    throw new Error(`Deployment manifest not found at ${file}. Run npm run deploy first.`);
+    throw new Error(
+      `Deployment manifest not found at ${file}. Deploy to ${SENTINEL_NETWORK} first.`
+    );
   }
-  const manifest = JSON.parse(fs.readFileSync(file, "utf8")) as {
-    contracts?: Record<string, ManifestContract>;
-  };
+  const manifest = JSON.parse(fs.readFileSync(file, "utf8")) as DeploymentManifest;
   if (!manifest.contracts || !manifest.contracts.IntentLockExecutor) {
     throw new Error(`Invalid deployment manifest at ${file}`);
   }
-  return manifest.contracts;
+  return manifest;
 }
 
 function contract(
@@ -162,9 +180,66 @@ function contract(
 ): Contract {
   const entry = contracts[name];
   if (!entry?.address || !entry.abi) {
-    throw new Error(`Contract ${name} missing from deployments/local.json`);
+    throw new Error(`Contract ${name} missing from deployments/${SENTINEL_NETWORK}.json`);
   }
   return new ethers.Contract(entry.address, entry.abi, runner);
+}
+
+function normalizeKey(key: string): string {
+  return key.startsWith("0x") ? key : `0x${key}`;
+}
+
+function configuredAddresses(): string[] {
+  const addresses: string[] = [];
+  const envAddressNames = [
+    "PROPOSER_ADDRESS",
+    "VOTER1_ADDRESS",
+    "VOTER2_ADDRESS",
+    "VOTER3_ADDRESS",
+    "DEV_WALLET_ADDRESS",
+    "CHALLENGER_ADDRESS",
+  ];
+  for (const name of envAddressNames) {
+    const value = process.env[name];
+    if (value && ethers.isAddress(value)) addresses.push(ethers.getAddress(value));
+  }
+  for (const keyName of ["PROPOSER_KEY", "VOTER1_KEY", "VOTER2_KEY", "GUARDIAN_KEY"]) {
+    const key = process.env[keyName];
+    if (!key) continue;
+    try {
+      addresses.push(new ethers.Wallet(normalizeKey(key)).address);
+    } catch {
+      // Ignore malformed keys here; signer construction reports them.
+    }
+  }
+  return addresses;
+}
+
+function isRetryable(message: string): boolean {
+  return /429|rate.?limit|timeout|timed out|SERVER_ERROR|could not coalesce|ECONNRESET|ETIMEDOUT|network error|502|503|504|header not found/i.test(
+    message
+  );
+}
+
+async function withRetry<T>(
+  label: string,
+  fn: () => Promise<T>,
+  attempts = 6
+): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      const message = errorMessage(error);
+      if (!isRetryable(message) || attempt === attempts - 1) throw error;
+      const wait = Math.min(60_000, 2_000 * 2 ** attempt);
+      console.warn(`[sentinel] ${label}: ${message} (retry in ${wait / 1000}s)`);
+      await delay(wait);
+    }
+  }
+  throw lastError;
 }
 
 function labelsFor(contracts: Record<string, ManifestContract>): Record<string, string> {
@@ -177,31 +252,85 @@ function labelsFor(contracts: Record<string, ManifestContract>): Record<string, 
 
 async function buildRuntime(): Promise<Runtime> {
   const deployment = loadDeployment();
+  const contracts = deployment.contracts;
   const provider = ethers.provider;
   const signers = await ethers.getSigners();
   const simulator = signers[0];
   if (!simulator) throw new Error("No signer available for sandbox simulation");
 
-  const executor = contract(deployment, "IntentLockExecutor", provider);
-  const governor = contract(deployment, "IntentGovernor", provider);
-  const guardianAddress = String(await executor.guardian());
-  const guardian = signers.find(
-    (signer) => signer.address.toLowerCase() === guardianAddress.toLowerCase()
+  const executor = contract(contracts, "IntentLockExecutor", provider);
+  const governor = contract(contracts, "IntentGovernor", provider);
+  const guardianAddress = String(
+    await withRetry("guardian", () => executor.guardian())
   );
-  if (!guardian) {
-    throw new Error(
-      `Guardian ${guardianAddress} is not one of the unlocked Hardhat signers. ` +
-        `The watcher needs the guardian key to halt.`
+
+  let guardian: Signer;
+  let haltExecutor: Contract;
+
+  if (IS_SEPOLIA) {
+    // Reads (and simulation) run on the FORK=1 Hardhat node; the halt is sent
+    // to Sepolia itself with the guardian key.
+    const haltUrl =
+      process.env.SENTINEL_HALT_RPC_URL ?? process.env.SEPOLIA_RPC_URL;
+    if (!haltUrl) {
+      throw new Error(
+        "SEPOLIA_RPC_URL (or SENTINEL_HALT_RPC_URL) is required to halt on Sepolia."
+      );
+    }
+    const guardianKey = process.env.GUARDIAN_KEY;
+    if (!guardianKey) {
+      throw new Error("GUARDIAN_KEY is required to halt on Sepolia.");
+    }
+    const haltNetwork = new ethers.JsonRpcProvider(haltUrl);
+    const wallet = new ethers.Wallet(normalizeKey(guardianKey), haltNetwork);
+    if (wallet.address.toLowerCase() !== guardianAddress.toLowerCase()) {
+      throw new Error(
+        `GUARDIAN_KEY resolves to ${wallet.address}, but executor.guardian() is ` +
+          `${guardianAddress}. Halt transactions would revert.`
+      );
+    }
+    guardian = wallet;
+    haltExecutor = contract(contracts, "IntentLockExecutor", haltNetwork);
+    if (process.env.FORK !== "1") {
+      console.warn(
+        "[sentinel] FORK=1 is not set. Simulation needs evm_snapshot; start the " +
+          "watcher on the Sepolia fork (see docs/SEPOLIA.md) for live checks."
+      );
+    }
+  } else {
+    const localGuardian = signers.find(
+      (signer) => signer.address.toLowerCase() === guardianAddress.toLowerCase()
     );
+    if (!localGuardian) {
+      throw new Error(
+        `Guardian ${guardianAddress} is not one of the unlocked Hardhat signers. ` +
+          `The watcher needs the guardian key to halt.`
+      );
+    }
+    guardian = localGuardian;
+    haltExecutor = executor;
   }
 
-  const treasuryProxy = String(deployment.TreasuryProxy?.address ?? ZERO_ADDRESS);
-  const feeModule = String(deployment.FeeModule?.address ?? ZERO_ADDRESS);
-  const usdc = String(deployment.MockUSDC?.address ?? ZERO_ADDRESS);
-  const vulnerableProxy = String(deployment.VulnerableProxy?.address ?? ZERO_ADDRESS);
+  const treasuryProxy = String(contracts.TreasuryProxy?.address ?? ZERO_ADDRESS);
+  const feeModule = String(contracts.FeeModule?.address ?? ZERO_ADDRESS);
+  const usdc = String(contracts.MockUSDC?.address ?? ZERO_ADDRESS);
+  const vulnerableProxy = String(contracts.VulnerableProxy?.address ?? ZERO_ADDRESS);
   const executorAddress = await executor.getAddress();
-  const network = await provider.getNetwork();
-  const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL ?? "http://127.0.0.1:8545";
+  const network = await withRetry("getNetwork", () => provider.getNetwork());
+  const rpcUrl =
+    process.env.SENTINEL_RPC_URL ??
+    process.env.SEPOLIA_RPC_URL ??
+    process.env.NEXT_PUBLIC_RPC_URL ??
+    (hre.network.name === "hardhat" ? "in-process hardhat" : "http://127.0.0.1:8545");
+  const deploymentBlock =
+    deployment.deploymentBlock ?? contracts.IntentLockExecutor?.blockNumber ?? 0;
+
+  const monitorAccounts = [
+    ...new Set([
+      ...signers.map((signer) => signer.address),
+      ...configuredAddresses(),
+    ]),
+  ];
 
   const reports = readLiveReports();
   reports.watcher = {
@@ -210,7 +339,7 @@ async function buildRuntime(): Promise<Runtime> {
     startedAt: new Date().toISOString(),
     lastHeartbeat: new Date().toISOString(),
     lastBlock: null,
-    rpcUrl,
+    rpcUrl: IS_SEPOLIA ? `${rpcUrl} -> halt via Sepolia RPC` : rpcUrl,
     executor: executorAddress,
     guardian: guardianAddress,
     pollIntervalMs: POLL_INTERVAL_MS,
@@ -229,14 +358,17 @@ async function buildRuntime(): Promise<Runtime> {
         usdc,
         vulnerableProxy,
       },
-      labels: labelsFor(deployment),
+      labels: labelsFor(contracts),
     },
-    monitorAccounts: signers.map((signer) => signer.address),
+    monitorAccounts,
     simulator,
     guardian,
+    haltExecutor,
     chainId: network.chainId,
     executorAddress,
     rpcUrl,
+    deploymentBlock,
+    network: SENTINEL_NETWORK,
     lastBlock: null,
     lastHeartbeatWrite: 0,
   };
@@ -318,7 +450,9 @@ async function findBundle(commitment: string): Promise<ExecutionBundle | null> {
 
 async function resolveGovId(governor: Contract, commitment: string): Promise<string | null> {
   try {
-    const govId: bigint = await governor.commitmentToGovId(commitment);
+    const govId: bigint = await withRetry("commitmentToGovId", () =>
+      governor.commitmentToGovId(commitment)
+    );
     return govId > 0n ? govId.toString() : null;
   } catch {
     return null;
@@ -328,8 +462,19 @@ async function resolveGovId(governor: Contract, commitment: string): Promise<str
 async function processQueue(runtime: Runtime, event: EventLog): Promise<void> {
   const commitment = String(event.args.commitment);
   const proposalId = BigInt(event.args.proposalId).toString();
+
+  const prior = runtime.reports.results[commitment.toLowerCase()];
+  if (prior && (prior.status === "CLEAN" || prior.status === "HALTED")) {
+    console.log(
+      `[sentinel] replay of ${short(commitment)} ignored (already ${prior.status})`
+    );
+    return;
+  }
+
   const govId = await resolveGovId(runtime.contracts.governor, commitment);
-  const queued = await runtime.contracts.executor.getProposal(commitment);
+  const queued = await withRetry("getProposal", () =>
+    runtime.contracts.executor.getProposal(commitment)
+  );
   const bundle = await findBundle(commitment);
   const title = bundle?.title ?? `Proposal #${proposalId}`;
 
@@ -346,15 +491,9 @@ async function processQueue(runtime: Runtime, event: EventLog): Promise<void> {
   });
 
   if (Number(queued.state) !== 1) {
-    emit(runtime, "ERROR", {
-      event,
-      proposalId,
-      govId,
-      commitment,
-      title,
-      detail: `Queued event observed, but executor state is ${Number(queued.state)}; refusing to simulate.`,
-      resultStatus: "ERROR",
-    });
+    console.log(
+      `[sentinel] ${short(commitment)} is in executor state ${Number(queued.state)}; nothing to do.`
+    );
     return;
   }
 
@@ -525,12 +664,16 @@ async function processQueue(runtime: Runtime, event: EventLog): Promise<void> {
     console.log("");
 
     const halt = await haltProposal(
-      runtime.contracts.executor,
+      runtime.haltExecutor,
       runtime.guardian,
       commitment,
       report
     );
-    const haltedState = Number(await runtime.contracts.executor.getState(commitment));
+    const haltedState = Number(
+      await withRetry("halted state", () =>
+        runtime.contracts.executor.getState(commitment)
+      )
+    );
 
     emit(runtime, "HALTED", {
       event,
@@ -642,10 +785,10 @@ async function main(): Promise<void> {
   const runtime = await buildRuntime();
   const provider = ethers.provider;
   const fromBlockEnv = Number(process.env.SENTINEL_FROM_BLOCK);
-  const currentBlock = await provider.getBlockNumber();
-  let nextBlock = Number.isFinite(fromBlockEnv) && fromBlockEnv >= 0
-    ? fromBlockEnv
-    : currentBlock;
+  const currentBlock = await withRetry("getBlockNumber", () => provider.getBlockNumber());
+  const defaultFrom = runtime.deploymentBlock > 0 ? runtime.deploymentBlock : currentBlock;
+  let nextBlock =
+    Number.isFinite(fromBlockEnv) && fromBlockEnv >= 0 ? fromBlockEnv : defaultFrom;
 
   runtime.lastBlock = currentBlock;
   await heartbeat(runtime, true);
@@ -662,31 +805,35 @@ async function main(): Promise<void> {
   process.once("SIGTERM", () => shutdown("SIGTERM"));
 
   console.log("AEGIS SENTINEL WATCHER");
+  console.log(`  Network:    ${runtime.network} (chain ${runtime.chainId})`);
   console.log(`  RPC:        ${runtime.rpcUrl}`);
   console.log(`  Executor:   ${runtime.executorAddress}`);
-  console.log(`  Chain:      ${runtime.chainId}`);
   console.log(`  Guardian:   ${await runtime.guardian.getAddress()} (halt-only)`);
-  console.log(`  Watch from: block ${nextBlock}`);
+  console.log(`  Watch from: block ${nextBlock} (deployment block ${runtime.deploymentBlock})`);
   console.log(`  Results:    ${liveReportsFile()}`);
   console.log("  Waiting for ProposalQueued events...\n");
 
   while (!stopping) {
     try {
-      const latest = await provider.getBlockNumber();
-      if (latest < nextBlock) {
-        nextBlock = latest;
-      }
+      const latest = await withRetry("getBlockNumber", () => provider.getBlockNumber());
 
-      if (latest >= nextBlock) {
-        const queuedEvents = await runtime.contracts.executor.queryFilter(
-          runtime.contracts.executor.filters.ProposalQueued(),
-          nextBlock,
-          latest
+      while (nextBlock <= latest && !stopping) {
+        const toBlock = Math.min(latest, nextBlock + LOG_CHUNK_SIZE - 1);
+        const queuedEvents = await withRetry(
+          `queryFilter ${nextBlock}-${toBlock}`,
+          () =>
+            runtime.contracts.executor.queryFilter(
+              runtime.contracts.executor.filters.ProposalQueued(),
+              nextBlock,
+              toBlock
+            )
         );
-        // Advance before processing: a persistence hiccup must not replay a
-        // queue event and submit a second halt.
-        nextBlock = latest + 1;
+        // Advance only after a successful query; a failed chunk is retried by
+        // withRetry without skipping events.
+        nextBlock = toBlock + 1;
+
         for (const event of queuedEvents) {
+          if (stopping) break;
           if ("args" in event) {
             await processQueue(runtime, event as EventLog);
           }
@@ -698,6 +845,7 @@ async function main(): Promise<void> {
       await heartbeat(runtime);
     } catch (err) {
       console.error(`[sentinel] Watcher poll failed: ${errorMessage(err)}`);
+      await delay(5_000);
     }
     await delay(POLL_INTERVAL_MS);
   }

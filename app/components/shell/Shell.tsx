@@ -12,7 +12,8 @@ import {
   Vote,
   Workflow,
 } from "lucide-react";
-import { CHAIN_ID } from "@/lib/config";
+import { CHAIN_ID, CHAIN_NAME } from "@/lib/config";
+import { explorerBaseUrl } from "@/lib/explorer";
 import { cn } from "@/lib/format";
 import { useProposal } from "@/lib/proposal-context";
 import { ProposalListbox } from "./ProposalListbox";
@@ -28,6 +29,34 @@ const NAV = [
 
 function isActive(pathname: string, href: string): boolean {
   return href === "/" ? pathname === "/" : pathname.startsWith(href);
+}
+
+function ChainTag() {
+  const explorer = explorerBaseUrl();
+  const className =
+    "inline-flex items-center gap-1.5 rounded-md border border-slate-800 bg-slate-900/60 px-2 py-1 font-mono text-[11px] tabular-nums text-slate-400 transition-colors duration-150";
+  const label = (
+    <>
+      <Link2 size={12} className="text-slate-500" />
+      {CHAIN_NAME}
+      <span className="text-slate-600">{CHAIN_ID}</span>
+    </>
+  );
+
+  if (!explorer) {
+    return <span className={className}>{label}</span>;
+  }
+  return (
+    <a
+      href={explorer}
+      target="_blank"
+      rel="noreferrer"
+      className={cn(className, "hover:border-cyan-900/70 hover:text-cyan-200")}
+      title={`Open ${CHAIN_NAME} explorer`}
+    >
+      {label}
+    </a>
+  );
 }
 
 export function Shell({ children }: { children: React.ReactNode }) {
@@ -116,10 +145,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
             />
 
             <div className="ml-auto flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-md border border-slate-800 bg-slate-900/60 px-2 py-1 font-mono text-[11px] tabular-nums text-slate-400">
-                <Link2 size={12} className="text-slate-500" />
-                chain {CHAIN_ID}
-              </span>
+              <ChainTag />
             </div>
           </div>
 

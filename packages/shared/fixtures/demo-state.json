@@ -3,10 +3,10 @@
     "title": "Q4 Development Grant",
     "govId": "1",
     "state": "Executed",
-    "commitment": "0x94a53a260a74e0fd49037a3c78ca6681387c90a7f968f2b780723d251b0caa74",
+    "commitment": "0x17c014e2f3d3fe616652b2deea87537fd7da9e67be3c81b2409262ceb02344f8",
     "versionChain": [
-      "0xd42d50367b0420ffba1af9e71fdf8e42749731ad376d57934a4bcfd6b3554d36",
-      "0xcf2b1b3d4fbfa58641d9f438a37bbddea2948c0472b9c5550a738da350ef36e4"
+      "0x9813dd451273bfd09722f3da1022e5675e90f91744f6affd7563a672083a9171",
+      "0x68a2c58a1c6b0134b8e0498912c46bc8231952652e7c5bf10e5977657aeb2a5b"
     ],
     "notes": "2 versions (draft -> final); evidenceRoots 0x36d4f6fe…ee9861 / 0xd9ce7ed5…85f511; 5,000 USDC executed to 0x14dC79964da2C08b23698B3D3cc7Ca32193d9955."
   },
@@ -14,19 +14,19 @@
     "title": "Routine parameter tuning of the fee module",
     "govId": "2",
     "state": "Halted",
-    "commitment": "0x2e76351d2fbe0dbb46e6973e0377443736d4437659c299bc14e7478cca8782f1",
+    "commitment": "0x10629eb6cc0b516d0c16ff54863dff02c6d49880d97f27a7179e0d031bd423e6",
     "versionChain": [
-      "0x78ae6d07ebbbb4e739e0d15ff31e3949e0f8a2ad13e543194912ef3e3d3f0cd2"
+      "0xe7db356ac9be9ac6039ad762b103c158a71c75339ce77fa018cd35f608bb847d"
     ],
-    "notes": "Queued benign setFee(35); malicious upgradeTo(0x8A791620…FdC318) was presented and flagged by the Sentinel (Static bytecode analysis detected: Dangerous opcode detected: DELEGATECALL (0xf4) in implementation bytecode; Dangerous opcode detected: SELFDESTRUCT (0xff) in implementation bytecode); guardian halt 0x100c1f33…a21ab9; evidenceRoot 0xeb0f856c…62cc56."
+    "notes": "Queued benign setFee(35); malicious upgradeTo(0xe8D2A1E8…a7e91d) was presented and flagged by the Sentinel (Static bytecode analysis detected: Dangerous opcode detected: DELEGATECALL (0xf4) in implementation bytecode; Dangerous opcode detected: SELFDESTRUCT (0xff) in implementation bytecode); guardian halt 0x6811d844…2a6004; evidenceRoot 0xeb0f856c…62cc56."
   },
   "3": {
     "title": "Ecosystem grant with hidden link",
     "govId": "3",
     "state": "Challenged",
-    "commitment": "0x8964d3c69616661093b9f03b23fcb701d5c1fc833dff0590905dff9878cdba72",
+    "commitment": "0x1a6700cf29a53ecb079054f5cec4bccb05d18feb9643421b1b8955befd58d037",
     "versionChain": [
-      "0x96f5c05903a2def762b68396e782313b78436cf12b90fa7e2b95674b1c83066c"
+      "0xa996217fda86365550348d40bfc139d025aa3c3445068e14ad35fed40c44eee3"
     ],
     "notes": "Governor state VotingOpen; disclosure challenged and verified (1 ETH bond slashed to challenger); linkEvidenceHash 0x8b8958ef…815baa; evidenceRoot 0x9d457c9c…6ab382; intermediary path is SIMULATED graph data."
   },
@@ -34,9 +34,9 @@
     "title": "Infrastructure budget",
     "govId": "4",
     "state": "VotingOpen",
-    "commitment": "0xc4f1e71f4c1fc5825b3b31eb9744618f08c5592e26f9f0897611c6ec13d015b6",
+    "commitment": "0x40ede6b391551dc78082e14d6fa9bf59b4d827ceeb73d61798233c7329c80f6d",
     "versionChain": [
-      "0x777456a3dbd4c9c2fe08eeb6fe961f97854a3e082dd10c5fce3964bb5466daa7"
+      "0x3f96e58c37c89f21baf30d773f4c6a19315d5abdff4647bf6b7a3d51aa98e7a2"
     ],
     "notes": "Voting open with mixed informed/uninformed votes; no disclosure challenge and no Sentinel halt; awaiting finalization."
   },
@@ -46,48 +46,18 @@
     "state": "Drafted",
     "commitment": null,
     "versionChain": [
-      "0xb546b92984e7452ffd4e179cb57837140810e7cf6184f70df2a0a6ed28908084"
+      "0x08074ff7a28ea4cb45a160098d6e83e3e08a52692b913d6f61a321ef5d9d0df1"
     ],
     "notes": "Draft only (not submitted to governor). 4 UNRESOLVED item(s): What exact amount should be transferred? The proposal delegates discretion. What exact recipient and value should be committed before voting? Is this a one-time action or a recurring commitment? The current ActionKind model encodes one-time actions only. No executable action could be grounded in the proposal text."
   },
   "6": {
-    "title": "P2 live replay · Routine fee tuning (hidden treasury upgrade)",
+    "title": "Routine parameter tuning (obfuscated)",
     "govId": "5",
-    "state": "Halted",
-    "commitment": "0x6aed5b88c5438c0e7aff01ea2f73644684185fc57a0d35e2625aa617709955f0",
+    "state": "VotingOpen",
+    "commitment": "0xda257a00585e85cf4c2aceb482a04d31e44b07bcf34631c0d850c48504d87519",
     "versionChain": [
-      "0x80dff0e1fa127a44925885c2fad2bfb1c6d29475cb5192c50406cf7c0d1ce18a"
+      "0x1c87af0e7487584ea7367a1f936555cb014c5ddb6305b3df7392f80f58ededb9"
     ],
-    "notes": "Description claimed fee tuning; queued calldata upgraded TreasuryProxy to 0x8A791620dd6260079BF849Dc5567aDC3F2FdC318. Watcher report 0x6af9c69e0322f7d8590241aad9d19582f09ff1913b9486985ac172e3156d94d6; guardian halt transaction 0x02d37286eb8dd2f08f1b508fd5aa7654dac99f515cd2b6f3b94e362e19865bca in block 66."
-  },
-  "7": {
-    "title": "P2 live replay · Routine fee tuning (hidden treasury upgrade)",
-    "govId": "6",
-    "state": "Halted",
-    "commitment": "0xf8b8c18896e0837fb90a6d1ae3b0f6dc9a14bfbf37a6cbd03e11062a9902c989",
-    "versionChain": [
-      "0xb72b73f4faf3510c3d58a36bebb581a7f3105334eb36e99914c2edff26d6358b"
-    ],
-    "notes": "Description claimed fee tuning; queued calldata upgraded TreasuryProxy to 0x8A791620dd6260079BF849Dc5567aDC3F2FdC318. Watcher report 0x29d3bdecae9310ef1d98c0c5cae860c46db5d025cade4aaf3de3044c402e8209; guardian halt transaction 0x137729263ff0523e13b0d1d467b8f5ea5c238d50ed47e544ff7a117d09f32a10 in block 78."
-  },
-  "8": {
-    "title": "P2 live replay · Routine fee tuning (hidden treasury upgrade)",
-    "govId": "7",
-    "state": "Halted",
-    "commitment": "0x28a1c83de3068fa934345dbc323f0c58ca036d7e8e703eb89a61300a1df8dfb0",
-    "versionChain": [
-      "0x6a4b52209453a7b43acdfec7b2bb04191be38e47c7a9a7eb3442e4175407c64c"
-    ],
-    "notes": "Description claimed fee tuning; queued calldata upgraded TreasuryProxy to 0x8A791620dd6260079BF849Dc5567aDC3F2FdC318. Watcher report 0x196ccdaa55afdbc4c26fcbd5793a8628d93dfee78965e7836c38dd4367096780; guardian halt transaction 0x6e56deb4ee18b03e3901aaff80f7d195582d03907c80720b3f155acbc621ab25 in block 88."
-  },
-  "10": {
-    "title": "P2 live replay · Routine fee tuning (hidden treasury upgrade)",
-    "govId": "9",
-    "state": "Halted",
-    "commitment": "0xbed1a5ec96cf43c37d17c90a7552354d3edb80f6a4f7b356a9e65df14deb2a1a",
-    "versionChain": [
-      "0x5bf95c3249b9ba05ecd003afbf15ac60221de7f32eb6e05476771a7bfc156faa"
-    ],
-    "notes": "Description claimed fee tuning; queued calldata upgraded TreasuryProxy to 0x8A791620dd6260079BF849Dc5567aDC3F2FdC318. Watcher report 0xb5c61f3bfec3fccadeb3423be44fa6323f5730e81e3f807fa0f9bcedfe05b5e8; guardian halt transaction 0xacc7c30b082674984b9b0a9624289ab85a6e1121f7a8450e844d146a56a67137 in block 109."
+    "notes": "Committed calldata is a multicall([upgradeTo, transferOwnership]) while the stated intent and committed rules describe only setFee(35). The pre-vote effect preview must flag the implementation and owner changes BEFORE the vote."
   }
 }

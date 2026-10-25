@@ -15,7 +15,11 @@ import { ethers } from "ethers";
 
 const ROOT = path.resolve(__dirname, "..");
 const ARTIFACTS_DIR = path.join(ROOT, "artifacts", "contracts");
-const MANIFEST_PATH = path.join(ROOT, "deployments", "local.json");
+const MANIFEST_PATH = path.join(
+  ROOT,
+  "deployments",
+  `${process.argv[2] ?? "local"}.json`
+);
 
 // Manifest keys that were deployed from another contract's artifact.
 const ARTIFACT_ALIASES: Record<string, string> = {
@@ -120,7 +124,7 @@ export function cleanAbis(): void {
     throw new Error(`Manifest has no contracts object: ${MANIFEST_PATH}`);
   }
 
-  const cleanContracts: Record<string, { address: string; abi: unknown[] }> = {};
+  const cleanContracts: Record<string, ManifestContract> = {};
   const usedArtifacts = new Set<string>();
 
   for (const [name, deployed] of Object.entries(manifest.contracts)) {
@@ -144,6 +148,7 @@ export function cleanAbis(): void {
     }
 
     cleanContracts[name] = {
+      ...deployed,
       address: ethers.getAddress(deployed.address),
       abi,
     };
@@ -166,7 +171,10 @@ export function cleanAbis(): void {
 
   fs.writeFileSync(MANIFEST_PATH, JSON.stringify(output, null, 2) + "\n", "utf8");
 
-  const total = Object.values(cleanContracts).reduce((sum, c) => sum + c.abi.length, 0);
+  const total = Object.values(cleanContracts).reduce(
+    (sum, c) => sum + (c.abi as unknown[]).length,
+    0
+  );
   console.log(
     `\n✅ Wrote ${Object.keys(cleanContracts).length} contracts (${total} ABI fragments) to ${MANIFEST_PATH}`
   );

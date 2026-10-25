@@ -31,12 +31,12 @@ describe("Test Helpers Unit Test Suite", () => {
       expect(await usdc.totalSupply()).to.equal(mintAmount);
 
       // Transfer
-      await usdc.connect(user).transfer(owner.address, 1_000n * 1_000_000n);
+      await (usdc.connect(user) as any).transfer(owner.address, 1_000n * 1_000_000n);
       expect(await usdc.balanceOf(owner.address)).to.equal(1_000n * 1_000_000n);
       expect(await usdc.balanceOf(user.address)).to.equal(4_000n * 1_000_000n);
 
       // Burn
-      await usdc.connect(user).burn(user.address, 500n * 1_000_000n);
+      await (usdc.connect(user) as any).burn(user.address, 500n * 1_000_000n);
       expect(await usdc.balanceOf(user.address)).to.equal(3_500n * 1_000_000n);
     });
   });
@@ -53,23 +53,23 @@ describe("Test Helpers Unit Test Suite", () => {
       expect(await feeModule.owner()).to.equal(owner.address);
 
       // Owner updates fee
-      await feeModule.connect(owner).setFee(45);
+      await (feeModule.connect(owner) as any).setFee(45);
       expect(await feeModule.feeBps()).to.equal(45);
 
       // Non-owner cannot update fee
-      await expect(feeModule.connect(user).setFee(50)).to.be.revertedWithCustomError(
+      await expect((feeModule.connect(user) as any).setFee(50)).to.be.revertedWithCustomError(
         feeModule,
         "OnlyOwner"
       );
 
       // Cannot set fee higher than 1000 bps (10%)
-      await expect(feeModule.connect(owner).setFee(1001)).to.be.revertedWithCustomError(
+      await expect((feeModule.connect(owner) as any).setFee(1001)).to.be.revertedWithCustomError(
         feeModule,
         "FeeTooHigh"
       );
 
       // Transfer ownership
-      await feeModule.connect(owner).transferOwnership(user.address);
+      await (feeModule.connect(owner) as any).transferOwnership(user.address);
       expect(await feeModule.owner()).to.equal(user.address);
     });
   });
@@ -92,16 +92,16 @@ describe("Test Helpers Unit Test Suite", () => {
       expect(await proxy.implementation()).to.equal(await impl1.getAddress());
 
       // Upgrade implementation by owner
-      await proxy.connect(owner).upgradeTo(await impl2.getAddress());
+      await (proxy.connect(owner) as any).upgradeTo(await impl2.getAddress());
       expect(await proxy.implementation()).to.equal(await impl2.getAddress());
 
       // Non-owner cannot upgrade
       await expect(
-        proxy.connect(user).upgradeTo(await impl1.getAddress())
+        (proxy.connect(user) as any).upgradeTo(await impl1.getAddress())
       ).to.be.revertedWithCustomError(proxy, "Unauthorized");
 
       // Transfer ownership / admin
-      await proxy.connect(owner).transferOwnership(user.address);
+      await (proxy.connect(owner) as any).transferOwnership(user.address);
       expect(await proxy.owner()).to.equal(user.address);
       expect(await proxy.admin()).to.equal(user.address);
     });
@@ -213,7 +213,7 @@ describe("Test Helpers Unit Test Suite", () => {
       expect(await proxy.paused()).to.equal(false);
 
       // Update fee via admin
-      await proxy.connect(owner).setFee(75);
+      await (proxy.connect(owner) as any).setFee(75);
       expect(await proxy.feeBps()).to.equal(75n);
       const slot2Updated = await ethers.provider.getStorage(proxyAddr, 2);
       expect(BigInt(slot2Updated)).to.equal(75n);

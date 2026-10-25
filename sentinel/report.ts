@@ -189,6 +189,38 @@ interface ErrorEntry {
   explanation?: string;
 }
 
+/**
+ * Decode a Solidity revert selector with packages/shared/errors.json.
+ * Exported for the Pre-vote Effect Preview, which reports the same catalog.
+ */
+export function decodeRevertSelector(revertData?: string): {
+  selector: string;
+  code: string;
+  title: string;
+  explanation: string;
+} | null {
+  if (!revertData) return null;
+  const selector = revertData.slice(0, 10).toLowerCase();
+  if (!/^0x[0-9a-f]{8}$/.test(selector)) return null;
+  const entry = (errorMap as Record<string, ErrorEntry>)[selector];
+  if (!entry) {
+    return {
+      selector,
+      code: `UNKNOWN_ERROR_${selector}`,
+      title: `UNKNOWN ERROR ${selector}`,
+      explanation:
+        "This selector is not in packages/shared/errors.json, so the constraint " +
+        "cannot be named from the catalog. The raw revert data is attached.",
+    };
+  }
+  return {
+    selector,
+    code: (entry.signature ?? entry.title ?? "Error").split("(")[0],
+    title: entry.title ?? entry.signature ?? "Constraint violation",
+    explanation: entry.explanation ?? "",
+  };
+}
+
 function lookupError(revertData?: string): {
   title: string;
   explanation: string;

@@ -50,6 +50,57 @@ const UPGRADE_TO_SELECTOR = "0x3659cfe6";
 const UPGRADE_AND_CALL_SELECTOR = "0x4f1ef286";
 const MULTICALL_SELECTOR = "0xac9650d8";
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Shared EVM sandbox helpers. Used by the Sentinel simulation and by the
+// Pre-vote Effect Preview, so the two never drift on snapshot semantics.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Open an `evm_snapshot`. Returns the snapshot id, or undefined if unsupported. */
+export async function takeSnapshot(provider: any): Promise<string | undefined> {
+  try {
+    return (await provider.send("evm_snapshot", [])) as string;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Restore an `evm_snapshot`. Best effort: a failed revert must not mask errors. */
+export async function revertSnapshot(
+  provider: any,
+  snapshotId: string
+): Promise<void> {
+  try {
+    await provider.send("evm_revert", [snapshotId]);
+  } catch {
+    // The caller already reports its own failure; a revert hiccup is secondary.
+  }
+}
+
+/**
+ * Impersonate an address and fund it so it can pay gas as `msg.sender`.
+ * Both calls are node state (not EVM state), so they survive `evm_revert` and
+ * must be undone explicitly with `stopImpersonatingAccount`.
+ */
+export async function impersonateAccount(
+  provider: any,
+  address: string,
+  wei: bigint = ethers.parseEther("100")
+): Promise<void> {
+  await provider.send("hardhat_impersonateAccount", [address]);
+  await provider.send("hardhat_setBalance", [address, ethers.toBeHex(wei)]);
+}
+
+export async function stopImpersonatingAccount(
+  provider: any,
+  address: string
+): Promise<void> {
+  try {
+    await provider.send("hardhat_stopImpersonatingAccount", [address]);
+  } catch {
+    // Already stopped, or the node does not keep impersonations.
+  }
+}
+
 interface ScanCandidate {
   address: string;
   expectedCodeHash?: string;
@@ -171,7 +222,7 @@ export async function simulateProposalExecution(
   let trace: NormalizedTrace | undefined;
 
   try {
-    snapshotId = await provider.send("evm_snapshot", []);
+    snapshotId = await takeSnapshot(provider);
 
     if (options.warpToEta && commitment) {
       await warpSnapshotToEta(provider, executor, commitment);
@@ -292,9 +343,7 @@ export async function simulateProposalExecution(
     };
   } finally {
     if (snapshotId) {
-      try {
-        await provider.send("evm_revert", [snapshotId]);
-      } catch {}
+      await revertSnapshot(provider, snapshotId);
     }
   }
 }

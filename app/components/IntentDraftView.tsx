@@ -139,8 +139,8 @@ export function IntentDraftView({ proposalId }: { proposalId: string }) {
                       <span className="inline-flex items-center gap-1 text-[10px] text-cyan-300">Open citation <ArrowRight size={11} /></span>
                     </div>
                     <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                      <HashChip label="target" value={action.target || null} lead={8} tail={4} />
-                      <HashChip label="counterparty" value={action.counterparty || null} lead={8} tail={4} />
+                      <HashChip label="target" value={action.target || null} lead={8} tail={4} kind="address" />
+                      <HashChip label="counterparty" value={action.counterparty || null} lead={8} tail={4} kind="address" />
                     </div>
                     <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] text-slate-400">
                       <span>selector <span className="font-mono text-slate-300">{action.selector}</span></span>
@@ -315,8 +315,8 @@ function ConfirmedIntent({ confirmation }: { confirmation: IntentConfirmation })
             </div>
             <p className="mt-2 text-xs leading-relaxed text-slate-300">{rule.plainEnglish}</p>
             <div className="mt-2 flex flex-wrap items-center gap-2">
-              <HashChip label="target" value={rule.target} lead={8} tail={4} />
-              <HashChip label="counterparty" value={rule.counterparty} lead={8} tail={4} />
+              <HashChip label="target" value={rule.target} lead={8} tail={4} kind="address" />
+              <HashChip label="counterparty" value={rule.counterparty} lead={8} tail={4} kind="address" />
               <span className="font-mono text-[10px] text-slate-500">{rule.selector} · max {rule.maxAmount} · children {rule.childCount}</span>
               <WhyDrawer>Rule position {index + 1} matches action position {index + 1}. Max is an upper bound in base units; children is the number of nested actions a multicall must contain.</WhyDrawer>
             </div>

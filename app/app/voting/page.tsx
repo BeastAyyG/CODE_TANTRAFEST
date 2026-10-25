@@ -24,7 +24,7 @@ export default function VotingPage() {
         }
       />
       <AttentionQueue />
-      <VotingPanel govId={proposal.govId} />
+      <VotingPanel govId={proposal.govId} proposalId={proposal.id} />
     </div>
   );
 }

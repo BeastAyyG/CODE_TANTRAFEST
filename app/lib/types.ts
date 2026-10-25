@@ -1,5 +1,7 @@
 /** Shapes mirrored from the real backend fixtures and contracts. */
 
+import type { EffectPreview } from "../../packages/shared/schemas/effect-preview";
+
 export type DataMode = "mock" | "live";
 export type Provenance = "LIVE" | "RECORDED" | "SIMULATED" | "MOCK";
 
@@ -368,6 +370,10 @@ export interface RiskBrief {
   evaluation: EvaluationChain;
   intent: IntentDraft;
   assessment: CoiAssessment;
+  /** Pre-vote effect preview of the exact committed calldata, when available. */
+  preview: EffectPreview | null;
+  /** Why the preview is missing, when it is. Never hidden. */
+  previewError: string | null;
   briefHash: string;
   treasuryImpact: {
     amount: string;
@@ -471,4 +477,18 @@ export interface ForcedExecutionResult {
   title: string;
   explanation: string;
   commitment: string;
+  /** Block explorer link for the mined (possibly failed) transaction. */
+  explorerUrl?: string | null;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Pre-vote Effect Preview — single source of truth in packages/shared/schemas
+// ─────────────────────────────────────────────────────────────────────────────
+export type {
+  DecodedRevert,
+  EffectEntry,
+  EffectKind,
+  EffectPreview,
+  EffectPreviewStatus,
+  EffectSeverity,
+} from "../../packages/shared/schemas/effect-preview";

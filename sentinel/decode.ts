@@ -67,9 +67,18 @@ const STANDARD_IFACE = new ethers.Interface(STANDARD_FRAGMENTS);
 
 let registryCache: DecoderRegistry | null = null;
 
+/** Which deployment manifest to decode against, for this process/network. */
+export function deploymentName(): string {
+  if (process.env.SENTINEL_NETWORK) return process.env.SENTINEL_NETWORK;
+  if (process.env.NEXT_PUBLIC_CHAIN_ID === "11155111") return "sepolia";
+  return "local";
+}
+
 /**
- * Build (once) the decoder registry from deployments/local.json. Each contract
- * name maps to its checksummed address and parsed ABI Interface.
+ * Build (once) the decoder registry from every deployment manifest under
+ * deployments/. Addresses are unique per deployment, so merging them keeps the
+ * decoder correct whichever chain the caller is connected to, without relying
+ * on NEXT_PUBLIC_CHAIN_ID / SENTINEL_NETWORK being set for this process.
  */
 export function getDecoderRegistry(): DecoderRegistry {
   if (registryCache) return registryCache;
@@ -77,25 +86,51 @@ export function getDecoderRegistry(): DecoderRegistry {
   const byAddress = new Map<string, AbiSource>();
   const byName = new Map<string, AbiSource>();
 
-  const manifestPath = path.join(__dirname, "..", "deployments", "local.json");
+  const deploymentsDir = path.join(__dirname, "..", "deployments");
+  let manifestFiles: string[] = [];
   try {
-    const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8")) as {
-      contracts?: Record<string, { address?: string; abi?: any[] }>;
-    };
-    for (const [name, entry] of Object.entries(manifest.contracts ?? {})) {
-      if (!entry?.address || !Array.isArray(entry.abi)) continue;
-      try {
-        const iface = new ethers.Interface(entry.abi);
-        const address = ethers.getAddress(entry.address);
-        const source: AbiSource = { name, iface };
-        byAddress.set(address.toLowerCase(), source);
-        byName.set(name, source);
-      } catch {
-        // Skip malformed entries rather than failing the whole registry.
-      }
-    }
+    manifestFiles = fs
+      .readdirSync(deploymentsDir)
+      .filter((name) => name.endsWith(".json"))
+      .map((name) => path.join(deploymentsDir, name));
   } catch {
-    // Manifest absent/unreadable: fall back to the standard registry only.
+    manifestFiles = [];
+  }
+
+  // Prefer the manifest for this process/network, then merge the rest.
+  const preferred = path.join(
+    deploymentsDir,
+    `${deploymentName()}.json`
+  );
+  manifestFiles.sort((a, b) => {
+    if (a === preferred) return -1;
+    if (b === preferred) return 1;
+    return a.localeCompare(b);
+  });
+
+  for (const manifestPath of manifestFiles) {
+    if (byAddress.size > 0 && manifestPath === preferred) continue;
+    try {
+      const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8")) as {
+        contracts?: Record<string, { address?: string; abi?: any[] }>;
+      };
+      for (const [name, entry] of Object.entries(manifest.contracts ?? {})) {
+        if (!entry?.address || !Array.isArray(entry.abi)) continue;
+        try {
+          const iface = new ethers.Interface(entry.abi);
+          const address = ethers.getAddress(entry.address);
+          const source: AbiSource = { name, iface };
+          if (!byAddress.has(address.toLowerCase())) {
+            byAddress.set(address.toLowerCase(), source);
+          }
+          if (!byName.has(name)) byName.set(name, source);
+        } catch {
+          // Skip malformed entries rather than failing the whole registry.
+        }
+      }
+    } catch {
+      // Skip unreadable manifests.
+    }
   }
 
   registryCache = { byAddress, byName };

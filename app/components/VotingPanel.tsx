@@ -10,6 +10,7 @@ import { StatusBadge, type StatusTone } from "@/components/ui/StatusBadge";
 import { WhyDrawer } from "@/components/ui/WhyDrawer";
 import { stageTone } from "@/components/StageCard";
 import { castVote, getRiskBrief } from "@/lib/data";
+import { EffectPreviewPanel } from "@/components/EffectPreview";
 import {
   formatDateTime,
   formatPct,
@@ -38,7 +39,13 @@ const STATE_TONE: Record<string, StatusTone> = {
   Cancelled: "neutral",
 };
 
-export function VotingPanel({ govId }: { govId: string }) {
+export function VotingPanel({
+  govId,
+  proposalId,
+}: {
+  govId: string;
+  proposalId: string;
+}) {
   const { data, loading, error, reload } = useAsync(
     () => getRiskBrief(govId),
     [govId]
@@ -73,6 +80,12 @@ export function VotingPanel({ govId }: { govId: string }) {
         ) : null
       }
     >
+      {/* Rendered above the vote controls and independent of the risk brief, so a
+          partially available brief (e.g. no live COI endpoint) cannot hide it. */}
+      <div className="mb-6">
+        <EffectPreviewPanel proposalId={proposalId} />
+      </div>
+
       <DataState
         loading={loading}
         error={error}
@@ -116,6 +129,12 @@ function VotingBody({
   const abstainShare = Math.max(0, 100 - forShare - againstShare);
   const quorumProgress = BigInt(state.quorum) === 0n ? 0 : Math.min(100, Number((total * 10000n) / BigInt(state.quorum)) / 100);
   const canVote = state.state === "VotingOpen" && pending === null;
+  const previewMismatch = brief.evaluation.stages
+    .find((stage) => stage.stage === "CLAIMS")
+    ?.factors.find((factor) => factor.label === "Preview mismatches");
+  const previewNote = brief.preview
+    ? ` The acknowledgment also covers the pre-vote effect preview: ${previewMismatch?.value ?? "?"} effect(s) outside the stated intent, previewHash ${brief.preview.previewHash.slice(0, 12)}…`
+    : ` No effect preview is available for this proposal${brief.previewError ? ` (${brief.previewError})` : ""}, so the acknowledgment covers the evaluation chain only.`;
 
   return (
     <div className="space-y-6">
@@ -125,7 +144,13 @@ function VotingBody({
             <p className="text-sm font-semibold text-slate-100">One-page risk brief</p>
             <p className="mt-1 text-xs text-slate-500">Advisory findings precede the deterministic execution gate.</p>
           </div>
-          <HashChip label="briefHash" value={brief.briefHash} />
+          <div className="flex flex-wrap items-center gap-2">
+            <HashChip label="briefHash" value={brief.briefHash} />
+            <HashChip
+              label="previewHash"
+              value={brief.preview?.previewHash ?? null}
+            />
+          </div>
         </div>
 
         <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
@@ -219,7 +244,7 @@ function VotingBody({
           <Stat label="Against" value={formatTokenUnits(state.againstVotes)} tone="danger" why="Total governance weight currently voting against the committed proposal." />
           <Stat label="Abstain" value={formatTokenUnits(state.abstainVotes)} why="Weight recorded as abstain. It participates in the displayed vote total but is neither for nor against." />
           <Stat label="Quorum" value={formatTokenUnits(state.quorum)} tone={state.quorumReached ? "success" : "warning"} hint={state.quorumReached ? "reached" : "not reached"} why={`Current total ${formatTokenUnits(total.toString())} is compared with the required ${formatTokenUnits(state.quorum)} governance weight.`} />
-          <Stat label="Informed ratio" value={formatPct(state.informedRatio)} tone="info" why="Informed for-vote weight divided by all for-vote weight. Abstentions and against votes do not enter this ratio." />
+          <Stat label="Informed ratio" value={formatPct(state.informedRatio)} tone="info" why={`Informed for-vote weight divided by all for-vote weight. Abstentions and against votes do not enter this ratio.${previewNote}`} />
           <Stat label="Brief acks" value={state.totalBriefAcks} tone="info" why="Number of vote records carrying a non-null briefHash acknowledgment." />
         </div>
 
@@ -232,7 +257,7 @@ function VotingBody({
           <div className="mt-2 flex flex-wrap gap-4 text-[10px] text-slate-500"><span>for {forShare.toFixed(1)}%</span><span>against {againstShare.toFixed(1)}%</span><span>abstain {abstainShare.toFixed(1)}%</span></div>
         </VoteBar>
 
-        <VoteBar label="Informed-vote ratio" value={formatPct(state.informedRatio, 1)} why="The cyan segment is informed for-vote weight divided by all for-vote weight; the remainder voted for without acknowledging the brief.">
+        <VoteBar label="Informed-vote ratio" value={formatPct(state.informedRatio, 1)} why={`The cyan segment is informed for-vote weight divided by all for-vote weight; the remainder voted for without acknowledging the brief.${previewNote}`}>
           <div className="h-2 overflow-hidden rounded-full bg-slate-800"><span className="block h-full rounded-full bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.5)]" style={{ width: `${state.informedRatio * 100}%` }} /></div>
         </VoteBar>
 

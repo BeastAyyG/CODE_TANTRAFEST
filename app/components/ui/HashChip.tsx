@@ -1,8 +1,22 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Copy } from "lucide-react";
+import { Check, Copy, ExternalLink } from "lucide-react";
+import {
+  explorerAddressUrl,
+  explorerBlockUrl,
+  explorerTxUrl,
+} from "@/lib/explorer";
 import { cn, truncateMiddle } from "@/lib/format";
+
+export type HashKind = "tx" | "address" | "block";
+
+function explorerHref(kind: HashKind | undefined, value: string): string | null {
+  if (kind === "tx") return explorerTxUrl(value);
+  if (kind === "address") return explorerAddressUrl(value);
+  if (kind === "block") return explorerBlockUrl(value);
+  return null;
+}
 
 export function HashChip({
   value,
@@ -10,12 +24,15 @@ export function HashChip({
   lead = 12,
   tail = 8,
   className,
+  kind,
 }: {
   value?: string | null;
   label?: string;
   lead?: number;
   tail?: number;
   className?: string;
+  /** Link the value to the configured block explorer (Sepolia). */
+  kind?: HashKind;
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -29,6 +46,7 @@ export function HashChip({
 
   const full = value;
   const display = truncateMiddle(full, lead, tail);
+  const href = explorerHref(kind, full);
 
   const copy = async () => {
     try {
@@ -52,7 +70,20 @@ export function HashChip({
           {label}
         </span>
       ) : null}
-      <span className="truncate">{display}</span>
+      {href ? (
+        <a
+          href={href}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex min-w-0 items-center gap-1 truncate transition-colors duration-150 hover:text-cyan-200"
+          title={`${full} — open in explorer`}
+        >
+          <span className="truncate">{display}</span>
+          <ExternalLink size={10} className="shrink-0 text-slate-500" />
+        </a>
+      ) : (
+        <span className="truncate">{display}</span>
+      )}
       <button
         type="button"
         onClick={copy}

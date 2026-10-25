@@ -241,6 +241,8 @@ function Explainer({
             <HashChip label="commitment" value={violation.evidence.commitment} />
             <HashChip label="calldata" value={violation.evidence.calldataHash} />
             <HashChip label="revert" value={violation.evidence.revertData} />
+            {/* Simulation tx hashes come from the fork sandbox, so they are
+                deliberately not linked to the live explorer. */}
             <HashChip label="tx" value={violation.evidence.txHash} />
           </div>
         </section>

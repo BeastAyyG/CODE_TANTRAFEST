@@ -1,10 +1,17 @@
 import { expect } from "chai";
-import {
+
+// This suite asserts the recorded mock fixtures. Pin the adapter to recorded
+// mode so an ambient NEXT_PUBLIC_DATA_MODE=live (e.g. from the repo .env used
+// for Sepolia) cannot turn these fixture lookups into relative API fetches.
+process.env.NEXT_PUBLIC_DATA_MODE = "mock";
+
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const {
   confirmIntent,
   getEvidenceDocument,
   getIntentDraft,
   verifyEvidenceSource,
-} from "../app/lib/data";
+} = require("../app/lib/data") as typeof import("../app/lib/data");
 
 describe("Intent drafts · attack proposal", () => {
   it("uses a PARAM_SET-only draft grounded in fee-tuning text", async () => {

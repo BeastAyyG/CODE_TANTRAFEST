@@ -123,7 +123,7 @@ export function VersionChainView({ proposalId }: { proposalId: string }) {
                     </div>
 
                     <div className="mt-3 flex flex-wrap items-center gap-2 text-[10px] text-slate-500">
-                      <span>author</span><HashChip value={version.author} lead={8} tail={4} />
+                      <span>author</span><HashChip value={version.author} lead={8} tail={4} kind="address" />
                     </div>
 
                     {index > 0 ? (

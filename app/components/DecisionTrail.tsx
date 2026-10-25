@@ -13,6 +13,7 @@ import type {
   StageStatus,
 } from "@/lib/types";
 import { StageCard } from "./StageCard";
+import { EffectPreviewPanel } from "./EffectPreview";
 
 const STAGE_ORDER: StageName[] = ["CLAIMS", "COI", "VOTING", "EXECUTION"];
 
@@ -128,6 +129,10 @@ export function DecisionTrail({
           shown from live Sentinel evidence; missing stages stay unavailable.
         </div>
       ) : null}
+
+      <div className="mt-4">
+        <EffectPreviewPanel proposalId={proposalId} compact />
+      </div>
 
       <div className="grid grid-cols-[repeat(4,minmax(220px,1fr))] gap-3 overflow-x-auto pb-2">
         {stages.map((stage) => (

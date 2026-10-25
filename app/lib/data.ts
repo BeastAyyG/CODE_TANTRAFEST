@@ -10,6 +10,7 @@ import versionChainsJson from "./mocks/version-chains.json";
 import votingStatesJson from "./mocks/voting-states.json";
 import intentDraftsJson from "./mocks/intent-drafts.json";
 import proposalsJson from "./mocks/proposals.json";
+import previewsJson from "../../packages/shared/fixtures/previews.json";
 
 import { bridgeIntent } from "../../intelligence/intent-bridge";
 import {
@@ -32,6 +33,7 @@ import type {
   DisclosureInput,
   DisclosurePreview,
   DisclosureState,
+  EffectPreview,
   ErrorEntry,
   EvaluationChain,
   EvidenceDocument,
@@ -67,6 +69,7 @@ const versionChainsSeed = versionChainsJson as unknown as VersionChain[];
 const votingStatesSeed = votingStatesJson as unknown as VotingState[];
 const intentDraftsSeed = intentDraftsJson as unknown as IntentDraft[];
 const proposalsSeed = proposalsJson as unknown as Proposal[];
+const previewsSeed = previewsJson as unknown as Record<string, EffectPreview>;
 
 const mockScorecard: ScorecardEntry[] = scorecardSeed.map((entry) => ({
   ...entry,
@@ -168,15 +171,113 @@ export async function runScenario(id: number): Promise<ArenaRunResult> {
 }
 
 export async function getEvaluationChain(
-  proposalId: string
+  proposalId: string,
+  preview?: EffectPreview | null
 ): Promise<EvaluationChain> {
-  if (DATA_MODE === "live") {
-    return fetchJson<EvaluationChain>(`/api/evaluation/${proposalId}`);
+  const chain =
+    DATA_MODE === "live"
+      ? await fetchJson<EvaluationChain>(`/api/evaluation/${proposalId}`)
+      : await (async () => {
+          await delay(80);
+          const found = evaluationSeed.find((item) => item.proposalId === proposalId);
+          if (!found) throw new Error(`No evaluation chain for proposal ${proposalId}`);
+          return found;
+        })();
+
+  const resolved =
+    preview === undefined ? await tryGetEffectPreview(proposalId) : preview;
+  return withPreviewFactor(chain, resolved);
+}
+
+/**
+ * Fold the Pre-vote Effect Preview into the chain: a CLAIMS factor for the
+ * mismatch count, and a VOTING factor that ties the informed ratio to the
+ * preview hash the brief acknowledgment covers.
+ */
+export function withPreviewFactor(
+  chain: EvaluationChain,
+  preview: EffectPreview | null
+): EvaluationChain {
+  const mismatchValue = preview
+    ? String(preview.statedVsSimulated.mismatchCount)
+    : "unavailable";
+  const claimsDetail = preview
+    ? `Sandboxed simulation of the committed calldata found ${preview.statedVsSimulated.mismatchCount} effect(s) outside the stated intent` +
+      `${preview.status === "FAILED_SIMULATION" ? " (the committed action reverts in the sandbox)" : ""}. ` +
+      `Preview hash ${preview.previewHash}.`
+    : "No pre-vote effect preview is available for this proposal, so no simulation was compared with the stated intent.";
+  const votingDetail = preview
+    ? `The brief acknowledgment records briefHash over the chain plus preview ${preview.previewHash}, so an informed vote covers this exact simulation and its ${preview.statedVsSimulated.mismatchCount} mismatch(es).`
+    : "No effect preview exists for this proposal; the informed-vote ratio still counts brief acknowledgments, but none of them covers a simulation.";
+
+  const stages = chain.stages.map((stage) => {
+    if (stage.stage === "CLAIMS") {
+      return {
+        ...stage,
+        factors: [
+          ...stage.factors.filter((factor) => factor.label !== "Preview mismatches"),
+          { label: "Preview mismatches", value: mismatchValue, detail: claimsDetail },
+        ],
+      };
+    }
+    if (stage.stage === "VOTING") {
+      return {
+        ...stage,
+        factors: [
+          ...stage.factors.filter((factor) => factor.label !== "Preview in the brief"),
+          {
+            label: "Preview in the brief",
+            value: preview ? `${preview.previewHash.slice(0, 12)}…` : "none",
+            detail: votingDetail,
+          },
+        ],
+      };
+    }
+    return stage;
+  });
+
+  return { ...chain, stages };
+}
+
+/** Preview lookup that never throws: used to enrich the chain factor. */
+async function tryGetEffectPreview(
+  proposalId: string
+): Promise<EffectPreview | null> {
+  try {
+    return await getEffectPreview(proposalId);
+  } catch {
+    return null;
   }
-  await delay(80);
-  const chain = evaluationSeed.find((item) => item.proposalId === proposalId);
-  if (!chain) throw new Error(`No evaluation chain for proposal ${proposalId}`);
-  return chain;
+}
+
+export async function getEffectPreview(
+  proposalId: string
+): Promise<EffectPreview> {
+  if (DATA_MODE === "live") {
+    return fetchJson<EffectPreview>(
+      `/api/preview/${encodeURIComponent(proposalId)}`
+    );
+  }
+  await delay(60);
+  const preview = previewsSeed[proposalId];
+  if (!preview) {
+    throw new Error(
+      `No recorded effect preview for proposal ${proposalId}. ` +
+        `Recorded previews cover the seeded demo proposals; re-record them with ` +
+        `"npm run seed && npm run previews:record".`
+    );
+  }
+  return preview;
+}
+
+/** The brief hash binds the chain the voter saw AND the preview it covered. */
+export function computeBriefHash(
+  evaluation: EvaluationChain,
+  previewHash: string | null
+): string {
+  return ethers.keccak256(
+    ethers.toUtf8Bytes(JSON.stringify({ previewHash: previewHash ?? null, evaluation }))
+  );
 }
 
 export async function getCoiAssessment(
@@ -327,10 +428,9 @@ export async function castVote(
 ): Promise<ActionReceipt> {
   if (DATA_MODE === "live") {
     const state = await getVotingState(govId);
-    const evaluation = await getEvaluationChain(state.proposalId);
-    const briefHash = ethers.keccak256(
-      ethers.toUtf8Bytes(JSON.stringify(evaluation))
-    );
+    const preview = await tryGetEffectPreview(state.proposalId);
+    const evaluation = await getEvaluationChain(state.proposalId, preview);
+    const briefHash = computeBriefHash(evaluation, preview?.previewHash ?? null);
     return fetchJson<ActionReceipt>("/api/live/vote", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -351,8 +451,13 @@ export async function castVote(
     (item) => item.proposalId === state.proposalId
   );
   const weight = 100000000000000000000n;
+  // The informed vote acknowledges the chain AND the exact effect preview.
+  const preview = previewsSeed[state.proposalId] ?? null;
   const briefHash = evaluation
-    ? ethers.keccak256(ethers.toUtf8Bytes(JSON.stringify(evaluation)))
+    ? computeBriefHash(
+        await getEvaluationChain(state.proposalId, preview),
+        preview?.previewHash ?? null
+      )
     : null;
   state.forVotes = (BigInt(state.forVotes) + weight).toString();
   if (withBrief) {
@@ -384,8 +489,11 @@ export async function castVote(
 
 export async function getRiskBrief(govId: string): Promise<RiskBrief> {
   const state = await getVotingState(govId);
+  const { preview, error: previewError } = await getPreviewOrError(
+    state.proposalId
+  );
   const [evaluation, intent, assessment] = await Promise.all([
-    getEvaluationChain(state.proposalId),
+    getEvaluationChain(state.proposalId, preview),
     getIntentDraft(state.proposalId),
     getCoiAssessment(state.proposalId),
   ]);
@@ -397,15 +505,28 @@ export async function getRiskBrief(govId: string): Promise<RiskBrief> {
     evaluation,
     intent,
     assessment,
-    briefHash: ethers.keccak256(
-      ethers.toUtf8Bytes(JSON.stringify(evaluation))
-    ),
+    preview,
+    previewError,
+    briefHash: computeBriefHash(evaluation, preview?.previewHash ?? null),
     treasuryImpact: {
       amount: amount.toString(),
       asset: "USDC",
       actionCount: intent.actions.length,
     },
   };
+}
+
+async function getPreviewOrError(
+  proposalId: string
+): Promise<{ preview: EffectPreview | null; error: string | null }> {
+  try {
+    return { preview: await getEffectPreview(proposalId), error: null };
+  } catch (cause) {
+    return {
+      preview: null,
+      error: cause instanceof Error ? cause.message : String(cause),
+    };
+  }
 }
 
 export async function getAttentionQueue(): Promise<AttentionItem[]> {

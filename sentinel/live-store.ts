@@ -113,6 +113,8 @@ export interface ExecutionBundle {
   source: string;
   actions: StoredAction[];
   rules: StoredRule[];
+  /** Optional human labels for addresses, so previews name subjects. */
+  labels?: Record<string, string>;
 }
 
 export interface ExecutionBundleStore {

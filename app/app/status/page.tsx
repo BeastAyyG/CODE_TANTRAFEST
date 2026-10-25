@@ -77,7 +77,7 @@ export default async function StatusPage() {
       </section>
 
       <section style={{ marginBottom: "1.5rem" }}>
-        <h2>Contracts (from deployments/local.json)</h2>
+        <h2>Contracts (deployment manifest)</h2>
         <table style={{ borderCollapse: "collapse", width: "100%" }}>
           <thead>
             <tr>
@@ -99,7 +99,7 @@ export default async function StatusPage() {
             {diag.contracts.length === 0 && (
               <tr>
                 <td colSpan={3} style={{ color: "red" }}>
-                  deployments/local.json not found or empty.
+                  deployment manifest not found or empty.
                 </td>
               </tr>
             )}

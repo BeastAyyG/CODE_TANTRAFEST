@@ -1056,9 +1056,20 @@ function errorMessage(error: unknown): string {
   return String(error);
 }
 
+function deploymentName(): string {
+  if (process.env.SENTINEL_NETWORK) return process.env.SENTINEL_NETWORK;
+  if (process.env.NEXT_PUBLIC_CHAIN_ID === "11155111") return "sepolia";
+  return "local";
+}
+
 function loadKnownAddresses(): Record<string, string> {
   try {
-    const manifestPath = path.join(__dirname, "..", "deployments", "local.json");
+    const manifestPath = path.join(
+      __dirname,
+      "..",
+      "deployments",
+      `${deploymentName()}.json`
+    );
     const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8")) as {
       contracts?: Record<string, { address?: string }>;
     };
