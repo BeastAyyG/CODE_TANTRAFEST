@@ -4,6 +4,7 @@
     "scenarioName": "Benign Transfer",
     "property": "Benign transfer succeeds",
     "outcome": "Success",
+    "recordedAt": "2026-10-25T17:24:52.782Z",
     "violationReport": {
       "proposalId": "1",
       "scenarioId": "0",
@@ -36,6 +37,9 @@
             "to": "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65",
             "value": "5000000000"
           },
+          "argumentLabels": {
+            "to": "DevWallet"
+          },
           "humanText": "Calls transfer(0x15d34AAf…6A65, 5000000000) on MockUSDC",
           "nested": []
         }
@@ -45,19 +49,19 @@
         "message": "No violation detected"
       },
       "evidence": {
-        "commitment": "0x8eeabea70fde692ed63c49d553b956b58ce64dfef1e2a1ca1722b6ad5e3ff83c",
+        "commitment": "0xfd8526686056b31757f19fdf1309de7e9b2d581724f9de23b70423f1e509c827",
         "calldataHash": "0x57a9dee8933dfb17a718368fb7e4a37b62f75eb562d85b97a5f2b4bbe8f16a1c",
         "calldata": "0xa9059cbb00000000000000000000000015d34aaf54267db7d7c367839aaf71a00a2c6a65000000000000000000000000000000000000000000000000000000012a05f200",
         "revertData": "0x",
-        "txHash": "0xd2033a1c5541facb229dd10832eb76ccadfe14b779336808ce388b3e9b04d0b4",
+        "txHash": "0x9ce69f4cadf5cf0dbdf63952e9e180a94b0a95c632d52295155f683afdb9d0c4",
         "traceRef": null
       }
     },
     "rawEvidence": {
-      "commitment": "0x8eeabea70fde692ed63c49d553b956b58ce64dfef1e2a1ca1722b6ad5e3ff83c",
+      "commitment": "0xfd8526686056b31757f19fdf1309de7e9b2d581724f9de23b70423f1e509c827",
       "calldata": "0xa9059cbb00000000000000000000000015d34aaf54267db7d7c367839aaf71a00a2c6a65000000000000000000000000000000000000000000000000000000012a05f200",
       "revertData": "0x",
-      "txHash": "0xd2033a1c5541facb229dd10832eb76ccadfe14b779336808ce388b3e9b04d0b4",
+      "txHash": "0x9ce69f4cadf5cf0dbdf63952e9e180a94b0a95c632d52295155f683afdb9d0c4",
       "trace": {
         "source": "structLogs",
         "calls": [
@@ -102,7 +106,7 @@
           },
           {
             "contract": "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
-            "slot": "0x9c6e9af0cc37feb7470e1c56993e94174d1a61f4ef9940eb51b70c92af931d8e",
+            "slot": "0xd43e4c3863771ff52b55b171cfa511b1c285bd4f13d5b33015a9e49d306a8393",
             "value": "0x00000000000000000000005fc8d32690cc91d4c39d9d3abcbd16989f87570702",
             "depth": 1
           },
@@ -135,6 +139,7 @@
     "scenarioName": "Post-Vote Recipient Substitution",
     "property": "Post-vote payload substitution rejected",
     "outcome": "Executor Revert",
+    "recordedAt": "2026-10-25T17:24:52.978Z",
     "violationReport": {
       "proposalId": "2",
       "scenarioId": "1",
@@ -167,28 +172,31 @@
             "to": "0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc",
             "value": "5000000000"
           },
+          "argumentLabels": {
+            "to": "Attacker"
+          },
           "humanText": "Calls transfer(0x9965507D…A4dc, 5000000000) on MockUSDC",
           "nested": []
         }
       ],
       "violatedConstraint": {
         "code": "UnauthorizedRecipient",
-        "message": "Calls transfer(0x9965507D…A4dc, 5000000000) on MockUSDC — Unauthorized Recipient Address: The transaction recipient does not match the counterparty committed in the proposal intent."
+        "message": "Unauthorized Recipient Address: The transaction recipient does not match the counterparty committed in the proposal intent."
       },
       "evidence": {
-        "commitment": "0x34de8f2d1f5714a35af766a17e332a4064dfd9243ad9904d940da0e7c6062925",
+        "commitment": "0x44b0b499f4e019a37578e7e6559b366f5e6641580e0c27a219107ece307e25e2",
         "calldataHash": "0xa749133ecc5fac902cef5f363e0f4971c2bf7741a1505458877b16d21c533836",
         "calldata": "0xa9059cbb0000000000000000000000009965507d1a55bcc2695c58ba16fb37d819b0a4dc000000000000000000000000000000000000000000000000000000012a05f200",
         "revertData": "0xebe8452a00000000000000000000000015d34aaf54267db7d7c367839aaf71a00a2c6a650000000000000000000000009965507d1a55bcc2695c58ba16fb37d819b0a4dc",
-        "txHash": "0xc264253bbabdbf4e7431fd83b4de02ea8957da4b5121e9b6993ed64b8cc96b80",
+        "txHash": "0x8858a811368e963df0bb5533084179551863de146f0ce663dcd1107f5e7bcd82",
         "traceRef": null
       }
     },
     "rawEvidence": {
-      "commitment": "0x34de8f2d1f5714a35af766a17e332a4064dfd9243ad9904d940da0e7c6062925",
+      "commitment": "0x44b0b499f4e019a37578e7e6559b366f5e6641580e0c27a219107ece307e25e2",
       "calldata": "0xa9059cbb0000000000000000000000009965507d1a55bcc2695c58ba16fb37d819b0a4dc000000000000000000000000000000000000000000000000000000012a05f200",
       "revertData": "0xebe8452a00000000000000000000000015d34aaf54267db7d7c367839aaf71a00a2c6a650000000000000000000000009965507d1a55bcc2695c58ba16fb37d819b0a4dc",
-      "txHash": "0xc264253bbabdbf4e7431fd83b4de02ea8957da4b5121e9b6993ed64b8cc96b80",
+      "txHash": "0x8858a811368e963df0bb5533084179551863de146f0ce663dcd1107f5e7bcd82",
       "trace": {
         "source": "structLogs",
         "calls": [
@@ -219,7 +227,7 @@
           },
           {
             "contract": "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
-            "slot": "0x24ae7f9d5030b649291a34850660554ae1601ede5c329151ce7f253c69317a20",
+            "slot": "0xd363b4884747569aeb7d1e1cbb89bfdb46e9a46c07ff7554f24d3297d97879a7",
             "value": "0x00000000000000000000005fc8d32690cc91d4c39d9d3abcbd16989f87570702",
             "depth": 1
           }
@@ -234,6 +242,7 @@
     "scenarioName": "Amount Inflation",
     "property": "Amount inflation rejected",
     "outcome": "Executor Revert",
+    "recordedAt": "2026-10-25T17:24:53.142Z",
     "violationReport": {
       "proposalId": "3",
       "scenarioId": "2",
@@ -266,28 +275,31 @@
             "to": "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65",
             "value": "50000000000"
           },
+          "argumentLabels": {
+            "to": "DevWallet"
+          },
           "humanText": "Calls transfer(0x15d34AAf…6A65, 50000000000) on MockUSDC",
           "nested": []
         }
       ],
       "violatedConstraint": {
         "code": "ExceedsSpendLimit",
-        "message": "Calls transfer(0x15d34AAf…6A65, 50000000000) on MockUSDC — Spend Limit Exceeded: The execution amount exceeds the maximum ceiling authorized by the committed intent rule."
+        "message": "Spend Limit Exceeded: The execution amount exceeds the maximum ceiling authorized by the committed intent rule."
       },
       "evidence": {
-        "commitment": "0x6b51c76fd8f3b30940259b03ddb68c53634147dfb870ec17ad667d1b774cf9d6",
+        "commitment": "0x00595fdd0f9eabd4632feffc91656723641bf19e7710fa3e806412bda21ba8b7",
         "calldataHash": "0x70cded778083180c8701fe3ca2374e1c8910b4499c73b3f3997aaba119044762",
         "calldata": "0xa9059cbb00000000000000000000000015d34aaf54267db7d7c367839aaf71a00a2c6a650000000000000000000000000000000000000000000000000000000ba43b7400",
         "revertData": "0xe74fc12b000000000000000000000000000000000000000000000000000000012a05f2000000000000000000000000000000000000000000000000000000000ba43b7400",
-        "txHash": "0x0773ea32f72b74b11f6b086488e06e617364c1908bde5aba01232a90926a57cb",
+        "txHash": "0xd2b6e28d32e2fdafc6b456302e72d7a5235d6bbca49eb3c65f0b1755461b33ae",
         "traceRef": null
       }
     },
     "rawEvidence": {
-      "commitment": "0x6b51c76fd8f3b30940259b03ddb68c53634147dfb870ec17ad667d1b774cf9d6",
+      "commitment": "0x00595fdd0f9eabd4632feffc91656723641bf19e7710fa3e806412bda21ba8b7",
       "calldata": "0xa9059cbb00000000000000000000000015d34aaf54267db7d7c367839aaf71a00a2c6a650000000000000000000000000000000000000000000000000000000ba43b7400",
       "revertData": "0xe74fc12b000000000000000000000000000000000000000000000000000000012a05f2000000000000000000000000000000000000000000000000000000000ba43b7400",
-      "txHash": "0x0773ea32f72b74b11f6b086488e06e617364c1908bde5aba01232a90926a57cb",
+      "txHash": "0xd2b6e28d32e2fdafc6b456302e72d7a5235d6bbca49eb3c65f0b1755461b33ae",
       "trace": {
         "source": "structLogs",
         "calls": [
@@ -318,7 +330,7 @@
           },
           {
             "contract": "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
-            "slot": "0x9c15d38719d62b34f17b1d1c6e9f7440bed22ecf44b830bb930beb84799b6e39",
+            "slot": "0x8f47bdf71dcee7026bb07d6540ca2ecf42f97f570b542aa4386003968c9281e3",
             "value": "0x00000000000000000000005fc8d32690cc91d4c39d9d3abcbd16989f87570702",
             "depth": 1
           }
@@ -333,6 +345,7 @@
     "scenarioName": "Jargon Upgrade",
     "property": "Unauthorized upgrade rejected",
     "outcome": "Sentinel Halt",
+    "recordedAt": "2026-10-25T17:24:53.285Z",
     "violationReport": {
       "proposalId": "4",
       "scenarioId": "3",
@@ -364,28 +377,31 @@
           "args": {
             "newImplementation": "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6"
           },
+          "argumentLabels": {
+            "newImplementation": "MaliciousImpl"
+          },
           "humanText": "Calls upgradeTo(0x2279B7A0…eBe6) on TreasuryProxy",
           "nested": []
         }
       ],
       "violatedConstraint": {
         "code": "DangerousBytecode",
-        "message": "Calls upgradeTo(0x2279B7A0…eBe6) on TreasuryProxy — Invalid Proposal State: The proposal is not in the required state for this operation (e.g., executing before queuing or after execution)."
+        "message": "Dangerous opcodes in implementation: The proposed implementation's bytecode contains DELEGATECALL and SELFDESTRUCT, which could let it take over or destroy the proxy."
       },
       "evidence": {
-        "commitment": "0xe799cdf3c7c435fe3e8b461d4130da02486e889c360dca077085ef38666eee1f",
+        "commitment": "0xbcf5c3c620814820a0851deb6a8bc962087a44226fe6795ca77517dff9318e18",
         "calldataHash": "0x3871ee459aefcea38280801cdbd1394175dcf3d78c0349efb0a7b3575fdff19d",
         "calldata": "0x3659cfe60000000000000000000000002279b7a0a67db372996a5fab50d91eaa73d2ebe6",
         "revertData": "0x17d60e4700000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000",
-        "txHash": "0x8758cf213e5363564311768dff4730f00624246a4a958765f78fc8c0252763f6",
+        "txHash": "0xa89b32a832633cb6568e360c22bfbe97eae28a7aa63e9cfbb6399d43a053420f",
         "traceRef": null
       }
     },
     "rawEvidence": {
-      "commitment": "0xe799cdf3c7c435fe3e8b461d4130da02486e889c360dca077085ef38666eee1f",
+      "commitment": "0xbcf5c3c620814820a0851deb6a8bc962087a44226fe6795ca77517dff9318e18",
       "calldata": "0x3659cfe60000000000000000000000002279b7a0a67db372996a5fab50d91eaa73d2ebe6",
       "revertData": "0x17d60e4700000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000",
-      "txHash": "0x8758cf213e5363564311768dff4730f00624246a4a958765f78fc8c0252763f6",
+      "txHash": "0xa89b32a832633cb6568e360c22bfbe97eae28a7aa63e9cfbb6399d43a053420f",
       "trace": {
         "source": "structLogs",
         "calls": [
@@ -418,6 +434,7 @@
     "scenarioName": "Nested Multicall",
     "property": "Hidden ownership transfer in multicall rejected",
     "outcome": "Sentinel Halt",
+    "recordedAt": "2026-10-25T17:24:53.458Z",
     "violationReport": {
       "proposalId": "5",
       "scenarioId": "4",
@@ -464,6 +481,7 @@
           "args": {
             "data": "[0x69fe0e2d0000000000000000000000000000000000000000000000000000000000000028, 0xf2fde38b0000000000000000000000009965507d1a55bcc2695c58ba16fb37d819b0a4dc]"
           },
+          "argumentLabels": {},
           "humanText": "Calls multicall([0x69fe0e2d…(36 bytes), 0xf2fde38b…(36 bytes)]) on FeeModule",
           "nested": [
             {
@@ -473,6 +491,7 @@
               "args": {
                 "newFee": "40"
               },
+              "argumentLabels": {},
               "humanText": "Calls setFee(40) on FeeModule",
               "nested": []
             },
@@ -483,6 +502,9 @@
               "args": {
                 "newOwner": "0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc"
               },
+              "argumentLabels": {
+                "newOwner": "Attacker"
+              },
               "humanText": "Calls transferOwnership(0x9965507D…A4dc) on FeeModule",
               "nested": []
             }
@@ -490,23 +512,23 @@
         }
       ],
       "violatedConstraint": {
-        "code": "ProposalNotInState",
-        "message": "Calls multicall([0x69fe0e2d…(36 bytes), 0xf2fde38b…(36 bytes)]) on FeeModule — Invalid Proposal State: The proposal is not in the required state for this operation (e.g., executing before queuing or after execution)."
+        "code": "CommitmentMismatch",
+        "message": "Commitment mismatch: The submitted actions and rules do not reproduce the queued execution commitment."
       },
       "evidence": {
-        "commitment": "0xfcf74920f8595e992cca6da1dd5b52e7e59f875a4ab350c033c0f1a218811d15",
+        "commitment": "0xde009a13bc71645e47d0149a1769c208dd5895aa8d8839199ea1981a95b050c2",
         "calldataHash": "0xf0c8c9b91224a64dd286a5c225904638194aff07c460934822227fbddf3c1d07",
         "calldata": "0xac9650d800000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000002469fe0e2d0000000000000000000000000000000000000000000000000000000000000028000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000024f2fde38b0000000000000000000000009965507d1a55bcc2695c58ba16fb37d819b0a4dc00000000000000000000000000000000000000000000000000000000",
         "revertData": "0x17d60e4700000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000",
-        "txHash": "0x49d98d8ef75141cec0b3256e33a63b0f246ef3f2984b876c9c451e21c8fd87e1",
+        "txHash": "0x6a9d8afefadf5c71dc67aa24a3450a2cd7f20839731135d304831be9c26ae3cf",
         "traceRef": null
       }
     },
     "rawEvidence": {
-      "commitment": "0xfcf74920f8595e992cca6da1dd5b52e7e59f875a4ab350c033c0f1a218811d15",
+      "commitment": "0xde009a13bc71645e47d0149a1769c208dd5895aa8d8839199ea1981a95b050c2",
       "calldata": "0xac9650d800000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000002469fe0e2d0000000000000000000000000000000000000000000000000000000000000028000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000024f2fde38b0000000000000000000000009965507d1a55bcc2695c58ba16fb37d819b0a4dc00000000000000000000000000000000000000000000000000000000",
       "revertData": "0x17d60e4700000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000",
-      "txHash": "0x49d98d8ef75141cec0b3256e33a63b0f246ef3f2984b876c9c451e21c8fd87e1",
+      "txHash": "0x6a9d8afefadf5c71dc67aa24a3450a2cd7f20839731135d304831be9c26ae3cf",
       "trace": {
         "source": "structLogs",
         "calls": [
@@ -539,6 +561,7 @@
     "scenarioName": "Unlimited Approval",
     "property": "Unlimited approval rejected",
     "outcome": "Executor Revert",
+    "recordedAt": "2026-10-25T17:24:53.651Z",
     "violationReport": {
       "proposalId": "6",
       "scenarioId": "5",
@@ -571,28 +594,31 @@
             "spender": "0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc",
             "value": "115792089237316195423570985008687907853269984665640564039457584007913129639935"
           },
+          "argumentLabels": {
+            "spender": "Attacker"
+          },
           "humanText": "Calls approve(0x9965507D…A4dc, 115792089237316195423570985008687907853269984665640564039457584007913129639935) on MockUSDC",
           "nested": []
         }
       ],
       "violatedConstraint": {
         "code": "UnlimitedApprovalNotCommitted",
-        "message": "Calls approve(0x9965507D…A4dc, 115792089237316195423570985008687907853269984665640564039457584007913129639935) on MockUSDC — Unlimited Approval Rejected: Calldata requested type(uint256).max approval which was not explicitly approved in the intent."
+        "message": "Unlimited Approval Rejected: Calldata requested type(uint256).max approval which was not explicitly approved in the intent."
       },
       "evidence": {
-        "commitment": "0x382af1fee6f578616a66da8a5e2baff772c929b05fc95650ff704e3fdde77233",
+        "commitment": "0xf178240d636da41bb9a7bb4422e08b3186644ac2ef08604f61d78976112cc31e",
         "calldataHash": "0xd81b85316e2ef3179708240be097e0f4f5d0b6bd50c074feb6cdb10b2a9bc23d",
         "calldata": "0x095ea7b30000000000000000000000009965507d1a55bcc2695c58ba16fb37d819b0a4dcffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
         "revertData": "0xad22da110000000000000000000000009965507d1a55bcc2695c58ba16fb37d819b0a4dc",
-        "txHash": "0x4d9a45c05e526f409d4798878fd148c29fe426c794a3acd1e381d7e6774a087c",
+        "txHash": "0x867d605943c17f3dd86f5928bde2bd5ea9c0e103b32c0090b5e12d8d7050d7a9",
         "traceRef": null
       }
     },
     "rawEvidence": {
-      "commitment": "0x382af1fee6f578616a66da8a5e2baff772c929b05fc95650ff704e3fdde77233",
+      "commitment": "0xf178240d636da41bb9a7bb4422e08b3186644ac2ef08604f61d78976112cc31e",
       "calldata": "0x095ea7b30000000000000000000000009965507d1a55bcc2695c58ba16fb37d819b0a4dcffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
       "revertData": "0xad22da110000000000000000000000009965507d1a55bcc2695c58ba16fb37d819b0a4dc",
-      "txHash": "0x4d9a45c05e526f409d4798878fd148c29fe426c794a3acd1e381d7e6774a087c",
+      "txHash": "0x867d605943c17f3dd86f5928bde2bd5ea9c0e103b32c0090b5e12d8d7050d7a9",
       "trace": {
         "source": "structLogs",
         "calls": [
@@ -623,7 +649,7 @@
           },
           {
             "contract": "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
-            "slot": "0x0ddf13b4ba027e3698e4b6b61604e668a59ecaa18e8f9bf1edc204b19c6ce568",
+            "slot": "0x80774f4165030fdfeda0266ab156c3d76a6b7ed07b3c010f68a08034d16e4242",
             "value": "0x00000000000000000000005fc8d32690cc91d4c39d9d3abcbd16989f87570702",
             "depth": 1
           }
@@ -638,6 +664,7 @@
     "scenarioName": "Delegatecall Payload",
     "property": "Delegatecall payload not executable",
     "outcome": "Sentinel Halt",
+    "recordedAt": "2026-10-25T17:24:53.859Z",
     "violationReport": {
       "proposalId": "7",
       "scenarioId": "6",
@@ -670,28 +697,31 @@
             "target": "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
             "data": "0xf2fde38b0000000000000000000000009965507d1a55bcc2695c58ba16fb37d819b0a4dc"
           },
+          "argumentLabels": {
+            "target": "FeeModule"
+          },
           "humanText": "Calls executeArbitrary(0xa513E6E4…C853, 0xf2fde38b…(36 bytes)) on MaliciousImpl",
           "nested": []
         }
       ],
       "violatedConstraint": {
         "code": "DangerousBytecode",
-        "message": "Calls executeArbitrary(0xa513E6E4…C853, 0xf2fde38b…(36 bytes)) on MaliciousImpl — Unauthorized Target Contract: The call target contract address does not match the committed intent rule target."
+        "message": "Dangerous opcodes in implementation: The proposed implementation's bytecode contains DELEGATECALL and SELFDESTRUCT, which could let it take over or destroy the proxy."
       },
       "evidence": {
-        "commitment": "0xec4c06a7542b4d4464681c4016a6da442379afa6d0b2165a9ba9130bf3a80baa",
+        "commitment": "0xe1256c4f316229c04a2261cf07e7b3c2b6d3103362eca5648482f69b1d7ce4d8",
         "calldataHash": "0xc44d330fb67998ad4e6654d78cde61bd06fdad71cf578f5256207f4980ee0ec5",
         "calldata": "0x00ec8a79000000000000000000000000a513e6e4b8f2a923d98304ec87f64353c4d5c85300000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000024f2fde38b0000000000000000000000009965507d1a55bcc2695c58ba16fb37d819b0a4dc00000000000000000000000000000000000000000000000000000000",
         "revertData": "0x52cea817000000000000000000000000a513e6e4b8f2a923d98304ec87f64353c4d5c8530000000000000000000000002279b7a0a67db372996a5fab50d91eaa73d2ebe6",
-        "txHash": "0xa8329f472f144e9e5fb72d5892a394e87dcb1967988af0256ee43809b274eff6",
+        "txHash": "0x564d5303f85e860940d4e62ffab262ca26ed34e818b57a4f6307895cdba19361",
         "traceRef": null
       }
     },
     "rawEvidence": {
-      "commitment": "0xec4c06a7542b4d4464681c4016a6da442379afa6d0b2165a9ba9130bf3a80baa",
+      "commitment": "0xe1256c4f316229c04a2261cf07e7b3c2b6d3103362eca5648482f69b1d7ce4d8",
       "calldata": "0x00ec8a79000000000000000000000000a513e6e4b8f2a923d98304ec87f64353c4d5c85300000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000024f2fde38b0000000000000000000000009965507d1a55bcc2695c58ba16fb37d819b0a4dc00000000000000000000000000000000000000000000000000000000",
       "revertData": "0x52cea817000000000000000000000000a513e6e4b8f2a923d98304ec87f64353c4d5c8530000000000000000000000002279b7a0a67db372996a5fab50d91eaa73d2ebe6",
-      "txHash": "0xa8329f472f144e9e5fb72d5892a394e87dcb1967988af0256ee43809b274eff6",
+      "txHash": "0x564d5303f85e860940d4e62ffab262ca26ed34e818b57a4f6307895cdba19361",
       "trace": {
         "source": "structLogs",
         "calls": [
@@ -722,7 +752,7 @@
           },
           {
             "contract": "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
-            "slot": "0x58643f729fbabd40fd766565282b7eecc443623b4c5151e47c726b94f1fd31ad",
+            "slot": "0x110863c4da538f669c8ca5faccf354b4157e6414118fef0132f65e4b4196de1c",
             "value": "0x00000000000000000000005fc8d32690cc91d4c39d9d3abcbd16989f87570702",
             "depth": 1
           }
@@ -737,6 +767,7 @@
     "scenarioName": "Re-entrancy",
     "property": "Re-entrancy rejected",
     "outcome": "Executor Revert",
+    "recordedAt": "2026-10-25T17:24:54.087Z",
     "violationReport": {
       "proposalId": "8",
       "scenarioId": "7",
@@ -766,28 +797,29 @@
           "targetLabel": "ReentrantRecipient",
           "function": "attackOnReceive()",
           "args": {},
+          "argumentLabels": {},
           "humanText": "Calls attackOnReceive() on ReentrantRecipient",
           "nested": []
         }
       ],
       "violatedConstraint": {
         "code": "ActionExecutionFailed",
-        "message": "Calls attackOnReceive() on ReentrantRecipient — Action Call Reverted: An external call to the target contract reverted during execution."
+        "message": "Action Call Reverted: An external call to the target contract reverted during execution."
       },
       "evidence": {
-        "commitment": "0xc6ce4775f20114bf213e95c671b51abe86dbf63b01f632dd70f55cb0208931dc",
+        "commitment": "0x8d273e142aaad4ff3e346196c41e9320369eca04a9b3621cbbd9d7c9d3b26344",
         "calldataHash": "0x77c48f8df3b3d7801cda751827e267482f4398cba5accadb647f7ec8f3341c49",
         "calldata": "0x24b03fd2",
         "revertData": "0xff3abd3b0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000610178da211fef7d417bc0e6fed39f05609ad788000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000043ee5aeb500000000000000000000000000000000000000000000000000000000",
-        "txHash": "0x547e422a2dfd62ab4cc59539fd3bd0fff43cf501dd94cadb2b7fdb17afc26d04",
+        "txHash": "0xe7e238e30bde7182f4b027796ca84e3482b908974cdb973e809b4ff2198ae70e",
         "traceRef": null
       }
     },
     "rawEvidence": {
-      "commitment": "0xc6ce4775f20114bf213e95c671b51abe86dbf63b01f632dd70f55cb0208931dc",
+      "commitment": "0x8d273e142aaad4ff3e346196c41e9320369eca04a9b3621cbbd9d7c9d3b26344",
       "calldata": "0x24b03fd2",
       "revertData": "0xff3abd3b0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000610178da211fef7d417bc0e6fed39f05609ad788000000000000000000000000000000000000000000000000000000000000006000000000000000000000000000000000000000000000000000000000000000043ee5aeb500000000000000000000000000000000000000000000000000000000",
-      "txHash": "0x547e422a2dfd62ab4cc59539fd3bd0fff43cf501dd94cadb2b7fdb17afc26d04",
+      "txHash": "0xe7e238e30bde7182f4b027796ca84e3482b908974cdb973e809b4ff2198ae70e",
       "trace": {
         "source": "structLogs",
         "calls": [
@@ -832,7 +864,7 @@
           },
           {
             "contract": "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
-            "slot": "0x75cf31884a354fecb92e8c29f88709aa4a5278edbf4a7803cd3730ce765be86b",
+            "slot": "0xaf644df42780ab36f00d2394b90041d57fe0dfe9247b613e6d2bd5cd9533c6fd",
             "value": "0x00000000000000000000005fc8d32690cc91d4c39d9d3abcbd16989f87570702",
             "depth": 1
           },
@@ -859,6 +891,7 @@
     "scenarioName": "Timelock & Replay Protection",
     "property": "Early execution, double execution, and cross-chain replay rejected",
     "outcome": "Executor Revert",
+    "recordedAt": "2026-10-25T17:24:54.246Z",
     "violationReport": {
       "proposalId": "9",
       "scenarioId": "8",
@@ -891,28 +924,31 @@
             "to": "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65",
             "value": "5000000000"
           },
+          "argumentLabels": {
+            "to": "DevWallet"
+          },
           "humanText": "Calls transfer(0x15d34AAf…6A65, 5000000000) on MockUSDC",
           "nested": []
         }
       ],
       "violatedConstraint": {
         "code": "TimelockNotExpired",
-        "message": "Calls transfer(0x15d34AAf…6A65, 5000000000) on MockUSDC — Timelock Delay Not Expired: The timelock delay has not yet elapsed. Execution is rejected until block.timestamp >= eta."
+        "message": "Timelock Delay Not Expired: The timelock delay has not yet elapsed. Execution is rejected until block.timestamp >= eta."
       },
       "evidence": {
-        "commitment": "0xf9c26568f330fe28cecd1b65d204e9f00fae66325370cedf3387fcda91585023",
+        "commitment": "0x11bcda8787ce4114e59ee543fc87877cd5fe7c1fe398689d87ea89f250f9f890",
         "calldataHash": "0x57a9dee8933dfb17a718368fb7e4a37b62f75eb562d85b97a5f2b4bbe8f16a1c",
         "calldata": "0xa9059cbb00000000000000000000000015d34aaf54267db7d7c367839aaf71a00a2c6a65000000000000000000000000000000000000000000000000000000012a05f200",
-        "revertData": "0x24d6e9ba000000000000000000000000000000000000000000000000000000006b0218c4000000000000000000000000000000000000000000000000000000006b020ab5",
-        "txHash": "0xf04319d28c2129f2000b1a7e03a3c7dbc564f909206d38d7fc14e1344d1ff980",
+        "revertData": "0x24d6e9ba000000000000000000000000000000000000000000000000000000006b025325000000000000000000000000000000000000000000000000000000006b024516",
+        "txHash": "0x2061a4f765e1fb9431de882fd3363118e954a20801f12711a01bbf2c13cc7746",
         "traceRef": null
       }
     },
     "rawEvidence": {
-      "commitment": "0xf9c26568f330fe28cecd1b65d204e9f00fae66325370cedf3387fcda91585023",
+      "commitment": "0x11bcda8787ce4114e59ee543fc87877cd5fe7c1fe398689d87ea89f250f9f890",
       "calldata": "0xa9059cbb00000000000000000000000015d34aaf54267db7d7c367839aaf71a00a2c6a65000000000000000000000000000000000000000000000000000000012a05f200",
-      "revertData": "0x24d6e9ba000000000000000000000000000000000000000000000000000000006b0218c4000000000000000000000000000000000000000000000000000000006b020ab5",
-      "txHash": "0xf04319d28c2129f2000b1a7e03a3c7dbc564f909206d38d7fc14e1344d1ff980",
+      "revertData": "0x24d6e9ba000000000000000000000000000000000000000000000000000000006b025325000000000000000000000000000000000000000000000000000000006b024516",
+      "txHash": "0x2061a4f765e1fb9431de882fd3363118e954a20801f12711a01bbf2c13cc7746",
       "trace": {
         "source": "structLogs",
         "calls": [
@@ -936,7 +972,7 @@
           }
         ],
         "failed": true,
-        "returnValue": "0x24d6e9ba000000000000000000000000000000000000000000000000000000006b0218c4000000000000000000000000000000000000000000000000000000006b020ab5"
+        "returnValue": "0x24d6e9ba000000000000000000000000000000000000000000000000000000006b025325000000000000000000000000000000000000000000000000000000006b024516"
       }
     }
   },
@@ -945,6 +981,7 @@
     "scenarioName": "Stale Version Supersession",
     "property": "Stale version rejected",
     "outcome": "Executor Revert",
+    "recordedAt": "2026-10-25T17:24:54.393Z",
     "violationReport": {
       "proposalId": "10",
       "scenarioId": "9",
@@ -977,28 +1014,31 @@
             "to": "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65",
             "value": "5000000000"
           },
+          "argumentLabels": {
+            "to": "DevWallet"
+          },
           "humanText": "Calls transfer(0x15d34AAf…6A65, 5000000000) on MockUSDC",
           "nested": []
         }
       ],
       "violatedConstraint": {
         "code": "VersionSuperseded",
-        "message": "Calls transfer(0x15d34AAf…6A65, 5000000000) on MockUSDC — Proposal Version Superseded: The proposal version voted on has been superseded by a newer version in the ProposalRegistry."
+        "message": "Proposal Version Superseded: The proposal version voted on has been superseded by a newer version in the ProposalRegistry."
       },
       "evidence": {
-        "commitment": "0x709f0594e22e37e3fd51866084e3f41d8d1d6f3de2e94b7dba1af00d719ef535",
+        "commitment": "0x76779d2aceb424983f37fd3c6b44fbc9bdc64ffd613b4b62ee77c1b136385284",
         "calldataHash": "0x57a9dee8933dfb17a718368fb7e4a37b62f75eb562d85b97a5f2b4bbe8f16a1c",
         "calldata": "0xa9059cbb00000000000000000000000015d34aaf54267db7d7c367839aaf71a00a2c6a65000000000000000000000000000000000000000000000000000000012a05f200",
-        "revertData": "0x86d3da90000000000000000000000000000000000000000000000000000000000000000a1b5998a06da7e9b2d80be0a720cc1b4b3206f14486dcf3f7e7345815e0f98ffce8150768cea5a07ac3f697818637121769fd53113f3a99a8c9e0f5cf0c03d2a1",
-        "txHash": "0xc53c7c6ab3db43167d9751bcd784327e88f6964ada220395aa27a93778adb7e0",
+        "revertData": "0x86d3da90000000000000000000000000000000000000000000000000000000000000000a177a67215ebe5601bc118f27ea90edf5461347e97b0b2b0d1949e090c92a347ef62f0b0fc1a5181f64552c340d010d961785890fefb972c6bceafddb61c0c636",
+        "txHash": "0xc4678cc3eaf1464dca58ac046b7cad5609aad374216ea69e07557e4cbd09946d",
         "traceRef": null
       }
     },
     "rawEvidence": {
-      "commitment": "0x709f0594e22e37e3fd51866084e3f41d8d1d6f3de2e94b7dba1af00d719ef535",
+      "commitment": "0x76779d2aceb424983f37fd3c6b44fbc9bdc64ffd613b4b62ee77c1b136385284",
       "calldata": "0xa9059cbb00000000000000000000000015d34aaf54267db7d7c367839aaf71a00a2c6a65000000000000000000000000000000000000000000000000000000012a05f200",
-      "revertData": "0x86d3da90000000000000000000000000000000000000000000000000000000000000000a1b5998a06da7e9b2d80be0a720cc1b4b3206f14486dcf3f7e7345815e0f98ffce8150768cea5a07ac3f697818637121769fd53113f3a99a8c9e0f5cf0c03d2a1",
-      "txHash": "0xc53c7c6ab3db43167d9751bcd784327e88f6964ada220395aa27a93778adb7e0",
+      "revertData": "0x86d3da90000000000000000000000000000000000000000000000000000000000000000a177a67215ebe5601bc118f27ea90edf5461347e97b0b2b0d1949e090c92a347ef62f0b0fc1a5181f64552c340d010d961785890fefb972c6bceafddb61c0c636",
+      "txHash": "0xc4678cc3eaf1464dca58ac046b7cad5609aad374216ea69e07557e4cbd09946d",
       "trace": {
         "source": "structLogs",
         "calls": [
@@ -1029,7 +1069,7 @@
           }
         ],
         "failed": true,
-        "returnValue": "0x86d3da90000000000000000000000000000000000000000000000000000000000000000a1b5998a06da7e9b2d80be0a720cc1b4b3206f14486dcf3f7e7345815e0f98ffce8150768cea5a07ac3f697818637121769fd53113f3a99a8c9e0f5cf0c03d2a1"
+        "returnValue": "0x86d3da90000000000000000000000000000000000000000000000000000000000000000a177a67215ebe5601bc118f27ea90edf5461347e97b0b2b0d1949e090c92a347ef62f0b0fc1a5181f64552c340d010d961785890fefb972c6bceafddb61c0c636"
       }
     }
   },
@@ -1038,6 +1078,7 @@
     "scenarioName": "Hidden Conflict of Interest",
     "property": "Hidden conflict-of-interest link flagged",
     "outcome": "Sentinel Halt",
+    "recordedAt": "2026-10-25T17:24:54.415Z",
     "violationReport": {
       "proposalId": "11",
       "scenarioId": "10",
@@ -1063,8 +1104,8 @@
       ],
       "submitted": [],
       "violatedConstraint": {
-        "code": "DisclosureChallenged",
-        "message": "Voting Blocked: Disclosure Flagged: Voting cannot open because an undisclosed link was challenged and verified."
+        "code": "ExecutionReverted",
+        "message": "Sandbox execution reverted: The simulated execution reverted without a matching executor gate finding."
       },
       "evidence": {
         "commitment": "",

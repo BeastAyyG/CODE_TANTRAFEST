@@ -3,7 +3,7 @@
 import { IntentDraftView } from "@/components/IntentDraftView";
 import { VersionChainView } from "@/components/VersionChainView";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { StatusBadge } from "@/components/ui/StatusBadge";
+import { ProposalHeaderActions } from "@/components/ui/ProposalHeaderActions";
 import { Tabs } from "@/components/ui/Tabs";
 import { useProposal } from "@/lib/proposal-context";
 
@@ -17,7 +17,7 @@ export default function ProposalsPage() {
         title={proposal.title}
         description="Source-grounded intent extraction and the append-only, hash-chained version history."
         actions={
-          <StatusBadge tone="info">proposal {proposal.id}</StatusBadge>
+          <ProposalHeaderActions proposal={proposal} />
         }
       />
 

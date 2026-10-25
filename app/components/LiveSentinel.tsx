@@ -15,7 +15,12 @@ import { HashChip } from "@/components/ui/HashChip";
 import { Panel } from "@/components/ui/Panel";
 import { StatusBadge, type StatusTone } from "@/components/ui/StatusBadge";
 import { forceExecute } from "@/lib/data";
+import { explorerAddressUrl } from "@/lib/explorer";
 import { cn, truncateMiddle } from "@/lib/format";
+import {
+  normalizeProposalTitle,
+  proposalRef,
+} from "@/lib/proposal-naming";
 import type {
   ForcedExecutionResult,
   SentinelEvent,
@@ -75,7 +80,13 @@ export function LiveSentinel({
       <div className="grid gap-2 sm:grid-cols-3">
         <Metric
           label="Watcher"
-          value={watcher ? truncateMiddle(watcher.executor, 8, 6) : "not started"}
+          value={
+            watcher ? (
+              <AddressLink address={watcher.executor} />
+            ) : (
+              "not started"
+            )
+          }
           hint={
             watcher
               ? `Last heartbeat ${formatClock(watcher.lastHeartbeat)} UTC`
@@ -157,7 +168,7 @@ function Metric({
   hint,
 }: {
   label: string;
-  value: string;
+  value: React.ReactNode;
   hint: string;
 }) {
   return (
@@ -168,6 +179,23 @@ function Metric({
       <p className="mt-1 truncate font-mono text-sm tabular-nums text-slate-200">{value}</p>
       <p className="mt-1 text-[10px] leading-relaxed text-slate-500">{hint}</p>
     </div>
+  );
+}
+
+function AddressLink({ address }: { address: string }) {
+  const href = explorerAddressUrl(address);
+  const label = truncateMiddle(address, 8, 6);
+  if (!href) return <>{label}</>;
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className="transition-colors duration-150 hover:text-cyan-200"
+      title={address}
+    >
+      {label}
+    </a>
   );
 }
 
@@ -214,7 +242,7 @@ function EventRow({
           )}
           title="Select this proposal"
         >
-          proposal {event.proposalId}
+          {proposalRef(event.proposalId)}
         </button>
         {violation ? (
           <StatusBadge tone="warning">
@@ -228,13 +256,18 @@ function EventRow({
         ) : null}
       </div>
 
-      <p className="mt-1.5 text-xs font-medium text-slate-200">{event.title}</p>
+      <p className="mt-1.5 text-xs font-medium text-slate-200">
+        {normalizeProposalTitle(event.title, "LIVE")}
+      </p>
       <p className="mt-1 text-[11px] leading-relaxed text-slate-400">{event.detail}</p>
 
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
         <HashChip label="commitment" value={event.commitment} />
+        {event.txHash ? <HashChip label="queued tx" value={event.txHash} kind="tx" /> : null}
         {event.reportHash ? <HashChip label="report" value={event.reportHash} /> : null}
-        {event.haltTxHash ? <HashChip label="halt tx" value={event.haltTxHash} /> : null}
+        {event.haltTxHash ? (
+          <HashChip label="halt tx" value={event.haltTxHash} kind="tx" />
+        ) : null}
         {event.haltBlockNumber ? (
           <span className="font-mono text-[10px] text-slate-500">
             block {event.haltBlockNumber}
@@ -295,8 +328,18 @@ function ForcedExecution({ event }: { event: SentinelEvent }) {
           </p>
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
             <HashChip label="revert" value={result.revertData} />
-            <HashChip label="tx" value={result.txHash} />
+            <HashChip label="tx" value={result.txHash} kind="tx" />
           </div>
+          {result.explorerUrl ? (
+            <a
+              href={result.explorerUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-2 inline-flex items-center gap-1 text-[11px] text-cyan-300 underline decoration-cyan-900 underline-offset-2 transition-colors duration-150 hover:text-cyan-200"
+            >
+              View the mined failure on Sepolia Etherscan
+            </a>
+          ) : null}
         </div>
       ) : null}
 

@@ -3,7 +3,7 @@
 import { DisclosureForm } from "@/components/DisclosureForm";
 import { WalletGraph } from "@/components/WalletGraph";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { StatusBadge } from "@/components/ui/StatusBadge";
+import { ProposalHeaderActions } from "@/components/ui/ProposalHeaderActions";
 import { useProposal } from "@/lib/proposal-context";
 
 export default function DisclosurePage() {
@@ -15,9 +15,7 @@ export default function DisclosurePage() {
         eyebrow="Disclosure & graph"
         title="Disclosure and potential conflicts"
         description="Publish declared interests, inspect simulated wallet links, and attach supporting transactions to a disclosure challenge."
-        actions={
-          <StatusBadge tone="info">proposal {proposal.id}</StatusBadge>
-        }
+        actions={<ProposalHeaderActions proposal={proposal} />}
       />
       <DisclosureForm proposalId={proposal.id} />
       <WalletGraph proposalId={proposal.id} />

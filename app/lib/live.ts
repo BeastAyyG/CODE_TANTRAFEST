@@ -24,7 +24,7 @@ import type {
 } from "./types";
 import {
   getProvider,
-  getDevSigner,
+  getServerSigner,
   getProposalRegistry,
   getIntentGovernor,
   getDisclosureRegistry,
@@ -33,6 +33,10 @@ import {
   ProposalState,
   decodeRevert,
 } from "./chain";
+import {
+  normalizeProposalTitle,
+  proposalLabel,
+} from "./proposal-naming";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Utilities
@@ -387,7 +391,8 @@ export async function liveCastVote(
   briefHash: string = ethers.ZeroHash,
   accountIndex = 0
 ): Promise<ActionReceipt> {
-  const signer = await getDevSigner(accountIndex);
+  const role = accountIndex === 1 ? "voter2" : accountIndex === 2 ? "voter3" : "voter1";
+  const signer = await getServerSigner(role, 4 + Math.min(accountIndex, 2));
   const gov = getIntentGovernor().connect(signer) as ethers.Contract;
   const gid = BigInt(govId);
 
@@ -420,7 +425,8 @@ export async function liveFileChallenge(
   description: string,
   accountIndex = 0
 ): Promise<ActionReceipt> {
-  const signer = await getDevSigner(accountIndex);
+  void accountIndex;
+  const signer = await getServerSigner("challenger", 8);
   const dreg = getDisclosureRegistry().connect(signer) as ethers.Contract;
   const tx = await dreg.fileChallenge(BigInt(proposalId), linkEvidenceHash, description);
   const result = await waitTx(tx);
@@ -447,7 +453,8 @@ export async function liveSubmitDisclosure(
   s: string,
   accountIndex = 0
 ): Promise<ActionReceipt> {
-  const signer = await getDevSigner(accountIndex);
+  void accountIndex;
+  const signer = await getServerSigner("proposer", 3);
   const dreg = getDisclosureRegistry().connect(signer) as ethers.Contract;
   const tx = await dreg.submitDisclosure(
     BigInt(proposalId), proposer, walletListHash, interestsHash,
@@ -473,13 +480,15 @@ export async function livePublishDisclosure(
   bondAmount: bigint = 0n,
   accountIndex = 0
 ): Promise<ActionReceipt> {
-  const signer = await getDevSigner(accountIndex);
+  void accountIndex;
+  const signer = await getServerSigner("proposer", 3);
+  const signerAddress = await signer.getAddress();
   const dreg = getDisclosureRegistry();
   const dregAddress = await dreg.getAddress();
   const provider = getProvider();
   const network = await provider.getNetwork();
 
-  const nonce: bigint = await dreg.nonces(signer.address);
+  const nonce: bigint = await dreg.nonces(signerAddress);
 
   const domain = {
     name: "AegisDAO DisclosureRegistry",
@@ -501,7 +510,7 @@ export async function livePublishDisclosure(
 
   const value = {
     proposalId: BigInt(proposalId),
-    proposer: signer.address,
+    proposer: signerAddress,
     walletListHash,
     interestsHash,
     bondAmount,
@@ -513,7 +522,7 @@ export async function livePublishDisclosure(
 
   return liveSubmitDisclosure(
     proposalId,
-    signer.address,
+    signerAddress,
     walletListHash,
     interestsHash,
     bondAmount,
@@ -552,12 +561,17 @@ export async function liveGetProposals(): Promise<Proposal[]> {
       const p = await gov.getGovProposal(gid);
       const pidStr = p.proposalId.toString();
       const demo = demoState[pidStr];
+      const title = normalizeProposalTitle(
+        demo?.title ? demo.title : "Untitled proposal",
+        "LIVE"
+      );
       proposals.push({
         id: pidStr,
-        label: demo?.title ? `Proposal #${pidStr} · ${demo.title}` : `Proposal #${pidStr}`,
-        title: demo?.title ?? `Proposal #${pidStr}`,
+        label: proposalLabel(pidStr, title),
+        title,
         scenarioId: Number(pidStr),
         govId: gid.toString(),
+        provenance: "LIVE",
       });
     } catch {
       // skip unreadable
@@ -567,12 +581,14 @@ export async function liveGetProposals(): Promise<Proposal[]> {
   // Also include any drafted proposals from demo-state that don't have govId yet
   for (const [pidStr, demo] of Object.entries(demoState)) {
     if (!proposals.some((pr) => pr.id === pidStr)) {
+      const title = normalizeProposalTitle(demo.title, "LIVE");
       proposals.push({
         id: pidStr,
-        label: `Proposal #${pidStr} · ${demo.title}`,
-        title: demo.title,
+        label: proposalLabel(pidStr, title),
+        title,
         scenarioId: Number(pidStr),
         govId: demo.govId ?? "",
+        provenance: "LIVE",
       });
     }
   }

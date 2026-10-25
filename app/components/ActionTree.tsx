@@ -1,6 +1,7 @@
 "use client";
 
 import { AlertTriangle, ArrowRight, CornerDownRight } from "lucide-react";
+import { explorerAddressUrl } from "@/lib/explorer";
 import { cn, shortAddress } from "@/lib/format";
 import type { DecodedAction } from "@/lib/types";
 
@@ -53,9 +54,21 @@ export function ActionTree({
                   {action.targetLabel}
                 </span>
                 {action.targetLabel !== action.target ? (
-                  <span className="font-mono text-[10px] text-slate-500">
-                    {shortAddress(action.target)}
-                  </span>
+                  explorerAddressUrl(action.target) ? (
+                    <a
+                      href={explorerAddressUrl(action.target)!}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="font-mono text-[10px] text-slate-500 underline decoration-slate-800 underline-offset-2 hover:text-cyan-300"
+                      title={action.target}
+                    >
+                      {shortAddress(action.target)}
+                    </a>
+                  ) : (
+                    <span className="font-mono text-[10px] text-slate-500">
+                      {shortAddress(action.target)}
+                    </span>
+                  )
                 ) : null}
               </div>
 
@@ -79,6 +92,16 @@ export function ActionTree({
                 >
                   {action.function}
                 </span>
+                {Object.entries(action.argumentLabels ?? {})
+                  .filter(([name, label]) => label !== action.args[name])
+                  .map(([name, label]) => (
+                    <span
+                      key={name}
+                      className="font-mono text-[10px] text-slate-500"
+                    >
+                      {name} → <span className="text-slate-300">{label}</span>
+                    </span>
+                  ))}
                 {danger ? (
                   <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-red-400">
                     outside committed intent

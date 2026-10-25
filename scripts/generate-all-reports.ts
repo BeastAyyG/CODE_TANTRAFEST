@@ -24,6 +24,7 @@ interface ScenarioReport {
   scenarioName: string;
   property: string;
   outcome: Outcome;
+  recordedAt: string;
   violationReport: ViolationReport;
   rawEvidence: {
     commitment: string;
@@ -159,6 +160,7 @@ async function runExecutorScenario(
     scenarioName: spec.scenarioName,
     property: spec.property,
     outcome,
+    recordedAt: new Date().toISOString(),
     violationReport,
     rawEvidence: {
       commitment: sim.commitment,
@@ -307,6 +309,7 @@ async function runCoiScenario(
     scenarioName: "Hidden Conflict of Interest",
     property: "Hidden conflict-of-interest link flagged",
     outcome: "Sentinel Halt",
+    recordedAt: new Date().toISOString(),
     violationReport,
     rawEvidence: {
       commitment: "",
@@ -745,15 +748,18 @@ async function generateAllReports() {
   const outDir = path.join(__dirname, "..", "packages", "shared", "fixtures");
   if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
   const outPath = path.join(outDir, "sentinel-reports.json");
-  fs.writeFileSync(
-    outPath,
+  const serialized =
     JSON.stringify(
       reports,
       (_key, value) => (typeof value === "bigint" ? value.toString() : value),
       2
-    ) + "\n",
-    "utf8"
-  );
+    ) + "\n";
+  fs.writeFileSync(outPath, serialized, "utf8");
+
+  const appOutDir = path.join(__dirname, "..", "app", "lib", "mocks");
+  if (!fs.existsSync(appOutDir)) fs.mkdirSync(appOutDir, { recursive: true });
+  const appOutPath = path.join(appOutDir, "sentinel-reports.json");
+  fs.writeFileSync(appOutPath, serialized, "utf8");
 
   const counts = reports.reduce<Record<Outcome, number>>(
     (acc, r) => {

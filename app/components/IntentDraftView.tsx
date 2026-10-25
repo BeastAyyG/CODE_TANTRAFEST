@@ -20,6 +20,7 @@ import {
   getIntentDraft,
 } from "@/lib/data";
 import { cn, formatPct } from "@/lib/format";
+import { proposalRef } from "@/lib/proposal-naming";
 import { useAsync } from "@/lib/useAsync";
 import type {
   IntentConfirmation,
@@ -71,7 +72,10 @@ export function IntentDraftView({ proposalId }: { proposalId: string }) {
       actions={
         data ? (
           <div className="flex flex-wrap items-center gap-2">
-            <StatusBadge tone="info">{data.draft.actions.length} claims</StatusBadge>
+            <StatusBadge tone="info">
+              {data.draft.actions.length}{" "}
+              {data.draft.actions.length === 1 ? "claim" : "claims"}
+            </StatusBadge>
             {unresolved.length > 0 ? <StatusBadge tone="warning">{unresolved.length} unresolved</StatusBadge> : <StatusBadge tone="success">Ready to compile</StatusBadge>}
             <WhyDrawer>Claim count is the number of extracted executable actions. Every UNRESOLVED item must be resolved in the source or explicitly accepted before the bridge will hash the intent.</WhyDrawer>
           </div>
@@ -92,7 +96,7 @@ export function IntentDraftView({ proposalId }: { proposalId: string }) {
               <FileText size={16} className="text-cyan-300" />
               <h3 className="text-sm font-semibold text-slate-100">{data.draft.title}</h3>
               <StatusBadge tone="neutral">v{data.draft.version}</StatusBadge>
-              <StatusBadge tone="neutral">{data.draft.proposalId}</StatusBadge>
+              <StatusBadge tone="neutral">{proposalRef(data.draft.proposalId)}</StatusBadge>
               <HashChip label="doc" value={data.document.docHash} />
             </div>
 
@@ -135,8 +139,8 @@ export function IntentDraftView({ proposalId }: { proposalId: string }) {
                       <span className="inline-flex items-center gap-1 text-[10px] text-cyan-300">Open citation <ArrowRight size={11} /></span>
                     </div>
                     <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                      <HashChip label="target" value={action.target || null} lead={8} tail={4} />
-                      <HashChip label="counterparty" value={action.counterparty || null} lead={8} tail={4} />
+                      <HashChip label="target" value={action.target || null} lead={8} tail={4} kind="address" />
+                      <HashChip label="counterparty" value={action.counterparty || null} lead={8} tail={4} kind="address" />
                     </div>
                     <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] text-slate-400">
                       <span>selector <span className="font-mono text-slate-300">{action.selector}</span></span>
@@ -311,8 +315,8 @@ function ConfirmedIntent({ confirmation }: { confirmation: IntentConfirmation })
             </div>
             <p className="mt-2 text-xs leading-relaxed text-slate-300">{rule.plainEnglish}</p>
             <div className="mt-2 flex flex-wrap items-center gap-2">
-              <HashChip label="target" value={rule.target} lead={8} tail={4} />
-              <HashChip label="counterparty" value={rule.counterparty} lead={8} tail={4} />
+              <HashChip label="target" value={rule.target} lead={8} tail={4} kind="address" />
+              <HashChip label="counterparty" value={rule.counterparty} lead={8} tail={4} kind="address" />
               <span className="font-mono text-[10px] text-slate-500">{rule.selector} · max {rule.maxAmount} · children {rule.childCount}</span>
               <WhyDrawer>Rule position {index + 1} matches action position {index + 1}. Max is an upper bound in base units; children is the number of nested actions a multicall must contain.</WhyDrawer>
             </div>

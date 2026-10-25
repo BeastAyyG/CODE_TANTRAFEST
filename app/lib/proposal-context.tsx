@@ -1,6 +1,11 @@
 "use client";
 
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { DATA_MODE } from "./config";
+import {
+  normalizeProposalTitle,
+  proposalLabel,
+} from "./proposal-naming";
 import type { Proposal } from "./types";
 
 interface ProposalContextValue {
@@ -11,6 +16,18 @@ interface ProposalContextValue {
 }
 
 const ProposalContext = createContext<ProposalContextValue | null>(null);
+
+function normalizeProposal(proposal: Proposal): Proposal {
+  const provenance =
+    proposal.provenance ?? (DATA_MODE === "live" ? "LIVE" : "MOCK");
+  const title = normalizeProposalTitle(proposal.title, provenance);
+  return {
+    ...proposal,
+    title,
+    label: proposalLabel(proposal.id, title),
+    provenance,
+  };
+}
 
 export function ProposalProvider({
   proposals,
@@ -23,22 +40,24 @@ export function ProposalProvider({
   const [liveProposals, setLiveProposals] = useState<Proposal[]>([]);
 
   const allProposals = useMemo(() => {
-    const merged = [...proposals];
+    const merged = proposals.map(normalizeProposal);
     for (const candidate of liveProposals) {
-      if (!merged.some((proposal) => proposal.id === candidate.id)) {
-        merged.push(candidate);
+      const normalized = normalizeProposal(candidate);
+      if (!merged.some((proposal) => proposal.id === normalized.id)) {
+        merged.push(normalized);
       }
     }
     return merged;
   }, [proposals, liveProposals]);
 
   const selectProposal = useCallback((proposal: Proposal) => {
+    const normalized = normalizeProposal(proposal);
     setLiveProposals((current) =>
-      current.some((item) => item.id === proposal.id)
+      current.some((item) => item.id === normalized.id)
         ? current
-        : [...current, proposal]
+        : [...current, normalized]
     );
-    setId(proposal.id);
+    setId(normalized.id);
   }, []);
 
   const value = useMemo<ProposalContextValue | null>(() => {

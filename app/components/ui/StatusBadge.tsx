@@ -32,6 +32,7 @@ const STATUS_TONE: Record<string, StatusTone> = {
   SIMULATED: "info",
   INFO: "info",
   IDLE: "neutral",
+  UNAVAILABLE: "neutral",
 };
 
 export function StatusBadge({

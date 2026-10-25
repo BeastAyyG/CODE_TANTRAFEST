@@ -63,6 +63,22 @@ contract TreasuryProxy {
         }
     }
 
+    /// @notice Batched self-calls used by the obfuscated-payload scenario.
+    /// @dev    delegatecall preserves msg.sender, so the inner onlyAdmin checks
+    ///         still bind to the calling executor rather than to this proxy.
+    function multicall(bytes[] calldata data) external returns (bytes[] memory results) {
+        results = new bytes[](data.length);
+        for (uint256 i; i < data.length; ++i) {
+            (bool ok, bytes memory result) = address(this).delegatecall(data[i]);
+            if (!ok) {
+                assembly ("memory-safe") {
+                    revert(add(result, 32), mload(result))
+                }
+            }
+            results[i] = result;
+        }
+    }
+
     function withdrawERC20(address token, address to, uint256 amount) external onlyAdmin {
         IERC20(token).transfer(to, amount);
     }

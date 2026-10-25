@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  ChevronDown,
   ClipboardCheck,
   FileText,
   Link2,
@@ -13,10 +12,11 @@ import {
   Vote,
   Workflow,
 } from "lucide-react";
-import { CHAIN_ID, DATA_MODE } from "@/lib/config";
+import { CHAIN_ID, CHAIN_NAME } from "@/lib/config";
+import { explorerBaseUrl } from "@/lib/explorer";
 import { cn } from "@/lib/format";
 import { useProposal } from "@/lib/proposal-context";
-import { StatusBadge } from "@/components/ui/StatusBadge";
+import { ProposalListbox } from "./ProposalListbox";
 
 const NAV = [
   { href: "/", label: "Decision Trail", icon: Workflow },
@@ -29,6 +29,34 @@ const NAV = [
 
 function isActive(pathname: string, href: string): boolean {
   return href === "/" ? pathname === "/" : pathname.startsWith(href);
+}
+
+function ChainTag() {
+  const explorer = explorerBaseUrl();
+  const className =
+    "inline-flex items-center gap-1.5 rounded-md border border-slate-800 bg-slate-900/60 px-2 py-1 font-mono text-[11px] tabular-nums text-slate-400 transition-colors duration-150";
+  const label = (
+    <>
+      <Link2 size={12} className="text-slate-500" />
+      {CHAIN_NAME}
+      <span className="text-slate-600">{CHAIN_ID}</span>
+    </>
+  );
+
+  if (!explorer) {
+    return <span className={className}>{label}</span>;
+  }
+  return (
+    <a
+      href={explorer}
+      target="_blank"
+      rel="noreferrer"
+      className={cn(className, "hover:border-cyan-900/70 hover:text-cyan-200")}
+      title={`Open ${CHAIN_NAME} explorer`}
+    >
+      {label}
+    </a>
+  );
 }
 
 export function Shell({ children }: { children: React.ReactNode }) {
@@ -110,41 +138,14 @@ export function Shell({ children }: { children: React.ReactNode }) {
               <ShieldCheck size={16} />
             </Link>
 
-            <div className="relative">
-              <label className="flex items-center gap-2 rounded-lg border border-slate-800 bg-slate-900/70 py-1.5 pl-3 pr-2">
-                <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">
-                  Proposal
-                </span>
-                <select
-                  value={proposal.id}
-                  onChange={(event) => setProposalId(event.target.value)}
-                  className="max-w-[230px] appearance-none bg-transparent pr-5 text-xs text-slate-200 outline-none"
-                  aria-label="Current proposal"
-                >
-                  {proposals.map((item) => (
-                    <option key={item.id} value={item.id} className="bg-slate-900">
-                      {item.label}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown
-                  size={14}
-                  className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-500"
-                />
-              </label>
-            </div>
+            <ProposalListbox
+              proposals={proposals}
+              selectedId={proposal.id}
+              onSelect={setProposalId}
+            />
 
             <div className="ml-auto flex items-center gap-2">
-              <StatusBadge
-                tone={DATA_MODE === "live" ? "success" : "info"}
-                pulse={DATA_MODE === "live"}
-              >
-                {DATA_MODE === "live" ? "LIVE" : "MOCK"}
-              </StatusBadge>
-              <span className="inline-flex items-center gap-1.5 rounded-md border border-slate-800 bg-slate-900/60 px-2 py-1 font-mono text-[11px] tabular-nums text-slate-400">
-                <Link2 size={12} className="text-slate-500" />
-                chain {CHAIN_ID}
-              </span>
+              <ChainTag />
             </div>
           </div>
 

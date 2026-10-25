@@ -156,7 +156,7 @@ const KIND_SELECTORS: Partial<Record<ActionKindName, string>> = {
 
 export const SAMPLE_PROPOSAL = `Proposal: Q3 Developer Grant and Fee Tuning
 
-Transfer 5,000 USDC from the DAO treasury to the development wallet 0x000000000000000000000000000000000000b001 for the Q3 audit engagement.
+Transfer 5,000 USDC from the DAO treasury to the development wallet 0x14dC79964da2C08b23698B3D3cc7Ca32193d9955 for the Q3 audit engagement.
 Set the fee module parameter to 35 bps to keep the protocol competitive.
 The team may adjust the recipient at its discretion if the developer changes.
 The grant is expected to recur monthly through the end of the year.`;
@@ -1056,9 +1056,20 @@ function errorMessage(error: unknown): string {
   return String(error);
 }
 
+function deploymentName(): string {
+  if (process.env.SENTINEL_NETWORK) return process.env.SENTINEL_NETWORK;
+  if (process.env.NEXT_PUBLIC_CHAIN_ID === "11155111") return "sepolia";
+  return "local";
+}
+
 function loadKnownAddresses(): Record<string, string> {
   try {
-    const manifestPath = path.join(__dirname, "..", "deployments", "local.json");
+    const manifestPath = path.join(
+      __dirname,
+      "..",
+      "deployments",
+      `${deploymentName()}.json`
+    );
     const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8")) as {
       contracts?: Record<string, { address?: string }>;
     };

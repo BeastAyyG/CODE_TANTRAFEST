@@ -1,19 +1,37 @@
 /**
  * app/lib/chain.ts
  *
- * Read-only ethers v6 provider + typed contract instances loaded from
- * deployments/local.json at the repo root.
+ * Server-side ethers v6 provider + typed contract instances loaded from
+ * deployments/<network>.json, where <network> is derived from
+ * NEXT_PUBLIC_CHAIN_ID (11155111 -> sepolia, 31337 -> local).
  *
  * Rules:
  *  - Fail loudly (never silently swallow) if RPC or contract addresses are missing.
  *  - All contract state enums mirrored from Solidity source — no guessed numbers.
  *  - Server-side only (Node); never imported by client components directly.
+ *    Private keys are read from env here and never returned to the client.
  */
 
 import { ethers } from "ethers";
 import fs from "node:fs";
 import path from "node:path";
 import { repoRoot } from "./backend";
+
+export {
+  chainLabel,
+  explorerAddressUrl,
+  explorerBaseUrl,
+  explorerBlockUrl,
+  explorerTxUrl,
+} from "./explorer";
+
+export const APP_CHAIN_ID = Number(process.env.NEXT_PUBLIC_CHAIN_ID ?? 31337);
+
+export function deploymentName(): string {
+  if (APP_CHAIN_ID === 11155111) return "sepolia";
+  if (APP_CHAIN_ID === 1) return "mainnet";
+  return process.env.AEGIS_DEPLOYMENT ?? "local";
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ProposalState enum — mirrors IntentLockExecutor.sol exactly
@@ -65,21 +83,31 @@ interface ContractEntry {
 interface Manifest {
   network: string;
   chainId: number;
+  deploymentBlock?: number;
   contracts: Record<string, ContractEntry>;
 }
 
 let _manifest: Manifest | null = null;
 function loadManifest(): Manifest {
   if (_manifest) return _manifest;
-  const manifestPath = path.join(repoRoot(), "deployments", "local.json");
+  const name = deploymentName();
+  const manifestPath = path.join(repoRoot(), "deployments", `${name}.json`);
   if (!fs.existsSync(manifestPath)) {
     throw new Error(
-      `deployments/local.json not found at ${manifestPath}. ` +
-      `Run \`npm run deploy\` (with hardhat node running) first.`
+      `deployments/${name}.json not found at ${manifestPath}. ` +
+        `Run \`npm run deploy\` for local, or deploy to Sepolia first.`
     );
   }
   _manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8")) as Manifest;
   return _manifest;
+}
+
+export function getManifestChainId(): number {
+  return loadManifest().chainId;
+}
+
+export function getDeploymentBlock(): number {
+  return loadManifest().deploymentBlock ?? 0;
 }
 
 function contractEntry(name: string): ContractEntry {
@@ -87,8 +115,8 @@ function contractEntry(name: string): ContractEntry {
   const entry = m.contracts[name];
   if (!entry?.address || entry.address === ethers.ZeroAddress) {
     throw new Error(
-      `Contract "${name}" has no deployed address in deployments/local.json. ` +
-      `Re-deploy with \`npm run deploy\`.`
+      `Contract "${name}" has no deployed address in deployments/${deploymentName()}.json. ` +
+        `Re-deploy with \`npm run deploy\`.`
     );
   }
   return entry;
@@ -99,17 +127,77 @@ function contractEntry(name: string): ContractEntry {
 // ─────────────────────────────────────────────────────────────────────────────
 
 let _provider: ethers.JsonRpcProvider | null = null;
+
+export function getRpcUrl(): string {
+  const explicit = process.env.RPC_URL ?? process.env.NEXT_PUBLIC_RPC_URL;
+  if (explicit) return explicit;
+  if (APP_CHAIN_ID === 11155111) {
+    if (!process.env.SEPOLIA_RPC_URL) {
+      throw new Error(
+        "SEPOLIA_RPC_URL (or NEXT_PUBLIC_RPC_URL) is required when NEXT_PUBLIC_CHAIN_ID=11155111."
+      );
+    }
+    return process.env.SEPOLIA_RPC_URL;
+  }
+  return "http://127.0.0.1:8545";
+}
+
 export function getProvider(): ethers.JsonRpcProvider {
   if (_provider) return _provider;
-  const rpcUrl =
-    process.env.NEXT_PUBLIC_RPC_URL ?? "http://127.0.0.1:8545";
-  _provider = new ethers.JsonRpcProvider(rpcUrl);
+  _provider = new ethers.JsonRpcProvider(getRpcUrl());
   return _provider;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Signer (Hardhat account selector — dev only)
+// Signers
+//
+// On Sepolia the server signs with wallets derived from env keys. The Hardhat
+// eth_accounts signer remains available for local development only, behind
+// ALLOW_DEV_SIGNER (default on for chain 31337, never on a testnet).
+// Keys never leave this module; callers only receive a Signer instance.
 // ─────────────────────────────────────────────────────────────────────────────
+
+export type SignerRole =
+  | "deployer"
+  | "guardian"
+  | "verifier"
+  | "proposer"
+  | "voter1"
+  | "voter2"
+  | "voter3"
+  | "challenger";
+
+const ROLE_KEY_ENV: Record<SignerRole, string> = {
+  deployer: "DEPLOYER_KEY",
+  guardian: "GUARDIAN_KEY",
+  verifier: "VERIFIER_KEY",
+  proposer: "PROPOSER_KEY",
+  voter1: "VOTER1_KEY",
+  voter2: "VOTER2_KEY",
+  voter3: "VOTER3_KEY",
+  challenger: "CHALLENGER_KEY",
+};
+
+const ROLE_DEV_INDEX: Record<SignerRole, number> = {
+  deployer: 0,
+  guardian: 1,
+  verifier: 2,
+  proposer: 3,
+  voter1: 4,
+  voter2: 5,
+  voter3: 6,
+  challenger: 8,
+};
+
+function normalizeKey(key: string): string {
+  return key.startsWith("0x") ? key : `0x${key}`;
+}
+
+/** The eth_accounts signer is local-only; never enabled on Sepolia. */
+export function devSignerAllowed(): boolean {
+  if (APP_CHAIN_ID !== 31337) return false;
+  return process.env.ALLOW_DEV_SIGNER !== "0";
+}
 
 /**
  * Return a JsonRpcSigner for Hardhat account at index `accountIndex`.
@@ -118,6 +206,13 @@ export function getProvider(): ethers.JsonRpcProvider {
 export async function getDevSigner(
   accountIndex = 0
 ): Promise<ethers.JsonRpcSigner> {
+  if (!devSignerAllowed()) {
+    throw new Error(
+      "Dev signer is disabled. Configure server-side keys (DEPLOYER_KEY, " +
+        "PROPOSER_KEY, VOTER*_KEY, ...) or set ALLOW_DEV_SIGNER=1 on a local " +
+        "Hardhat chain only."
+    );
+  }
   const provider = getProvider();
   const accounts = await provider.send("eth_accounts", []);
   if (!accounts[accountIndex]) {
@@ -126,6 +221,21 @@ export async function getDevSigner(
     );
   }
   return provider.getSigner(accounts[accountIndex] as string);
+}
+
+/**
+ * Server-side signer for a demo role. Prefers the env key; falls back to a
+ * local Hardhat account only when dev signing is allowed.
+ */
+export async function getServerSigner(
+  role: SignerRole,
+  accountIndex?: number
+): Promise<ethers.Signer> {
+  const key = process.env[ROLE_KEY_ENV[role]];
+  if (key) {
+    return new ethers.Wallet(normalizeKey(key.trim()), getProvider());
+  }
+  return getDevSigner(accountIndex ?? ROLE_DEV_INDEX[role]);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -285,7 +395,12 @@ export async function checkDemoStateMatchesChain(): Promise<DemoStateDiagnostics
 }
 
 export async function getChainDiagnostics(): Promise<ChainDiagnostics> {
-  const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL ?? "http://127.0.0.1:8545";
+  let rpcUrl = "";
+  try {
+    rpcUrl = getRpcUrl();
+  } catch {
+    rpcUrl = "(unconfigured)";
+  }
   let rpcReachable = false;
   let chainId: number | null = null;
 

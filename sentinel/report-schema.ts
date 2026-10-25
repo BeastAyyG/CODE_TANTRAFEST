@@ -5,6 +5,7 @@ export interface DecodedActionRecord {
   targetLabel: string;
   function: string;
   args: Record<string, string>;
+  argumentLabels?: Record<string, string>;
   humanText: string;
   nested: DecodedActionRecord[];
 }

@@ -14,6 +14,7 @@ import { FileWarning, Network, ShieldAlert } from "lucide-react";
 import { DataState } from "@/components/ui/DataState";
 import { HashChip } from "@/components/ui/HashChip";
 import { Panel } from "@/components/ui/Panel";
+import { ProvenanceTag } from "@/components/ui/ProvenanceTag";
 import { Stat } from "@/components/ui/Stat";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { WhyDrawer } from "@/components/ui/WhyDrawer";
@@ -80,7 +81,12 @@ export function WalletGraph({ proposalId }: { proposalId: string }) {
       <Panel
         title="Wallet Graph"
         subtitle="Select an edge to inspect its supporting transaction and contribution to risk."
-        actions={<StatusBadge status="SIMULATED">SIMULATED DATA</StatusBadge>}
+        actions={
+          <ProvenanceTag
+            kind={graph?.simulated === false ? "LIVE" : "SIMULATED"}
+            detail="Wallet links, amounts, and timestamps in this panel are simulated."
+          />
+        }
       >
         <DataState
           loading={loading}
@@ -128,7 +134,10 @@ export function WalletGraph({ proposalId }: { proposalId: string }) {
               <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_310px]">
                 <div className="relative overflow-hidden rounded-xl border border-slate-800 bg-slate-950/60">
                   <div className="absolute right-3 top-3 z-10">
-                    <StatusBadge status="SIMULATED">SIMULATED DATA</StatusBadge>
+                    <ProvenanceTag
+                      kind="SIMULATED"
+                      detail="Force-directed wallet graph generated from simulated evidence."
+                    />
                   </div>
                   <ForceGraph
                     data={graph}

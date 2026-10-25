@@ -20,6 +20,7 @@ import { assessConflictOfInterest, buildSeedData } from "../intelligence/graph";
 import { simulateProposalExecution } from "../sentinel/simulate";
 import { buildViolationReport } from "../sentinel/report";
 import { haltProposal } from "../sentinel/halt";
+import { upsertExecutionBundle } from "../sentinel/live-store";
 import { signDisclosure } from "../test/redteam/fixture";
 import {
   Action,
@@ -64,6 +65,7 @@ interface Ctx {
   voter1: any;
   voter2: any;
   voter3: any;
+  attacker: any;
   addresses: Record<string, string>;
 }
 
@@ -191,6 +193,55 @@ async function openVoting(ctx: Ctx, govId: bigint): Promise<void> {
   await (await ctx.governor.connect(ctx.proposer).openVoting(govId)).wait();
 }
 
+/**
+ * Register the committed calldata for a proposal so the Pre-vote Effect
+ * Preview can simulate the EXACT bytes the vote commits to. The executor only
+ * stores hashes, so this is the demo-state half of the commitment.
+ */
+async function registerBundle(
+  ctx: Ctx,
+  args: {
+    key: string;
+    title: string;
+    proposalId: bigint;
+    govId: bigint;
+    actions: Action[];
+    rules: ActionRule[];
+    labels?: Record<string, string>;
+  }
+): Promise<string> {
+  const proposal = await ctx.governor.getGovProposal(args.govId);
+  const commitment = String(proposal.commitment);
+  upsertExecutionBundle({
+    commitment,
+    proposalId: args.proposalId.toString(),
+    govId: args.govId.toString(),
+    title: args.title,
+    version: String(proposal.version),
+    versionHash: String(proposal.versionHash),
+    disclosureHash: String(proposal.disclosureHash),
+    createdAt: new Date().toISOString(),
+    source: "scripts/seed-demo.ts",
+    actions: args.actions.map((action) => ({
+      target: action.target,
+      value: action.value.toString(),
+      data: action.data,
+    })),
+    rules: args.rules.map((rule) => ({
+      kind: Number(rule.kind),
+      target: rule.target,
+      selector: rule.selector,
+      counterparty: rule.counterparty,
+      maxAmount: rule.maxAmount.toString(),
+      codeHash: rule.codeHash,
+      childCount: Number(rule.childCount),
+    })),
+    labels: args.labels,
+  });
+  console.log(`  ✔ Registered committed calldata for P${args.key} (${short(commitment)})`);
+  return commitment;
+}
+
 async function castVote(
   ctx: Ctx,
   govId: bigint,
@@ -294,6 +345,15 @@ async function seedP1(ctx: Ctx): Promise<{ id: bigint; entry: DemoEntry }> {
     intentHash,
     disclosureHash
   );
+  await registerBundle(ctx, {
+    key: "1",
+    title: "Q4 Development Grant",
+    proposalId,
+    govId,
+    actions,
+    rules,
+    labels: { [ctx.devWallet.address.toLowerCase()]: "Dev wallet" },
+  });
   await openVoting(ctx, govId);
   await castVote(ctx, govId, ctx.voter1, 1, true);
   await castVote(ctx, govId, ctx.voter2, 1, true);
@@ -397,6 +457,14 @@ async function seedP2(ctx: Ctx): Promise<{ id: bigint; entry: DemoEntry }> {
     intentHash,
     disclosureHash
   );
+  await registerBundle(ctx, {
+    key: "2",
+    title: "Routine parameter tuning of the fee module",
+    proposalId,
+    govId,
+    actions: benignActions,
+    rules: benignRules,
+  });
   await openVoting(ctx, govId);
   await castVote(ctx, govId, ctx.voter1, 1, true);
   await castVote(ctx, govId, ctx.voter2, 1, true);
@@ -549,6 +617,15 @@ async function seedP3(ctx: Ctx): Promise<{ id: bigint; entry: DemoEntry }> {
     intentHash,
     disclosureHash
   );
+  await registerBundle(ctx, {
+    key: "3",
+    title: "Ecosystem grant with hidden link",
+    proposalId,
+    govId,
+    actions,
+    rules,
+    labels: { [recipient.toLowerCase()]: "Ecosystem recipient" },
+  });
   await openVoting(ctx, govId);
   await castVote(ctx, govId, ctx.voter1, 1, true);
 
@@ -648,6 +725,15 @@ async function seedP4(ctx: Ctx): Promise<{ id: bigint; entry: DemoEntry }> {
     intentHash,
     disclosureHash
   );
+  await registerBundle(ctx, {
+    key: "4",
+    title: "Infrastructure budget",
+    proposalId,
+    govId,
+    actions,
+    rules,
+    labels: { [ctx.vendor.address.toLowerCase()]: "Vendor" },
+  });
   await openVoting(ctx, govId);
   await castVote(ctx, govId, ctx.voter1, 1, true);
   await castVote(ctx, govId, ctx.voter2, 1, false);
@@ -708,6 +794,118 @@ Allocate a reasonable amount to promising ecosystem teams. The recipient list ma
   };
 }
 
+async function seedP6(ctx: Ctx): Promise<{ id: bigint; entry: DemoEntry }> {
+  const title = "Routine parameter tuning (obfuscated)";
+  const text =
+    "Routine parameter tuning (obfuscated): set the fee module parameter to 35 bps. " +
+    "No upgrade and no ownership change is proposed.";
+  const store = freshEvidenceStore("p6");
+  store.addDocument(text);
+  store.addDocument(
+    "Committed intent: PARAM_SET setFee(uint256) on FeeModule, max value 100."
+  );
+  const root = store.buildManifest().evidenceRoot;
+
+  const proposalId = await ctx.registry.nextProposalId();
+  const walletListHash = contentHash(JSON.stringify([ctx.proposer.address]));
+  const interestsHash = contentHash("no financial interests declared");
+  const disclosureHash = await submitDisclosure(
+    ctx,
+    proposalId,
+    walletListHash,
+    interestsHash,
+    0n
+  );
+
+  // The stated intent: a bounded fee-parameter change, nothing else.
+  const statedRules: ActionRule[] = [
+    {
+      kind: ActionKind.PARAM_SET,
+      target: ctx.addresses.FeeModule,
+      selector: "0x69fe0e2d",
+      counterparty: ethers.ZeroAddress,
+      maxAmount: 100n,
+      codeHash: ZERO,
+      childCount: 0,
+    },
+  ];
+  const intentHash = hashRules(statedRules);
+
+  // The committed calldata: an opaque multicall that installs MaliciousImpl and
+  // hands ownership of the treasury proxy to the attacker wallet.
+  const upgradeData = ctx.treasuryProxy.interface.encodeFunctionData("upgradeTo", [
+    ctx.addresses.MaliciousImpl,
+  ]);
+  const ownershipData = ctx.treasuryProxy.interface.encodeFunctionData(
+    "transferOwnership",
+    [ctx.attacker.address]
+  );
+  const attackActions: Action[] = [
+    {
+      target: ctx.addresses.TreasuryProxy,
+      value: 0n,
+      data: ctx.treasuryProxy.interface.encodeFunctionData("multicall", [
+        [upgradeData, ownershipData],
+      ]),
+    },
+  ];
+  const actionsHash = hashActions(attackActions);
+
+  await createRegistryProposal(
+    ctx,
+    proposalId,
+    text,
+    root,
+    intentHash,
+    disclosureHash
+  );
+  const versionHash = await ctx.registry.latestVersionHash(proposalId);
+  const govId = await submitToGovernor(
+    ctx,
+    proposalId,
+    1n,
+    versionHash,
+    actionsHash,
+    intentHash,
+    disclosureHash
+  );
+  await registerBundle(ctx, {
+    key: "6",
+    title,
+    proposalId,
+    govId,
+    actions: attackActions,
+    rules: statedRules,
+    labels: {
+      [ctx.addresses.MaliciousImpl.toLowerCase()]: "MaliciousImpl (not in the stated intent)",
+      [ctx.attacker.address.toLowerCase()]: "Attacker wallet",
+    },
+  });
+  await openVoting(ctx, govId);
+  await castVote(ctx, govId, ctx.voter1, 1, true);
+
+  const govProposal = await ctx.governor.getGovProposal(govId);
+  if (Number(govProposal.state) !== 2) {
+    throw new Error(`P6 expected VotingOpen, got ${Number(govProposal.state)}`);
+  }
+  const chain = await ctx.registry.getVersionChain(proposalId);
+
+  return {
+    id: proposalId,
+    entry: {
+      title,
+      govId: govId.toString(),
+      state: "VotingOpen",
+      commitment: govProposal.commitment,
+      versionChain: chain,
+      notes:
+        "Committed calldata is a multicall([upgradeTo, transferOwnership]) while the " +
+        "stated intent and committed rules describe only setFee(35). The pre-vote " +
+        "effect preview must flag the implementation and owner changes BEFORE the vote.",
+    },
+  };
+}
+
 async function verifyDemoState(ctx: Ctx, demo: DemoState): Promise<void> {
   for (const [key, entry] of Object.entries(demo)) {
     const id = BigInt(key);
@@ -738,6 +936,11 @@ async function verifyDemoState(ctx: Ctx, demo: DemoState): Promise<void> {
         if (await ctx.disclosure.isChallenged(id)) {
           throw new Error("P4 disclosure should not be challenged");
         }
+      } else if (key === "6") {
+        assertEqual(govState, 2, "P6 governor state");
+        if (await ctx.disclosure.isChallenged(id)) {
+          throw new Error("P6 disclosure should not be challenged");
+        }
       }
     } else {
       assertEqual(Number(await ctx.registry.versionCount(id)), 1, `P${key} version count`);
@@ -745,8 +948,8 @@ async function verifyDemoState(ctx: Ctx, demo: DemoState): Promise<void> {
   }
 
   const states = Object.values(demo).map((entry) => entry.state);
-  if (new Set(states).size !== 5) {
-    throw new Error(`Expected five distinct states, got: ${states.join(", ")}`);
+  if (new Set(states).size < 5) {
+    throw new Error(`Expected at least five distinct states, got: ${states.join(", ")}`);
   }
 }
 
@@ -789,6 +992,7 @@ async function main(): Promise<void> {
     devWallet,
     challenger,
     vendor,
+    attacker,
   ] = signers;
   const network = await ethers.provider.getNetwork();
   console.log(`Seeding demo on chain ${network.chainId} as ${deployer.address}`);
@@ -852,11 +1056,12 @@ async function main(): Promise<void> {
     voter1,
     voter2,
     voter3,
+    attacker,
     addresses,
   };
 
   const demo: DemoState = {};
-  for (const seed of [seedP1, seedP2, seedP3, seedP4, seedP5]) {
+  for (const seed of [seedP1, seedP2, seedP3, seedP4, seedP5, seedP6]) {
     const { id, entry } = await seed(ctx);
     demo[id.toString()] = entry;
     console.log(`  ✔ P${id}: ${entry.title} -> ${entry.state}`);

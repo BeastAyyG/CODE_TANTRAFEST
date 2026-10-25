@@ -1,6 +1,6 @@
 [
   {
-    "proposalId": "sim-42",
+    "proposalId": "8",
     "valid": true,
     "versions": [
       {
@@ -34,7 +34,7 @@
     ]
   },
   {
-    "proposalId": "sim-41",
+    "proposalId": "41",
     "valid": true,
     "versions": [
       {

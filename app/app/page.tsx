@@ -5,8 +5,10 @@ import { DecisionTrail } from "@/components/DecisionTrail";
 import { LiveSentinel } from "@/components/LiveSentinel";
 import { ViolationExplainer } from "@/components/ViolationExplainer";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { ProposalHeaderActions } from "@/components/ui/ProposalHeaderActions";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { useProposal } from "@/lib/proposal-context";
+import { proposalLabel, normalizeProposalTitle } from "@/lib/proposal-naming";
 import { useSentinelFeed } from "@/lib/useSentinelFeed";
 import type { Proposal, SentinelEvent } from "@/lib/types";
 
@@ -38,9 +40,11 @@ export default function DecisionTrailPage() {
   const currentEvents = useMemo(
     () =>
       (feed?.events ?? []).filter(
-        (event) => event.proposalId === proposal.id
+        (event) =>
+          event.proposalId === proposal.id &&
+          normalizeProposalTitle(event.title, "LIVE") === proposal.title
       ),
-    [feed, proposal.id]
+    [feed, proposal.id, proposal.title]
   );
   const currentGate = useMemo(
     () =>
@@ -70,7 +74,7 @@ export default function DecisionTrailPage() {
         title={proposal.title}
         description="Claims → COI → Voting → Execution. The first three stages inform; execution is a binary on-chain gate."
         actions={
-          <StatusBadge tone="info">proposal {proposal.id}</StatusBadge>
+          <ProposalHeaderActions proposal={proposal} />
         }
       />
 
@@ -97,7 +101,10 @@ export default function DecisionTrailPage() {
         <ViolationExplainer
           scenarioId={proposal.scenarioId}
           liveReport={currentHalt?.report ?? currentGate?.report ?? null}
-          liveTitle={currentGate?.title ?? currentHalt?.title}
+          liveTitle={normalizeProposalTitle(
+            currentGate?.title ?? currentHalt?.title ?? proposal.title,
+            "LIVE"
+          )}
           autoOpen={openedBySentinel}
         />
       </section>
@@ -106,11 +113,13 @@ export default function DecisionTrailPage() {
 }
 
 function proposalFromEvent(event: SentinelEvent): Proposal {
+  const title = normalizeProposalTitle(event.title, "LIVE");
   return {
     id: event.proposalId,
-    label: `Proposal #${event.proposalId} · ${event.title}`,
-    title: event.title,
+    label: proposalLabel(event.proposalId, title),
+    title,
     scenarioId: Number(event.proposalId),
     govId: event.govId ?? "",
+    provenance: "LIVE",
   };
 }

@@ -1,6 +1,9 @@
 /** Shapes mirrored from the real backend fixtures and contracts. */
 
+import type { EffectPreview } from "../../packages/shared/schemas/effect-preview";
+
 export type DataMode = "mock" | "live";
+export type Provenance = "LIVE" | "RECORDED" | "SIMULATED" | "MOCK";
 
 export interface ScorecardEntry {
   id: string;
@@ -15,6 +18,7 @@ export interface DecodedAction {
   targetLabel: string;
   function: string;
   args: Record<string, string>;
+  argumentLabels?: Record<string, string>;
   humanText: string;
   nested: DecodedAction[];
 }
@@ -45,6 +49,7 @@ export interface ScenarioReport {
   scenarioName: string;
   property: string;
   outcome: ScenarioOutcome;
+  recordedAt?: string;
   violationReport: ViolationReport;
   rawEvidence: {
     commitment: string;
@@ -76,6 +81,23 @@ export interface ErrorEntry {
   explanation: string;
 }
 
+export interface SentinelFinding {
+  code: string;
+  title: string;
+  explanation: string;
+  layer: "sentinel";
+}
+
+export interface FindingExplanation {
+  code: string;
+  title: string;
+  explanation: string;
+  layer: "executor" | "sentinel";
+  source: "errors" | "sentinel-findings";
+  contract?: string;
+  signature?: string;
+}
+
 export interface StageFactor {
   label: string;
   value: string;
@@ -83,7 +105,7 @@ export interface StageFactor {
 }
 
 export type StageName = "CLAIMS" | "COI" | "VOTING" | "EXECUTION";
-export type StageStatus = "GREEN" | "AMBER" | "RED";
+export type StageStatus = "GREEN" | "AMBER" | "RED" | "UNAVAILABLE";
 
 export interface Stage {
   stage: StageName;
@@ -221,6 +243,7 @@ export interface IntentDraft {
   proposalId: string;
   version: number;
   title: string;
+  document?: string;
   actions: IntentAction[];
   unresolved: UnresolvedItem[];
   assumptions: Assumption[];
@@ -232,6 +255,7 @@ export interface Proposal {
   title: string;
   scenarioId: number;
   govId: string;
+  provenance?: Provenance;
 }
 
 export interface CoiLink {
@@ -346,6 +370,10 @@ export interface RiskBrief {
   evaluation: EvaluationChain;
   intent: IntentDraft;
   assessment: CoiAssessment;
+  /** Pre-vote effect preview of the exact committed calldata, when available. */
+  preview: EffectPreview | null;
+  /** Why the preview is missing, when it is. Never hidden. */
+  previewError: string | null;
   briefHash: string;
   treasuryImpact: {
     amount: string;
@@ -449,4 +477,18 @@ export interface ForcedExecutionResult {
   title: string;
   explanation: string;
   commitment: string;
+  /** Block explorer link for the mined (possibly failed) transaction. */
+  explorerUrl?: string | null;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Pre-vote Effect Preview — single source of truth in packages/shared/schemas
+// ─────────────────────────────────────────────────────────────────────────────
+export type {
+  DecodedRevert,
+  EffectEntry,
+  EffectKind,
+  EffectPreview,
+  EffectPreviewStatus,
+  EffectSeverity,
+} from "../../packages/shared/schemas/effect-preview";

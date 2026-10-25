@@ -1,14 +1,16 @@
 import { ethers } from "ethers";
 import scorecardJson from "./mocks/scorecard.json";
 import reportsJson from "./mocks/sentinel-reports.json";
+import findingsJson from "./mocks/sentinel-findings.json";
 import errorsJson from "./mocks/errors.json";
 import evaluationJson from "./mocks/evaluation-chains.json";
 import walletGraphJson from "./mocks/wallet-graph.json";
 import coiAssessmentJson from "./mocks/coi-assessment.json";
 import versionChainsJson from "./mocks/version-chains.json";
 import votingStatesJson from "./mocks/voting-states.json";
-import intentDraftJson from "./mocks/intent-draft.json";
+import intentDraftsJson from "./mocks/intent-drafts.json";
 import proposalsJson from "./mocks/proposals.json";
+import previewsJson from "../../packages/shared/fixtures/previews.json";
 
 import { bridgeIntent } from "../../intelligence/intent-bridge";
 import {
@@ -17,6 +19,11 @@ import {
 } from "../../intelligence/evidence-verify";
 import { hashRules } from "../../packages/shared/hash";
 import { CHAIN_ID, DATA_MODE } from "./config";
+import {
+  normalizeProposalTitle,
+  proposalFamily,
+  proposalRef,
+} from "./proposal-naming";
 import type {
   ActionReceipt,
   ArenaRunResult,
@@ -26,9 +33,11 @@ import type {
   DisclosureInput,
   DisclosurePreview,
   DisclosureState,
+  EffectPreview,
   ErrorEntry,
   EvaluationChain,
   EvidenceDocument,
+  FindingExplanation,
   ForcedExecutionResult,
   IntentConfirmation,
   IntentDraft,
@@ -37,6 +46,7 @@ import type {
   ScenarioReport,
   ScorecardEntry,
   SentinelFeed,
+  SentinelFinding,
   SourceVerification,
   VersionChain,
   ViolationReport,
@@ -51,20 +61,15 @@ export const SCENARIO_IDS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 const scorecardSeed = scorecardJson as ScorecardEntry[];
 const reportsSeed = reportsJson as unknown as ScenarioReport[];
 const errorCatalog = errorsJson as unknown as Record<string, ErrorEntry>;
+const findingCatalog = findingsJson as unknown as Record<string, SentinelFinding>;
 const evaluationSeed = evaluationJson as unknown as EvaluationChain[];
 const walletGraphSeed = walletGraphJson as unknown as WalletGraphData;
 const coiAssessmentSeed = coiAssessmentJson as unknown as CoiAssessment;
 const versionChainsSeed = versionChainsJson as unknown as VersionChain[];
 const votingStatesSeed = votingStatesJson as unknown as VotingState[];
-const intentDraftSeed = intentDraftJson as unknown as IntentDraft;
+const intentDraftsSeed = intentDraftsJson as unknown as IntentDraft[];
 const proposalsSeed = proposalsJson as unknown as Proposal[];
-
-const INTENT_DOCUMENT = `Proposal: Q3 Developer Grant and Fee Tuning
-
-Transfer 5,000 USDC from the DAO treasury to the development wallet 0x000000000000000000000000000000000000b001 for the Q3 audit engagement.
-Set the fee module parameter to 35 bps to keep the protocol competitive.
-The team may adjust the recipient at its discretion if the developer changes.
-The grant is expected to recur monthly through the end of the year.`;
+const previewsSeed = previewsJson as unknown as Record<string, EffectPreview>;
 
 const mockScorecard: ScorecardEntry[] = scorecardSeed.map((entry) => ({
   ...entry,
@@ -101,7 +106,11 @@ export async function getProposals(): Promise<Proposal[]> {
   if (DATA_MODE === "live") {
     return fetchJson<Proposal[]>("/api/live/proposals");
   }
-  return proposalsSeed;
+  return proposalsSeed.map((proposal) => ({
+    ...proposal,
+    title: normalizeProposalTitle(proposal.title, proposal.provenance),
+    provenance: proposal.provenance ?? "MOCK",
+  }));
 }
 
 export async function getScorecard(): Promise<ScorecardEntry[]> {
@@ -162,15 +171,113 @@ export async function runScenario(id: number): Promise<ArenaRunResult> {
 }
 
 export async function getEvaluationChain(
-  proposalId: string
+  proposalId: string,
+  preview?: EffectPreview | null
 ): Promise<EvaluationChain> {
-  if (DATA_MODE === "live") {
-    return fetchJson<EvaluationChain>(`/api/evaluation/${proposalId}`);
+  const chain =
+    DATA_MODE === "live"
+      ? await fetchJson<EvaluationChain>(`/api/evaluation/${proposalId}`)
+      : await (async () => {
+          await delay(80);
+          const found = evaluationSeed.find((item) => item.proposalId === proposalId);
+          if (!found) throw new Error(`No evaluation chain for proposal ${proposalId}`);
+          return found;
+        })();
+
+  const resolved =
+    preview === undefined ? await tryGetEffectPreview(proposalId) : preview;
+  return withPreviewFactor(chain, resolved);
+}
+
+/**
+ * Fold the Pre-vote Effect Preview into the chain: a CLAIMS factor for the
+ * mismatch count, and a VOTING factor that ties the informed ratio to the
+ * preview hash the brief acknowledgment covers.
+ */
+export function withPreviewFactor(
+  chain: EvaluationChain,
+  preview: EffectPreview | null
+): EvaluationChain {
+  const mismatchValue = preview
+    ? String(preview.statedVsSimulated.mismatchCount)
+    : "unavailable";
+  const claimsDetail = preview
+    ? `Sandboxed simulation of the committed calldata found ${preview.statedVsSimulated.mismatchCount} effect(s) outside the stated intent` +
+      `${preview.status === "FAILED_SIMULATION" ? " (the committed action reverts in the sandbox)" : ""}. ` +
+      `Preview hash ${preview.previewHash}.`
+    : "No pre-vote effect preview is available for this proposal, so no simulation was compared with the stated intent.";
+  const votingDetail = preview
+    ? `The brief acknowledgment records briefHash over the chain plus preview ${preview.previewHash}, so an informed vote covers this exact simulation and its ${preview.statedVsSimulated.mismatchCount} mismatch(es).`
+    : "No effect preview exists for this proposal; the informed-vote ratio still counts brief acknowledgments, but none of them covers a simulation.";
+
+  const stages = chain.stages.map((stage) => {
+    if (stage.stage === "CLAIMS") {
+      return {
+        ...stage,
+        factors: [
+          ...stage.factors.filter((factor) => factor.label !== "Preview mismatches"),
+          { label: "Preview mismatches", value: mismatchValue, detail: claimsDetail },
+        ],
+      };
+    }
+    if (stage.stage === "VOTING") {
+      return {
+        ...stage,
+        factors: [
+          ...stage.factors.filter((factor) => factor.label !== "Preview in the brief"),
+          {
+            label: "Preview in the brief",
+            value: preview ? `${preview.previewHash.slice(0, 12)}…` : "none",
+            detail: votingDetail,
+          },
+        ],
+      };
+    }
+    return stage;
+  });
+
+  return { ...chain, stages };
+}
+
+/** Preview lookup that never throws: used to enrich the chain factor. */
+async function tryGetEffectPreview(
+  proposalId: string
+): Promise<EffectPreview | null> {
+  try {
+    return await getEffectPreview(proposalId);
+  } catch {
+    return null;
   }
-  await delay(80);
-  const chain = evaluationSeed.find((item) => item.proposalId === proposalId);
-  if (!chain) throw new Error(`No evaluation chain for proposal ${proposalId}`);
-  return chain;
+}
+
+export async function getEffectPreview(
+  proposalId: string
+): Promise<EffectPreview> {
+  if (DATA_MODE === "live") {
+    return fetchJson<EffectPreview>(
+      `/api/preview/${encodeURIComponent(proposalId)}`
+    );
+  }
+  await delay(60);
+  const preview = previewsSeed[proposalId];
+  if (!preview) {
+    throw new Error(
+      `No recorded effect preview for proposal ${proposalId}. ` +
+        `Recorded previews cover the seeded demo proposals; re-record them with ` +
+        `"npm run seed && npm run previews:record".`
+    );
+  }
+  return preview;
+}
+
+/** The brief hash binds the chain the voter saw AND the preview it covered. */
+export function computeBriefHash(
+  evaluation: EvaluationChain,
+  previewHash: string | null
+): string {
+  return ethers.keccak256(
+    ethers.toUtf8Bytes(JSON.stringify({ previewHash: previewHash ?? null, evaluation }))
+  );
 }
 
 export async function getCoiAssessment(
@@ -263,12 +370,17 @@ export async function getEvidenceDocument(
   const draft = await getIntentDraft(proposalId);
   const source = draft.actions[0]?.source;
   if (!source) throw new Error("No source document is attached to this draft.");
+  if (!draft.document) {
+    throw new Error(
+      `No source text is attached to the intent draft for ${proposalRef(proposalId)}.`
+    );
+  }
   return {
     proposalId,
     version,
     docHash: source.docHash,
     title: draft.title,
-    content: INTENT_DOCUMENT,
+    content: draft.document,
     span: source.span,
   };
 }
@@ -316,10 +428,9 @@ export async function castVote(
 ): Promise<ActionReceipt> {
   if (DATA_MODE === "live") {
     const state = await getVotingState(govId);
-    const evaluation = await getEvaluationChain(state.proposalId);
-    const briefHash = ethers.keccak256(
-      ethers.toUtf8Bytes(JSON.stringify(evaluation))
-    );
+    const preview = await tryGetEffectPreview(state.proposalId);
+    const evaluation = await getEvaluationChain(state.proposalId, preview);
+    const briefHash = computeBriefHash(evaluation, preview?.previewHash ?? null);
     return fetchJson<ActionReceipt>("/api/live/vote", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -340,8 +451,13 @@ export async function castVote(
     (item) => item.proposalId === state.proposalId
   );
   const weight = 100000000000000000000n;
+  // The informed vote acknowledges the chain AND the exact effect preview.
+  const preview = previewsSeed[state.proposalId] ?? null;
   const briefHash = evaluation
-    ? ethers.keccak256(ethers.toUtf8Bytes(JSON.stringify(evaluation)))
+    ? computeBriefHash(
+        await getEvaluationChain(state.proposalId, preview),
+        preview?.previewHash ?? null
+      )
     : null;
   state.forVotes = (BigInt(state.forVotes) + weight).toString();
   if (withBrief) {
@@ -373,8 +489,11 @@ export async function castVote(
 
 export async function getRiskBrief(govId: string): Promise<RiskBrief> {
   const state = await getVotingState(govId);
+  const { preview, error: previewError } = await getPreviewOrError(
+    state.proposalId
+  );
   const [evaluation, intent, assessment] = await Promise.all([
-    getEvaluationChain(state.proposalId),
+    getEvaluationChain(state.proposalId, preview),
     getIntentDraft(state.proposalId),
     getCoiAssessment(state.proposalId),
   ]);
@@ -386,15 +505,28 @@ export async function getRiskBrief(govId: string): Promise<RiskBrief> {
     evaluation,
     intent,
     assessment,
-    briefHash: ethers.keccak256(
-      ethers.toUtf8Bytes(JSON.stringify(evaluation))
-    ),
+    preview,
+    previewError,
+    briefHash: computeBriefHash(evaluation, preview?.previewHash ?? null),
     treasuryImpact: {
       amount: amount.toString(),
       asset: "USDC",
       actionCount: intent.actions.length,
     },
   };
+}
+
+async function getPreviewOrError(
+  proposalId: string
+): Promise<{ preview: EffectPreview | null; error: string | null }> {
+  try {
+    return { preview: await getEffectPreview(proposalId), error: null };
+  } catch (cause) {
+    return {
+      preview: null,
+      error: cause instanceof Error ? cause.message : String(cause),
+    };
+  }
 }
 
 export async function getAttentionQueue(): Promise<AttentionItem[]> {
@@ -423,7 +555,11 @@ export async function getAttentionQueue(): Promise<AttentionItem[]> {
         .filter((stage) => stage.status !== "GREEN")
         .map((stage) => `${stage.stage}: ${stage.reason}`);
       return [{
-        proposal,
+        proposal: {
+          ...proposal,
+          title: normalizeProposalTitle(proposal.title, proposal.provenance),
+          provenance: proposal.provenance ?? "MOCK",
+        },
         rank: 0,
         riskScore,
         reasons: reasons.length > 0 ? reasons : ["No active advisory flags."],
@@ -437,23 +573,29 @@ export async function getAttentionQueue(): Promise<AttentionItem[]> {
 export async function getIntentDraft(
   proposalId: string
 ): Promise<IntentDraft> {
-  // Intent drafts live off-chain (AI extraction) — same in both modes.
-  if (DATA_MODE === "live") {
-    // Return the mock seed as the draft basis (AI extraction would run here).
-    // This is not mocked-then-silently-swapped; it's an explicit advisory.
-    void proposalId;
-  }
   await delay(80);
-  if (proposalId === intentDraftSeed.proposalId) {
-    return { ...intentDraftSeed };
+  const proposals = await getProposals();
+  const proposal = proposals.find((item) => item.id === proposalId);
+  const proposalTitle = normalizeProposalTitle(
+    proposal?.title ?? "",
+    proposal?.provenance
+  );
+  const proposalDraftFamily = proposalFamily(proposalTitle);
+  const seed =
+    intentDraftsSeed.find((draft) => draft.proposalId === proposalId) ??
+    intentDraftsSeed.find(
+      (draft) => proposalFamily(draft.title) === proposalDraftFamily
+    );
+  if (!seed) {
+    throw new Error(
+      `No source-grounded intent draft is attached to ${proposalRef(proposalId)}.`
+    );
   }
-  const proposal = proposalsSeed.find((item) => item.id === proposalId);
+  const draft = JSON.parse(JSON.stringify(seed)) as IntentDraft;
   return {
-    ...intentDraftSeed,
+    ...draft,
     proposalId,
-    title: proposal?.title ?? intentDraftSeed.title,
-    actions: intentDraftSeed.actions.slice(0, 1).map((action) => ({ ...action })),
-    unresolved: [],
+    title: normalizeProposalTitle(draft.title, proposal?.provenance),
   };
 }
 
@@ -466,7 +608,7 @@ export async function confirmIntent(
   if (acceptedUnresolved < draft.unresolved.length) {
     throw new Error("Resolve or explicitly accept every UNRESOLVED item first.");
   }
-  const finalized = { ...draft, unresolved: [] };
+  const { document: _sourceDocument, ...finalized } = { ...draft, unresolved: [] };
   const output = bridgeIntent(
     finalized as unknown as Parameters<typeof bridgeIntent>[0]
   );
@@ -675,6 +817,62 @@ export function findErrorForReport(
   report: ScenarioReport
 ): ErrorEntry | null {
   return findErrorForViolation(report.violationReport);
+}
+
+export function findExplanationForViolation(
+  report: ViolationReport
+): FindingExplanation {
+  const code = report.violatedConstraint.code;
+
+  if (report.layer === "sentinel") {
+    const finding = findingCatalog[code];
+    if (finding) {
+      return {
+        code,
+        title: finding.title,
+        explanation: finding.explanation,
+        layer: "sentinel",
+        source: "sentinel-findings",
+      };
+    }
+    return {
+      code,
+      title: `UNKNOWN FINDING ${code}`,
+      explanation: `No Sentinel finding is registered for ${code}.`,
+      layer: "sentinel",
+      source: "sentinel-findings",
+    };
+  }
+
+  const byName = Object.values(errorCatalog).find((entry) =>
+    entry.signature.startsWith(`${code}(`)
+  );
+  const selector = report.evidence.revertData?.slice(0, 10).toLowerCase();
+  const bySelector =
+    selector && /^0x[0-9a-f]{8}$/.test(selector)
+      ? errorCatalog[selector]
+      : undefined;
+  const entry = byName ?? bySelector;
+
+  if (entry) {
+    return {
+      code,
+      title: entry.title,
+      explanation: entry.explanation,
+      layer: "executor",
+      source: "errors",
+      contract: entry.contract,
+      signature: entry.signature,
+    };
+  }
+
+  return {
+    code,
+    title: `UNKNOWN ERROR ${selector || code}`,
+    explanation: `No executor error explanation is registered for ${code}.`,
+    layer: "executor",
+    source: "errors",
+  };
 }
 
 export function findErrorForViolation(
