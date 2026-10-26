@@ -16,6 +16,14 @@
 import { ethers } from "ethers";
 import * as fs from "fs";
 import * as path from "path";
+import {
+  chatJson,
+  checkLocalAI,
+  isLocalAIConfigured,
+  parseJsonObject,
+  readLocalAIConfig,
+  type LocalAIConfig,
+} from "./local-ai";
 
 export type ActionKindName =
   | "ERC20_TRANSFER"
@@ -75,6 +83,12 @@ export interface ExtractOptions {
   knownAddresses?: Record<string, string>;
   /** Force the deterministic extractor even when GROQ_API_KEY is set. */
   offline?: boolean;
+  /** Which backend to use. "auto" prefers a configured local model. */
+  provider?: "auto" | "local" | "groq" | "heuristic";
+  localBaseUrl?: string;
+  localModel?: string;
+  localApiKey?: string;
+  localTimeoutMs?: number;
   apiKey?: string;
   model?: string;
   timeoutMs?: number;
@@ -83,7 +97,7 @@ export interface ExtractOptions {
 
 export interface ExtractionResult {
   intent: IntentSpec;
-  mode: "groq" | "heuristic";
+  mode: "local" | "groq" | "heuristic";
   model?: string;
   latencyMs: number;
   warnings: string[];
@@ -178,16 +192,64 @@ export async function extractIntentDetailed(
 ): Promise<ExtractionResult> {
   const started = Date.now();
   const warnings: string[] = [];
+  const provider = options.provider ?? "auto";
   const apiKey = options.apiKey ?? process.env.GROQ_API_KEY;
 
-  if (apiKey && !options.offline) {
+  const localCfg = readLocalAIConfig(process.env, {
+    baseUrl: options.localBaseUrl,
+    model: options.localModel,
+    apiKey: options.localApiKey,
+    timeoutMs: options.localTimeoutMs,
+  });
+  if (options.fetchImpl) {
+    localCfg.fetchImpl = options.fetchImpl as unknown as LocalAIConfig["fetchImpl"];
+  }
+
+  const localReady =
+    provider === "local" || (provider === "auto" && isLocalAIConfigured(process.env));
+
+  if (provider !== "heuristic" && !options.offline && localReady) {
+    if (!(await checkLocalAI(localCfg))) {
+      warnings.push("Local AI endpoint is not reachable; trying the next provider.");
+    } else {
+      try {
+        const content = await chatJson(
+          localCfg,
+          SYSTEM_PROMPT,
+          buildUserPrompt(rawText, options.knownAddresses)
+        );
+        return {
+          intent: normalizeIntentFromLlm(parseJsonObject(content), rawText, options),
+          mode: "local",
+          model: localCfg.model,
+          latencyMs: Date.now() - started,
+          warnings,
+        };
+      } catch (error) {
+        warnings.push(
+          `Local AI extraction failed (${errorMessage(error)}); trying the next provider.`
+        );
+      }
+    }
+  }
+
+  const groqReady =
+    provider === "groq" ||
+    (provider === "auto" && !localReady && Boolean(apiKey)) ||
+    (provider === "auto" && localReady && Boolean(apiKey));
+
+  if (
+    provider !== "heuristic" &&
+    provider !== "local" &&
+    !options.offline &&
+    groqReady &&
+    apiKey
+  ) {
     const model = options.model ?? process.env.GROQ_MODEL ?? DEFAULT_MODEL;
     try {
-      const content = await callGroq(rawText, options, apiKey, model);
-      const parsed: unknown = JSON.parse(content);
-      const intent = normalizeLlmResult(parsed, rawText, options);
+      const content = await callChatCompletions(GROQ_URL, apiKey, model, rawText, options);
       return {
-        intent,
+        intent: normalizeIntentFromLlm(parseJsonObject(content), rawText, options),
         mode: "groq",
         model,
         latencyMs: Date.now() - started,
@@ -481,11 +543,12 @@ export function extractIntentHeuristic(
   };
 }
 
-async function callGroq(
-  rawText: string,
-  options: ExtractOptions,
+async function callChatCompletions(
+  url: string,
   apiKey: string,
-  model: string
+  model: string,
+  rawText: string,
+  options: ExtractOptions
 ): Promise<string> {
   const fetchImpl: FetchLike = options.fetchImpl ?? (fetch as unknown as FetchLike);
   const controller = new AbortController();
@@ -495,7 +558,7 @@ async function callGroq(
   );
 
   try {
-    const response = await fetchImpl(GROQ_URL, {
+    const response = await fetchImpl(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -577,7 +640,7 @@ ${JSON.stringify(knownAddresses ?? {}, null, 2)}
 Return the JSON object now.`;
 }
 
-function normalizeLlmResult(
+export function normalizeIntentFromLlm(
   result: unknown,
   rawText: string,
   options: ExtractOptions
@@ -1062,7 +1125,7 @@ function deploymentName(): string {
   return "local";
 }
 
-function loadKnownAddresses(): Record<string, string> {
+export function loadKnownAddresses(): Record<string, string> {
   try {
     const manifestPath = path.join(
       __dirname,
