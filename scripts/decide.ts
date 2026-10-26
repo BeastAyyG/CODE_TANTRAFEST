@@ -35,6 +35,17 @@ import {
   type TrainingExample,
 } from "../intelligence/tiny-model";
 
+import {
+  DEFAULT_MODEL_PATH,
+  discoverLocalServer,
+  isLocalServerConfigured,
+  loadLocalModel,
+  localModelSource,
+  readLocalServerConfig,
+  checkLocalServer,
+  trainAndSaveLocalModel,
+} from "../intelligence/local-model";
+
 import { bridgeIntent, BridgeError } from "../intelligence/intent-bridge";
 
 // ---------------------------------------------------------------------------
@@ -125,14 +136,49 @@ function printDecision(decision: Decision): void {
   }
 }
 
+function printModelInfo(model: TinyModel, label: string): void {
+  const info = localModelSource(label === DEFAULT_MODEL_PATH ? DEFAULT_MODEL_PATH : label);
+  const source = info.source === "artifact" ? `artifact (${label})` : `hand-set prior (${info.reason})`;
+  console.log(`${DIM}model:${RESET} ${source}  ${DIM}bias ${model.bias.toFixed(3)}${RESET}`);
+}
+
+/**
+ * Report whether a small local model server is reachable. It is optional and
+ * advisory only — the verdict always comes from the model artifact.
+ */
+async function printLocalServerInfo(): Promise<void> {
+  if (isLocalServerConfigured()) {
+    const config = readLocalServerConfig();
+    const up = await checkLocalServer(config);
+    console.log(
+      `${DIM}local server:${RESET} ${up ? `${GREEN}up${RESET} at ${config.baseUrl} (${config.model}) — advisory only` : `${DIM}configured but unreachable (${config.baseUrl})${RESET}`}`
+    );
+    return;
+  }
+
+  const found = await discoverLocalServer();
+  if (found) {
+    console.log(
+      `${DIM}local server:${RESET} ${GREEN}found${RESET} at ${found.baseUrl} (${found.model}) — optional, not required`
+    );
+  } else {
+    console.log(
+      `${DIM}local server:${RESET} ${DIM}none running — optional; set LOCAL_BASE_URL to enable${RESET}`
+    );
+  }
+}
+
 function runFixtures(): void {
   const fixtures = loadFixtures();
+  const model = loadLocalModel();
   let correct = 0;
 
-  console.log(`${BOLD}Local AI decision engine — ${fixtures.length} labelled recommendations${RESET}\n`);
+  console.log(`${BOLD}Local AI decision engine — ${fixtures.length} labelled recommendations${RESET}`);
+  printModelInfo(model, DEFAULT_MODEL_PATH);
+  console.log();
 
   for (const fixture of fixtures) {
-    const decision = decideOne(fixture, DEFAULT_MODEL);
+    const decision = decideOne(fixture, model);
     const expected = fixture.label === 1 ? "ACCEPT" : "DENY";
     const ok = decision.decision === expected;
     if (ok) correct++;
@@ -157,13 +203,17 @@ function runTrain(): void {
     label: fixture.label,
   }));
 
-  const trained = trainTinyModel(examples);
-  const score = accuracy(trained, examples);
+  const before = accuracy(DEFAULT_MODEL, examples);
+  const { model: trained, accuracy: score, path } = trainAndSaveLocalModel(examples);
+  const reloaded = loadLocalModel(path);
 
-  console.log(`${BOLD}Trained tiny model${RESET}`);
+  console.log(`${BOLD}Trained the local model${RESET}`);
   console.log(`  examples     ${examples.length}`);
-  console.log(`  accuracy     ${(score * 100).toFixed(1)}%`);
+  console.log(`  hand-set prior accuracy  ${(before * 100).toFixed(1)}%`);
+  console.log(`  trained accuracy         ${(score * 100).toFixed(1)}%`);
+  console.log(`  reload accuracy          ${(accuracy(reloaded, examples) * 100).toFixed(1)}%  (artifact round-trip)`);
   console.log(`  epochs       800   lr 0.25   l2 0.001   (deterministic)`);
+  console.log(`  artifact     ${path}`);
   console.log(`\n${modelToJson(trained)}\n`);
 }
 
@@ -207,22 +257,36 @@ function main(): void {
         `  npm run decide -- "Transfer 5,000 USDC to 0xabc... for the audit"\n` +
         `  npm run decide -- --file rec.json\n` +
         `  npm run decide -- --fixtures\n` +
-        `  npm run decide -- --train\n`
+        `  npm run decide -- --train\n` +
+        `  npm run decide -- --model path/to/model.json "..."\n\n` +
+        `  ${DIM}The model is a real artifact on disk (intelligence/models/benefit-model.json)\n` +
+        `  loaded at runtime; retrain it with npm run train:model.${RESET}\n`
     );
     return;
   }
 
-  const decision = decideOne(rec, DEFAULT_MODEL);
+  const modelIndex = argv.indexOf("--model");
+  const modelPath = modelIndex >= 0 ? argv[modelIndex + 1] : DEFAULT_MODEL_PATH;
+  if (modelIndex >= 0 && !modelPath) throw new Error("--model needs a path");
+  const model = loadLocalModel(modelPath);
+
+  const decision = decideOne(rec, model);
+  printModelInfo(model, modelPath);
   printDecision(decision);
   if (decision.decision === "ACCEPT") printPlan(decision);
   console.log();
 }
 
 if (require.main === module) {
-  try {
-    main();
-  } catch (error) {
-    console.error(`${RED}error${RESET}: ${(error as Error).message}`);
-    process.exit(1);
-  }
+  (async () => {
+    try {
+      if (!process.argv.includes("--train") && !process.argv.includes("--fixtures")) {
+        await printLocalServerInfo();
+      }
+      main();
+    } catch (error) {
+      console.error(`${RED}error${RESET}: ${(error as Error).message}`);
+      process.exit(1);
+    }
+  })();
 }
