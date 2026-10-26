@@ -4,48 +4,55 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, Gavel, MonitorPlay, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Gavel, MonitorPlay, Pause, Play, X } from "lucide-react";
 
 const STEPS = [
   {
     path: "/trail",
     label: "Verdict",
+    seconds: 35,
     title: "The transaction does not match the vote",
     instruction: "Point at the blocked banner and the four stages. This is the whole story in one screen.",
   },
   {
     path: "/intent",
     label: "Intent",
+    seconds: 60,
     title: "Resolve the ambiguity",
     instruction: "Click “Prefill sourced”, then “Confirm intent”. Watch the intent, content and commitment hashes match v3.",
   },
   {
     path: "/graph",
     label: "Conflict",
+    seconds: 45,
     title: "The disclosure is incomplete",
     instruction: "Select the Nova Ops → GrowthLabs Deployer edge, then open the challenge payload.",
   },
   {
     path: "/vote",
     label: "Vote",
+    seconds: 40,
     title: "Read the brief, then bind the vote",
     instruction: "Acknowledge the brief, choose For, and cast the vote. The receipt records the brief hash.",
   },
   {
     path: "/arena",
     label: "Arena",
+    seconds: 45,
     title: "Run the attack",
     instruction: "Run 00-benign-grant, then 03-jargon-upgrade. Point at the layer badge on each verdict.",
   },
   {
     path: "/arena/03-jargon-upgrade",
     label: "Report",
+    seconds: 20,
     title: "Jargon beside calldata",
     instruction: "Walk the evidence, then download the standalone report from the Takeaway panel.",
   },
   {
     path: "/scorecard",
     label: "Honesty",
+    seconds: 20,
     title: "Show the nine amber gaps",
     instruction: "Filter TEST_REQUIRED. Close on what we are not claiming.",
   },
@@ -58,6 +65,7 @@ export function JudgeMode() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
+  const [playing, setPlaying] = useState(false);
 
   useEffect(() => {
     document.body.classList.toggle("judge-open", open);
@@ -70,6 +78,7 @@ export function JudgeMode() {
       if (event.altKey && event.key === "ArrowRight") {
         event.preventDefault();
         if (step === LAST) {
+          setPlaying(false);
           setOpen(false);
           router.push("/present");
           return;
@@ -85,6 +94,7 @@ export function JudgeMode() {
         router.push(STEPS[previous].path);
       }
       if (event.key === "Escape") {
+        setPlaying(false);
         setOpen(false);
       }
     };
@@ -102,6 +112,7 @@ export function JudgeMode() {
 
   function start() {
     setStep(0);
+    setPlaying(false);
     setOpen(true);
     router.push(STEPS[0].path);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -109,6 +120,7 @@ export function JudgeMode() {
 
   function next() {
     if (step === LAST) {
+      setPlaying(false);
       setOpen(false);
       router.push("/present");
       return;
@@ -116,13 +128,31 @@ export function JudgeMode() {
     goTo(step + 1);
   }
 
+  // Auto-play: while playing, advance when the current stop's time is up.
+  // Any manual step change restarts the timer via the step dependency.
+  useEffect(() => {
+    if (!open || !playing) return;
+    const timer = setTimeout(() => {
+      if (step === LAST) {
+        setPlaying(false);
+        setOpen(false);
+        router.push("/present");
+        return;
+      }
+      const nextStep = step + 1;
+      setStep(nextStep);
+      router.push(STEPS[nextStep].path);
+    }, STEPS[step].seconds * 1000);
+    return () => clearTimeout(timer);
+  }, [open, playing, step, router]);
+
   const current = STEPS[step];
 
   return (
     <>
       <button
         type="button"
-        onClick={open ? () => setOpen(false) : start}
+        onClick={open ? () => { setPlaying(false); setOpen(false); } : start}
         aria-pressed={open}
         title={open ? "Exit judge mode" : "Start the guided judge walkthrough"}
         className={`inline-flex items-center gap-1.5 font-sans text-[11px] transition-colors ${
@@ -174,6 +204,16 @@ export function JudgeMode() {
                   <div className="flex shrink-0 flex-wrap items-center gap-2 lg:pl-4">
                     <button
                       type="button"
+                      onClick={() => setPlaying((p) => !p)}
+                      aria-pressed={playing}
+                      title={playing ? "Pause auto-play" : "Play automatically through the stops"}
+                      className="btn btn-sm"
+                    >
+                      {playing ? <Pause size={11} /> : <Play size={11} />}
+                      {playing ? "Pause" : "Auto"}
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => goTo(step - 1)}
                       disabled={step === 0}
                       className="btn btn-sm"
@@ -183,7 +223,7 @@ export function JudgeMode() {
                     </button>
                     <Link
                       href="/present"
-                      onClick={() => setOpen(false)}
+                      onClick={() => { setPlaying(false); setOpen(false); }}
                       className="btn btn-sm"
                       title="Open the full-screen presentation"
                     >
@@ -196,7 +236,7 @@ export function JudgeMode() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setOpen(false)}
+                      onClick={() => { setPlaying(false); setOpen(false); }}
                       className="btn btn-sm"
                       aria-label="Exit judge mode"
                       title="Exit judge mode (Esc)"
@@ -208,7 +248,7 @@ export function JudgeMode() {
 
                 <div className="mt-2 flex items-center justify-between gap-3 border-t border-edge/60 pt-1.5">
                   <span className="hidden font-mono text-[8px] uppercase tracking-[0.08em] text-faint sm:block">
-                    Alt + ← / → to move · Esc to exit
+                    Alt + ← / → to move · Esc to exit · Auto advances each stop
                   </span>
                   <div className="flex items-center gap-1" role="group" aria-label="Judge mode steps">
                     {STEPS.map((item, index) => (
