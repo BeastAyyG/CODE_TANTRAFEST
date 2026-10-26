@@ -4,15 +4,11 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
-  ArrowUpRight,
-  BarChart3,
   Check,
   Fingerprint,
-  Info,
   Lock,
   ShieldCheck,
   Users,
-  Vote as VoteIcon,
 } from "lucide-react";
 import { getDemo } from "@/lib/demo";
 import { scoreVoting, type Vote, type VotesFixture } from "@/chain-scoring/score";
@@ -30,6 +26,13 @@ import {
 } from "@/components/ui";
 
 const SIMULATED_WEIGHT = "25000";
+const STAGE_LABELS = {
+  CLAIMS: "Claims",
+  COI: "Conflict",
+  VOTING: "Voting",
+  EXECUTION: "Execution",
+} as const;
+
 const CHOICES: { value: Vote["support"]; label: string; description: string }[] = [
   { value: "FOR", label: "For", description: "Approve the committed intent." },
   { value: "AGAINST", label: "Against", description: "Reject the commitment." },
@@ -65,20 +68,25 @@ function TallyRow({
   tone: "safe" | "danger" | "neutral";
 }) {
   const percent = total === 0 ? 0 : (weight / total) * 100;
-  const color = tone === "safe" ? "#43d99a" : tone === "danger" ? "#ff6464" : "#596675";
+  const color =
+    tone === "danger"
+      ? "var(--color-danger)"
+      : tone === "neutral"
+        ? "var(--color-faint)"
+        : "var(--color-body)";
   return (
     <div>
-      <div className="flex items-center justify-between gap-2 font-mono text-[9px] uppercase tracking-[0.08em]">
-        <span className={tone === "safe" ? "text-safe" : tone === "danger" ? "text-danger" : "text-dim"}>
+      <div className="flex items-baseline justify-between gap-2 font-sans text-[11px]">
+        <span className={tone === "danger" ? "text-danger" : tone === "neutral" ? "text-faint" : "text-body"}>
           {label}
         </span>
-        <span className="text-faint">
-          {formatNumber(weight, 0)} · {percent.toFixed(1)}%
+        <span className="font-mono text-[10px] text-faint">
+          {formatNumber(weight, 0)} ({percent.toFixed(1)}%)
         </span>
       </div>
-      <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-edge">
+      <div className="mt-1 h-px bg-edge">
         <div
-          className="h-full rounded-full"
+          className="h-px"
           style={{ width: `${percent}%`, background: color, transition: "width 400ms ease" }}
         />
       </div>
@@ -127,12 +135,13 @@ export function VoteView() {
       <div className="space-y-4">
         <section id="brief">
           <SectionHeader
-            eyebrow="One-page risk brief"
-            title={`AIP-042 · ${formatNumber(Number(demo.proposal.requestedUsdc), 0)} USDC`}
+            title="Risk brief"
             description="The brief is the source of the vote receipt. It is generated from the committed intent, the graph, the vote ledger and the execution gate."
             right={
-              <div className="flex items-center gap-2">
-                <span className="chip">brief v3</span>
+              <div className="flex items-center gap-3">
+                <span className="doc-folio">
+                  AIP-042, {formatNumber(Number(demo.proposal.requestedUsdc), 0)} USDC
+                </span>
                 <CopyButton value={demo.briefHash} label="Brief hash" />
               </div>
             }
@@ -154,9 +163,9 @@ export function VoteView() {
               </div>
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <span className="chip">intentHash {shortHex(demo.intentHash, 6)}</span>
-                <span className="chip">3 rules · 3 assumptions</span>
-                <Link href="/intent" className="arrow-link text-[9px]">
-                  review the intent <ArrowUpRight size={10} />
+                <span className="chip">3 rules, 3 assumptions</span>
+                <Link href="/intent" className="arrow-link">
+                  Review the intent
                 </Link>
               </div>
             </div>
@@ -176,8 +185,8 @@ export function VoteView() {
                     )}
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <span className="mono-label">{key}</span>
-                      <StatusPill status={item.status}>{item.status}</StatusPill>
+                      <span className="mono-label">{STAGE_LABELS[key]}</span>
+                      <StatusPill status={item.status} />
                     </div>
                     <div className="mt-1.5 flex items-baseline gap-2">
                       <span className={cn("font-mono text-[14px]", hard ? "text-danger" : "text-body")}>
@@ -185,15 +194,15 @@ export function VoteView() {
                       </span>
                       <span className="text-[10px] leading-snug text-dim">{item.reason}</span>
                     </div>
-                    <span className="mt-1 inline-flex items-center gap-1 font-mono text-[8px] uppercase tracking-[0.08em] text-faint group-hover:text-signal">
-                      why <ArrowUpRight size={9} />
+                    <span className="mt-1 inline-flex items-center gap-1 font-sans text-[10px] text-faint group-hover:text-danger">
+                      notes
                     </span>
                   </Link>
                 );
               })}
             </div>
 
-            <div className="border-b border-edge bg-danger/4 px-4 py-3">
+            <div className="border-l-2 border-danger py-2 pl-3">
               <div className="flex items-start gap-2">
                 <Lock size={13} className="mt-0.5 shrink-0 text-danger" />
                 <div>
@@ -208,9 +217,9 @@ export function VoteView() {
                   </p>
                   <Link
                     href={`/arena/${demo.mainRun.scenario.id}`}
-                    className="mt-1.5 inline-flex items-center gap-1 font-mono text-[9px] uppercase tracking-[0.08em] text-danger hover:text-[#ff9d9d]"
+                    className="mt-1.5 inline-flex items-center gap-1 font-sans text-[11px] text-danger underline decoration-danger/40 underline-offset-2"
                   >
-                    open the report <ArrowUpRight size={10} />
+                    Open the report
                   </Link>
                 </div>
               </div>
@@ -223,11 +232,11 @@ export function VoteView() {
               <span className="inline-flex items-center gap-1.5 text-[10px] text-dim">
                 <AlertTriangle size={12} className="text-signal" /> COI {demo.graph.overallRisk.toFixed(2)} RED
               </span>
-              <Link href="/graph" className="arrow-link text-[9px]">
-                graph <ArrowUpRight size={10} />
+              <Link href="/graph" className="arrow-link">
+                Graph
               </Link>
-              <Link href="/timeline" className="arrow-link text-[9px]">
-                evidence <ArrowUpRight size={10} />
+              <Link href="/timeline" className="arrow-link">
+                Evidence
               </Link>
             </div>
 
@@ -238,7 +247,7 @@ export function VoteView() {
                   checked={acknowledged}
                   onChange={(event) => setAcknowledged(event.target.checked)}
                   disabled={submitted}
-                  className="mt-0.5 size-4 shrink-0 accent-[#f1b54a]"
+                  className="mt-0.5 size-4 shrink-0 accent-[#c62f1c]"
                 />
                 <span className="text-[11.5px] leading-relaxed text-dim">
                   I have read this brief and understand that the queued transaction is blocked. I am
@@ -257,10 +266,9 @@ export function VoteView() {
 
         <section>
           <SectionHeader
-            eyebrow="Attention queue"
-            title="Ranked by risk, not by recency"
+            title="Attention queue"
             description="The queue is a demo fixture; only AIP-042 is wired to the full flow."
-            right={<span className="chip">3 proposals</span>}
+            right={<span className="doc-folio">3 proposals</span>}
           />
           <Panel className="divide-y divide-edge/70">
             {demo.attention.map((proposal, index) => (
@@ -283,7 +291,7 @@ export function VoteView() {
                       className="max-w-40 flex-1"
                     />
                     <span className="font-mono text-[8.5px] text-faint">
-                      COI {proposal.coi.toFixed(2)} · vote {(proposal.voting * 100).toFixed(0)}%
+                      COI {proposal.coi.toFixed(2)}, vote {(proposal.voting * 100).toFixed(0)}%
                     </span>
                   </div>
                 </div>
@@ -313,7 +321,7 @@ export function VoteView() {
           <summary className="flex cursor-pointer list-none items-center justify-between gap-2">
             <span className="flex items-center gap-2">
               <Users size={14} className="text-signal" />
-              <span className="text-[12.5px] text-body">Vote ledger · {demo.votes.votes.length} voters</span>
+              <span className="text-[12.5px] text-body">Vote ledger, {demo.votes.votes.length} voters</span>
             </span>
             <span className="font-mono text-[9px] uppercase tracking-[0.08em] text-faint group-open:hidden">
               show
@@ -351,12 +359,9 @@ export function VoteView() {
       <aside id="cast" className="space-y-4 self-start xl:sticky xl:top-[80px]">
         <Panel>
           <div className="flex items-center justify-between gap-2 border-b border-edge px-4 py-3">
-            <div className="flex items-center gap-2">
-              <BarChart3 size={14} className="text-signal" />
-              <span className="text-[12.5px] font-medium text-body">Tally</span>
-            </div>
+            <span className="text-[12.5px] font-medium text-body">Tally</span>
             <StatusPill status={submitted ? projected.status : current.status}>
-              {submitted ? "projected" : current.status}
+              {submitted ? "projected" : null}
             </StatusPill>
           </div>
           <div className="space-y-3 px-4 py-4">
@@ -388,17 +393,15 @@ export function VoteView() {
               </div>
             </div>
             {submitted ? (
-              <div className="flex items-center gap-2 rounded border border-signal/25 bg-signal/5 px-2.5 py-2 font-mono text-[9px] uppercase tracking-[0.06em] text-signal">
-                <Info size={11} />
-                includes your 25,000 simulated weight
+              <div className="border-l-2 border-signal pl-3 font-sans text-[10.5px] text-signal">
+                Includes your 25,000 simulated weight.
               </div>
             ) : null}
           </div>
         </Panel>
 
         <Panel>
-          <div className="flex items-center gap-2 border-b border-edge px-4 py-3">
-            <VoteIcon size={14} className="text-signal" />
+          <div className="border-b border-edge px-4 py-3">
             <span className="text-[12.5px] font-medium text-body">Your vote</span>
           </div>
           <div className="p-4">
@@ -412,19 +415,15 @@ export function VoteView() {
                     onClick={() => setChoice(option.value)}
                     disabled={!acknowledged || submitted}
                     className={cn(
-                      "rounded-lg border px-3 py-2 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-45",
+                      "border-b border-edge py-2 pl-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-45",
                       active
-                        ? option.value === "AGAINST"
-                          ? "border-danger/45 bg-danger/6"
-                          : option.value === "FOR"
-                            ? "border-safe/45 bg-safe/6"
-                            : "border-edge2 bg-white/3"
-                        : "border-edge bg-white/[0.012] hover:border-edge2",
+                        ? "border-l-2 border-danger"
+                        : "border-l-2 border-transparent hover:border-l-edge2",
                     )}
                   >
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-[12px] font-medium text-body">{option.label}</span>
-                      {active ? <Check size={13} className="text-signal" /> : null}
+                      {active ? <Check size={13} className="text-danger" /> : null}
                     </div>
                     <div className="mt-0.5 text-[10px] text-faint">{option.description}</div>
                   </button>
@@ -459,7 +458,7 @@ export function VoteView() {
             {submitted && choice ? (
               <div className="mt-3 rounded-lg border border-safe/30 bg-safe/5 p-3">
                 <div className="flex items-center gap-2 font-mono text-[9px] uppercase tracking-[0.1em] text-safe">
-                  <Check size={12} /> receipt recorded · {choice}
+                  <Check size={12} /> receipt recorded, {choice}
                 </div>
                 <div className="mt-2 space-y-1 font-mono text-[9px] text-faint">
                   <div className="flex justify-between gap-2">

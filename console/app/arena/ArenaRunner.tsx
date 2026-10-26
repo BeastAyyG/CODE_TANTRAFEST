@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, ArrowRight, Check, Info, Play, X } from "lucide-react";
+import { Check, Play, X } from "lucide-react";
 import { getDemo, type ScenarioRow } from "@/lib/demo";
 import type { RunStepStatus, ScenarioLayer } from "@/reference/types";
 import {
@@ -38,11 +38,11 @@ const STEP_TEXT: Record<RunStepStatus, string> = {
   INFO: "text-info",
 };
 
-const STEP_BORDER: Record<RunStepStatus, string> = {
-  PASS: "border-safe/40 bg-safe/8",
-  FAIL: "border-danger/40 bg-danger/8",
-  FLAG: "border-signal/40 bg-signal/8",
-  INFO: "border-info/40 bg-info/8",
+const STEP_MARK: Record<RunStepStatus, string> = {
+  PASS: "✓",
+  FAIL: "✕",
+  FLAG: "!",
+  INFO: "·",
 };
 
 function pad(index: number): string {
@@ -57,18 +57,15 @@ function verdictChipClass(status: "PASSED" | "REJECTED" | "FLAGGED"): string {
 }
 
 function StepGlyph({ status }: { status: RunStepStatus }) {
-  const Icon =
-    status === "PASS" ? Check : status === "FAIL" ? X : status === "FLAG" ? AlertTriangle : Info;
   return (
     <span
       className={cn(
-        "mt-0.5 grid size-4 shrink-0 place-items-center rounded-full border",
-        STEP_BORDER[status],
+        "mt-0.5 w-3 shrink-0 text-center font-sans text-[10px]",
         STEP_TEXT[status],
       )}
       aria-hidden="true"
     >
-      <Icon size={9} strokeWidth={2.2} />
+      {STEP_MARK[status]}
     </span>
   );
 }
@@ -79,23 +76,16 @@ function VerdictBlock({ row }: { row: ScenarioRow }) {
   return (
     <div
       className={cn(
-        "mt-3 rounded-lg border p-3",
+        "mt-3 border-l-2 pl-3",
         tone === "safe"
-          ? "border-safe/30 bg-safe/5"
+          ? "border-safe"
           : tone === "warn"
-            ? "border-signal/30 bg-signal/5"
-            : "border-danger/30 bg-danger/5",
+            ? "border-signal"
+            : "border-danger",
       )}
     >
       <div className="flex flex-wrap items-center gap-2">
-        <span
-          className={cn(
-            "font-mono text-[11px] uppercase tracking-[0.08em]",
-            statusTextClass(run.status),
-          )}
-        >
-          {run.status}
-        </span>
+        <StatusPill status={run.status} />
         <span className="chip">{run.code}</span>
         <span className={cn("chip", verdictChipClass(run.status))}>{run.layer} layer</span>
       </div>
@@ -115,7 +105,7 @@ function VerdictBlock({ row }: { row: ScenarioRow }) {
         </span>
         <span className="chip">{run.steps.length} gates</span>
         <span className="chip">
-          {run.submitted.length} submitted · {run.approved.length} committed
+          {run.submitted.length} submitted, {run.approved.length} committed
         </span>
       </div>
     </div>
@@ -167,20 +157,22 @@ export function ArenaRunner() {
       <Panel id="scenarios" className="overflow-hidden">
         <div className="flex flex-wrap items-start justify-between gap-3 border-b border-edge px-4 py-3">
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-baseline gap-3">
               <span className="text-[12.5px] font-medium text-body">Scenario ledger</span>
-              <span className="chip">{rows.length} rows</span>
+              <span className="doc-folio">{rows.length} rows</span>
             </div>
-            <p className="mt-1 text-[10px] leading-relaxed text-faint">
-              Expected comes from each scenario fixture. Actual is the reference executor output,
-              printed next to it — never substituted for it.
+            <p className="mt-1 text-[10.5px] leading-relaxed text-faint">
+              Expected comes from each scenario fixture. Actual is the reference
+              executor output, printed next to it, never substituted for it.
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="chip border-safe/30 text-safe">
-              {matched}/{rows.length} expected == actual
+          <div className="flex flex-wrap items-baseline gap-3">
+            <span className="doc-folio">
+              {matched}/{rows.length} expected equals actual
             </span>
-            <span className="chip">{demo.arenaSummary.mismatches} mismatches</span>
+            <span className="doc-folio">
+              {demo.arenaSummary.mismatches} mismatches
+            </span>
           </div>
         </div>
 
@@ -189,14 +181,14 @@ export function ArenaRunner() {
           if (layerRows.length === 0) return null;
           return (
             <section key={layer.key} aria-label={`${layer.key} scenarios`}>
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-edge bg-white/[0.015] px-4 py-2.5">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-edge py-2.5">
                 <div className="flex flex-wrap items-center gap-2">
                   <LayerBadge layer={layer.key} />
                   <span className="hidden text-[10px] leading-relaxed text-faint sm:inline">
                     {layer.description}
                   </span>
                 </div>
-                <span className="font-mono text-[8.5px] uppercase tracking-[0.08em] text-faint">
+                <span className="doc-folio">
                   {layerRows.length} scenario{layerRows.length === 1 ? "" : "s"}
                 </span>
               </div>
@@ -209,26 +201,23 @@ export function ArenaRunner() {
                   return (
                     <li
                       key={scenario.id}
-                      className={cn(
-                        "flex items-stretch gap-1 px-2 py-1 transition-colors",
-                        active && "bg-signal/[0.025]",
-                      )}
+                      className="flex items-stretch gap-1"
                     >
                       <button
                         type="button"
                         onClick={() => selectRow(row)}
                         aria-pressed={active}
                         className={cn(
-                          "flex min-w-0 flex-1 items-start gap-3 rounded-md px-2 py-2 text-left transition-colors hover:bg-white/[0.025]",
-                          active && "bg-signal/[0.045] hover:bg-signal/[0.06]",
+                          "flex min-w-0 flex-1 items-start gap-3 border-l-2 px-2 py-2 text-left transition-colors",
+                          active
+                            ? "border-danger"
+                            : "border-transparent hover:border-edge2",
                         )}
                       >
                         <span
                           className={cn(
-                            "mt-0.5 grid size-7 shrink-0 place-items-center rounded border font-mono text-[9px]",
-                            active
-                              ? "border-signal/45 bg-signal/10 text-signal"
-                              : "border-edge text-faint",
+                            "mt-0.5 w-6 shrink-0 font-mono text-[10px]",
+                            active ? "text-danger" : "text-faint",
                           )}
                         >
                           {pad(scenario.index)}
@@ -251,10 +240,10 @@ export function ArenaRunner() {
                                 verdictChipClass(scenario.expected.status),
                               )}
                             >
-                              expected {scenario.expected.status} · {scenario.expected.code}
+                              expected {scenario.expected.status}, {scenario.expected.code}
                             </span>
                             <span className={cn("chip", verdictChipClass(run.status))}>
-                              actual {run.status} · {run.code}
+                              actual {run.status}, {run.code}
                             </span>
                             <span
                               className={cn(
@@ -311,10 +300,10 @@ export function ArenaRunner() {
       <aside className="self-start space-y-4 xl:sticky xl:top-[86px]" aria-label="Selected scenario">
         <Panel className="overflow-hidden">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-edge px-4 py-3">
-            <span className="mono-label">Selected · {pad(activeRow.scenario.index)}</span>
+            <span className="mono-label">Selected, {pad(activeRow.scenario.index)}</span>
             <div className="flex items-center gap-1.5">
               <span className="chip">{activeRow.scenario.mode}</span>
-              <StatusPill status={activeRow.run.status}>{activeRow.run.status}</StatusPill>
+              <StatusPill status={activeRow.run.status} />
             </div>
           </div>
 
@@ -394,9 +383,9 @@ export function ArenaRunner() {
                   {revealed}/{activeStepCount} steps
                 </span>
               </div>
-              <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-edge">
+              <div className="mt-1.5 h-px bg-edge">
                 <div
-                  className="h-full rounded-full bg-signal transition-[width] duration-150"
+                  className="h-px bg-body transition-[width] duration-150"
                   style={{ width: `${progress}%` }}
                 />
               </div>
@@ -439,18 +428,16 @@ export function ArenaRunner() {
             {showVerdict ? (
               <VerdictBlock row={activeRow} />
             ) : (
-              <div className="mt-3 rounded-lg border border-signal/20 bg-signal/5 px-3 py-2.5">
+              <div className="mt-3 border-l-2 border-signal pl-3">
                 <div className="flex items-center gap-2 text-[10.5px] text-signal">
-                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-signal" />
-                  Awaiting verdict — {activeStepCount - revealed} step
-                  {activeStepCount - revealed === 1 ? "" : "s"} left
+                  Awaiting verdict. {activeStepCount - revealed} step
+                  {activeStepCount - revealed === 1 ? "" : "s"} left.
                 </div>
               </div>
             )}
 
             <Link href={`/arena/${activeRow.scenario.id}`} className="btn btn-sm mt-3 w-full">
               Full violation report
-              <ArrowRight size={11} />
             </Link>
             <p className="mt-2 text-[9px] leading-relaxed text-faint">
               Selected report is precomputed. The Run animation is presentational only.

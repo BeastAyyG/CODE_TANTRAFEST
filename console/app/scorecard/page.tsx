@@ -13,28 +13,22 @@ export default function ScorecardPage() {
   return (
     <>
       <PageHeader
-        eyebrow="Governance security scorecard"
-        title={
-          <>
-            Real runs.
-            <br />
-            <span className="text-signal">Honest gaps.</span>
-          </>
-        }
-        description="Every green row comes from an executed check against this workspace. Properties that need Solidity are TEST_REQUIRED — shown amber, never green — until Person A's contracts and test suite land."
+        title="Scorecard"
+        description="25 pass, 0 fail, 9 require the Solidity layer. Rows marked TEST_REQUIRED are not green and will not be until the contracts land."
         meta={
           <>
-            <span className="chip border-safe/30 text-safe">{failed} failed</span>
-            <span className="chip border-signal/30 text-signal">{required} test required</span>
-            <span className="chip">reference model</span>
+            <span className="doc-folio">{entries.length} properties</span>
+            <span className="doc-folio">{failed} failed</span>
+            <span className="doc-folio text-danger">{required} required</span>
+            <span className="doc-folio">reference model</span>
           </>
         }
         actions={
           <>
-            <a href="#checks" className="btn">
+            <a href="#checks" className="arrow-link">
               Checks
             </a>
-            <a href="#gaps" className="btn">
+            <a href="#gaps" className="arrow-link">
               Gaps
             </a>
           </>

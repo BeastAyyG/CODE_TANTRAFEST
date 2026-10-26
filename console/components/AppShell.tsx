@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { MonitorPlay, ShieldCheck } from "lucide-react";
+import { MonitorPlay } from "lucide-react";
 import { JudgeMode } from "@/components/JudgeMode";
 
 const NAV = [
@@ -36,26 +36,24 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           AEGIS
         </Link>
         <span className="app-rail-rule" />
-        <span className="app-rail-meta">IntentLock · Vol. 2</span>
+        <span className="app-rail-meta">IntentLock, Vol. 2</span>
       </aside>
 
       <div className="app-rail-r" aria-hidden="true">
         <span className="app-dot" />
-        <span className="app-rail-meta">Local · 31337</span>
+        <span className="app-rail-meta">Local, 31337</span>
       </div>
 
       <header className="app-header">
         <div className="app-header-inner">
           <Link href="/" className="app-wordmark">
-            <span className="app-wordmark-mark">
-              <ShieldCheck size={15} strokeWidth={1.7} />
-            </span>
+            <span className="app-wordmark-mark" aria-hidden="true" />
             <span className="app-wordmark-text">
-              AEGIS <em>INTENTLOCK</em>
+              Aegis <em>IntentLock</em>
             </span>
           </Link>
 
-          <span className="app-header-note">Decision integrity console</span>
+          <span className="app-header-note">Working papers</span>
 
           <nav className="app-nav" aria-label="Primary">
             {NAV.map((item) => {
@@ -78,14 +76,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               href="/present"
               aria-label="Presentation mode"
               title="Full-screen presentation"
-              className="btn btn-sm"
+              className="app-header-link"
             >
               <MonitorPlay size={11} strokeWidth={1.8} />
               <span className="hidden xl:inline">Present</span>
             </Link>
             <span className="app-chain">
               <span className="status-dot text-safe" />
-              local · 31337
+              Local, 31337
             </span>
           </div>
         </div>

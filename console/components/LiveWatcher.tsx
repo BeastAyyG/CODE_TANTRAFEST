@@ -100,7 +100,7 @@ export function LiveWatcher() {
           </span>
         </div>
         <span className="font-mono text-[9px] text-faint">
-          block {data.watcher?.lastBlock ?? "—"} · {data.events.length} events
+          block {data.watcher?.lastBlock ?? "—"}, {data.events.length} events
         </span>
       </div>
 
@@ -118,7 +118,7 @@ export function LiveWatcher() {
             <li key={event.id} className="border-b border-edge/60 pb-2 last:border-0">
               <div className="flex items-center justify-between gap-2">
                 <span className="font-mono text-[9px] uppercase tracking-[0.08em] text-faint">
-                  {event.phase} · {event.proposalId}
+                  {event.phase}, {event.proposalId}
                 </span>
                 <StatusPill
                   status={
@@ -143,7 +143,7 @@ export function LiveWatcher() {
                   hour: "2-digit",
                   minute: "2-digit",
                 })}{" "}
-                · tx {short(event.txHash)}
+               , tx {short(event.txHash)}
               </div>
             </li>
           ))}

@@ -7,7 +7,6 @@ import {
   ChevronDown,
   CircleDollarSign,
   FileWarning,
-  GitBranch,
   Info,
   Wallet,
 } from "lucide-react";
@@ -20,7 +19,6 @@ import {
   Panel,
   RiskMeter,
   SectionHeader,
-  Stat,
   StatusPill,
   cn,
 } from "@/components/ui";
@@ -107,65 +105,60 @@ export function GraphView() {
   }
 
   return (
-    <div className="space-y-5">
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Panel className="p-4">
-          <Stat
-            label="Noisy-OR risk"
-            value={graph.overallRisk.toFixed(2)}
-            tone="danger"
-            sub={`red threshold ${graph.thresholds.red.toFixed(2)} · higher is worse`}
-          />
-          <RiskMeter
-            value={graph.overallRisk}
-            status={graph.status}
-            threshold={graph.thresholds.red}
-            className="mt-3"
-          />
-        </Panel>
-        <Panel className="p-4">
-          <Stat label="Discovered links" value={String(graph.links.length)} sub="two transfers · funder · timing" />
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {graph.links.map((link) => (
-              <span key={link.id} className="chip">
-                {LINK_LABEL[link.type]} {link.strength.toFixed(2)}
-              </span>
-            ))}
-          </div>
-        </Panel>
-        <Panel className="p-4">
-          <Stat label="Disclosed wallets" value="2" sub="in the signed proposal disclosure" />
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {demo.proposal.disclosure.wallets.map((wallet) => (
-              <span key={wallet} className="chip border-info/30 text-info">
-                {shortAddress(wallet)}
-              </span>
-            ))}
-          </div>
-        </Panel>
-        <Panel className="p-4">
-          <Stat label="Discovered wallets" value={String(graph.discoveredWallets.length)} sub="one funding path to the recipient" tone="danger" />
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {graph.discoveredWallets.map((wallet) => (
-              <span key={wallet} className="chip border-danger/30 text-danger">
-                {shortAddress(wallet)}
-              </span>
-            ))}
-          </div>
-        </Panel>
+    <div className="space-y-6">
+      <div className="border-t border-edge pt-3">
+        <table className="doc-ledger">
+          <tbody>
+            <tr>
+              <th className="w-[130px]">Risk</th>
+              <td className="text-danger">
+                {graph.overallRisk.toFixed(2)}, red threshold{" "}
+                {graph.thresholds.red.toFixed(2)}, higher is worse
+              </td>
+            </tr>
+            <tr>
+              <th>Links</th>
+              <td>
+                {graph.links.length}:{" "}
+                {graph.links
+                  .map((link) => `${LINK_LABEL[link.type]} ${link.strength.toFixed(2)}`)
+                  .join(", ")}
+              </td>
+            </tr>
+            <tr>
+              <th>Disclosed</th>
+              <td>
+                {demo.proposal.disclosure.wallets
+                  .map((wallet) => shortAddress(wallet))
+                  .join(", ")}
+              </td>
+            </tr>
+            <tr>
+              <th>Discovered</th>
+              <td className="text-danger">
+                {graph.discoveredWallets.length}:{" "}
+                {graph.discoveredWallets.map((wallet) => shortAddress(wallet)).join(", ")}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <RiskMeter
+          value={graph.overallRisk}
+          status={graph.status}
+          threshold={graph.thresholds.red}
+          className="mt-3"
+        />
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(0,0.8fr)]">
         <Panel className="overflow-hidden">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-edge px-4 py-3">
-            <div className="flex items-center gap-2">
-              <GitBranch size={14} className="text-signal" />
-              <span className="text-[12.5px] font-medium text-body">Disclosed vs discovered</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="chip border-danger/30 text-danger">simulated data</span>
-              <span className="chip">click an edge</span>
-            </div>
+          <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-edge py-2.5">
+            <span className="text-[12.5px] font-medium text-body">
+              Disclosed vs discovered
+            </span>
+            <span className="doc-folio text-danger">
+              simulated data, click an edge
+            </span>
           </div>
 
           <div className="overflow-x-auto">
@@ -188,7 +181,7 @@ export function GraphView() {
               <circle cx="460" cy="230" r="260" fill="url(#graph-glow)" />
 
               <text x="24" y="34" fill="#857e72" fontFamily="ui-monospace, monospace" fontSize="9" letterSpacing="2">
-                AIP-042 · SIMULATED TRANSACTION GRAPH · 2025-11 → 2026-10
+                AIP-042, SIMULATED TRANSACTION GRAPH, 2025-11 → 2026-10
               </text>
 
               {graph.fixture.edges.map((edge) => {
@@ -243,7 +236,7 @@ export function GraphView() {
                         {formatNumber(Number(edge.amountUsdc), 0)}
                       </text>
                     ) : null}
-                    <title>{`${edge.type} · ${edge.amountUsdc} USDC · ${edge.txHash}`}</title>
+                    <title>{`${edge.type}, ${edge.amountUsdc} USDC, ${edge.txHash}`}</title>
                   </g>
                 );
               })}
@@ -276,7 +269,7 @@ export function GraphView() {
                     >
                       {node.role.toUpperCase()}
                     </text>
-                    <title>{`${node.label} · ${node.address}`}</title>
+                    <title>{`${node.label}, ${node.address}`}</title>
                   </g>
                 );
               })}
@@ -312,11 +305,11 @@ export function GraphView() {
               <>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <span className="chip" style={{ borderColor: `${EDGE_COLORS[selectedEdge.type]}55`, color: EDGE_COLORS[selectedEdge.type] }}>
-                    edge · {selectedEdge.type.replaceAll("_", " ")}
+                    edge, {selectedEdge.type.replaceAll("_", " ")}
                   </span>
                   {selectedLink ? (
                     <span className="chip border-danger/30 text-danger">
-                      link {selectedLink.strength.toFixed(2)} · {LINK_LABEL[selectedLink.type]}
+                      link {selectedLink.strength.toFixed(2)}, {LINK_LABEL[selectedLink.type]}
                     </span>
                   ) : null}
                 </div>
@@ -438,8 +431,8 @@ export function GraphView() {
         <Panel id="challenge" className="p-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <div className="mono-label mb-1">Disclosure challenge · already filed</div>
-              <h2 className="text-[14px] font-medium text-body">{demo.proposal.challenge.filer} · {formatTimestamp(demo.proposal.challenge.filedAt)}</h2>
+              <div className="mono-label mb-1">Disclosure challenge, already filed</div>
+              <h2 className="text-[14px] font-medium text-body">{demo.proposal.challenge.filer}, {formatTimestamp(demo.proposal.challenge.filedAt)}</h2>
               <p className="mt-1.5 max-w-xl text-[11px] leading-relaxed text-dim">{demo.proposal.challenge.claim}</p>
             </div>
             <div className="flex items-center gap-2">

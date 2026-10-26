@@ -280,7 +280,7 @@ function TrailSlide({ demo }: { demo: Demo }) {
               />
               <div className="flex items-center justify-between gap-2">
                 <span className="mono-label">0{index + 1}</span>
-                <StatusPill status={stage.status}>{stage.status}</StatusPill>
+                <StatusPill status={stage.status} />
               </div>
               <div className="mt-6 flex items-center gap-3">
                 {hard ? (

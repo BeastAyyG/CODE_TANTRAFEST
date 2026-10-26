@@ -242,7 +242,7 @@ function PassedRecord({ run }: { run: RunResult }) {
       </div>
       <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded border border-edge/70 bg-ink/30 px-2.5 py-2">
         <div className="min-w-0">
-          <div className="mono-label">tx hash · simulated</div>
+          <div className="mono-label">tx hash, simulated</div>
           <code className="hash mt-1 block break-all">{txHash}</code>
         </div>
         <CopyButton value={txHash} compact />
@@ -375,7 +375,7 @@ function SentinelSection() {
   return (
     <section>
       <SectionHeader
-        eyebrow="Sentinel · scenario 06"
+        eyebrow="Sentinel, scenario 06"
         title="Simulated call tree"
         description="The upgrade's initialization payload reaches a DELEGATECALL. The flag is generated before the executor runs, so the executor is never invoked."
         right={
@@ -392,7 +392,7 @@ function SentinelSection() {
             <span className="text-[12px] font-medium text-body">Call trace</span>
           </div>
           <span className="font-mono text-[8.5px] uppercase tracking-[0.08em] text-faint">
-            traceRef · sentinel-trace-06.json
+            traceRef, sentinel-trace-06.json
           </span>
         </div>
         <div className="p-4">
@@ -466,7 +466,7 @@ function DisclosureSection() {
   return (
     <section>
       <SectionHeader
-        eyebrow="Disclosure · scenario 10"
+        eyebrow="Disclosure, scenario 10"
         title="Challenge claim and link evidence"
         description="The finding is outside the calldata: the signed disclosure omits a wallet that the graph connects to the recipient's deployer."
         right={<span className="chip border-signal/30 text-signal">challenge filed</span>}
@@ -626,7 +626,7 @@ function EvidencePanel({ run }: { run: RunResult }) {
           <Fingerprint size={14} className="text-signal" />
           <span className="text-[12.5px] font-medium text-body">Evidence bundle</span>
         </div>
-        <span className="chip">report · precomputed</span>
+        <span className="chip">report, precomputed</span>
       </div>
       <div className="px-4 py-1">
         <HashLine label="commitment" value={run.approvedCommitment} full />
@@ -661,7 +661,7 @@ function EvidencePanel({ run }: { run: RunResult }) {
         />
         <div className="mt-3 border-t border-edge/70">
           {run.txHash ? (
-            <HashLine label="tx hash · SIMULATED" value={run.txHash} full />
+            <HashLine label="tx hash, SIMULATED" value={run.txHash} full />
           ) : (
             <div className="flex items-center justify-between gap-2 border-b border-edge/70 py-2.5">
               <span className="mono-label">tx hash</span>
@@ -727,7 +727,7 @@ export function ArenaDetail({ scenarioId }: { scenarioId: string }) {
           <div className="max-w-3xl">
             <div className="mb-2 flex flex-wrap items-center gap-2">
               <span className="mono-label text-signal">
-                Violation report · {demo.proposal.id}
+                Violation report, {demo.proposal.id}
               </span>
               <span className="chip">scenario {pad(scenario.index)}</span>
               <LayerBadge layer={scenario.layer} />
@@ -760,7 +760,7 @@ export function ArenaDetail({ scenarioId }: { scenarioId: string }) {
                 {scenario.expected.status}
               </div>
               <div className="mt-1 font-mono text-[9px] leading-relaxed text-faint">
-                {scenario.expected.code} · {scenario.expected.label}
+                {scenario.expected.code}, {scenario.expected.label}
               </div>
             </div>
             <div>
@@ -774,7 +774,7 @@ export function ArenaDetail({ scenarioId }: { scenarioId: string }) {
                 {run.status}
               </div>
               <div className="mt-1 font-mono text-[9px] leading-relaxed text-faint">
-                {run.code} · {run.label}
+                {run.code}, {run.label}
               </div>
             </div>
           </div>
@@ -795,7 +795,7 @@ export function ArenaDetail({ scenarioId }: { scenarioId: string }) {
           <code className="font-mono text-[11px] text-body">npm run arena -- {scenario.index}</code>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[9.5px] text-faint">Deterministic fixture run · same verdict</span>
+          <span className="text-[9.5px] text-faint">Deterministic fixture run, same verdict</span>
           <CopyButton
             value={`npm run arena -- ${scenario.index}`}
             label="Reproduce command"
@@ -862,9 +862,9 @@ export function ArenaDetail({ scenarioId }: { scenarioId: string }) {
                   {run.commitmentMatched ? "bundle commitment matched" : "bundle commitment differs"}
                 </span>
               ) : (
-                <span className="chip border-edge2 text-dim">commitment check · not executed</span>
+                <span className="chip border-edge2 text-dim">commitment check, not executed</span>
               )}
-              <span className="chip">layer · {run.layer}</span>
+              <span className="chip">layer, {run.layer}</span>
             </div>
           </div>
           {isPassed ? <PassedRecord run={run} /> : null}
@@ -883,7 +883,7 @@ export function ArenaDetail({ scenarioId }: { scenarioId: string }) {
                   {run.status === "PASSED" ? (
                     <StatusPill status="PASSED">all gates passed</StatusPill>
                   ) : (
-                    <StatusPill status={run.status}>{run.status}</StatusPill>
+                    <StatusPill status={run.status} />
                   )}
                   <span className="chip">{run.steps.length} checks</span>
                 </div>
@@ -939,7 +939,7 @@ export function ArenaDetail({ scenarioId }: { scenarioId: string }) {
               </ol>
               <div className="border-t border-edge px-4 py-2.5">
                 <p className="text-[9.5px] leading-relaxed text-faint">
-                  Source: <span className="font-mono text-steel">reference/executor.ts</span> · the
+                  Source: <span className="font-mono text-steel">reference/executor.ts</span>, the
                   same steps printed by the CLI reproduce command.
                 </p>
               </div>
@@ -953,7 +953,7 @@ export function ArenaDetail({ scenarioId }: { scenarioId: string }) {
               description={scenario.attackDescription}
               right={
                 <span className="chip">
-                  {run.approved.length} committed · {run.submitted.length} submitted
+                  {run.approved.length} committed, {run.submitted.length} submitted
                 </span>
               }
             />
@@ -1015,7 +1015,7 @@ export function ArenaDetail({ scenarioId }: { scenarioId: string }) {
               <div className="flex flex-wrap items-center gap-1.5">
                 <span className="chip">{report.approved.length} rules</span>
                 <span className="chip">
-                  {demo.proposal.id} · v{demo.committed.version}
+                  {demo.proposal.id}, v{demo.committed.version}
                 </span>
               </div>
             </div>
@@ -1051,7 +1051,7 @@ export function ArenaDetail({ scenarioId }: { scenarioId: string }) {
           <Panel className="p-4">
             <div className="flex items-center gap-2">
               <Info size={13} className="text-info" />
-              <span className="mono-label">Scope · layer {run.layer}</span>
+              <span className="mono-label">Scope, layer {run.layer}</span>
             </div>
             <p className="mt-2 text-[11px] leading-relaxed text-dim">{SCOPE[run.layer]}</p>
             <div className="mt-3 flex flex-wrap gap-1.5 border-t border-edge/70 pt-3">
