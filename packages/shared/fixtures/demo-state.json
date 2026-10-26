@@ -3,10 +3,10 @@
     "title": "Q4 Development Grant",
     "govId": "1",
     "state": "Executed",
-    "commitment": "0x0fab70940b3e45b60387153875c10e6944a124e556bd522b9f840f102d6fe717",
+    "commitment": "0xee802c1ea6a0d89236729bd02b7ec261fc471feda6abf88767d93cc6ad31ea1c",
     "versionChain": [
-      "0x6eb1e7fc6941b127ebcab5e60ffb2afbda364a6dffbc2cf8fcce6b0ced16abb3",
-      "0xbf58b8d4d3ed25ab1dd1bab063e6d90ea1ffda2faa16216be43dad8843353157"
+      "0xeb86c6b44e316a8e39a6d9a3bdb2d0a74fd58bb69964c0fd3898f81466c2d99c",
+      "0xb6cbde273c9ab723ffa5120698c28dd104b5a92508fe935e102c43c2367e1bb4"
     ],
     "notes": "2 versions (draft -> final); evidenceRoots 0x36d4f6fe…ee9861 / 0xd9ce7ed5…85f511; 5,000 USDC executed to 0x14dC79964da2C08b23698B3D3cc7Ca32193d9955."
   },
@@ -14,19 +14,19 @@
     "title": "Routine parameter tuning of the fee module",
     "govId": "2",
     "state": "Halted",
-    "commitment": "0x353d36f1235aca282c6f9a8dd6bf1c926b08fefdb959740afda205417c2bcf1a",
+    "commitment": "0x5c18f93fa26704b69ea4e392de27472e9227190d084935ba8c03be2a4ab915b3",
     "versionChain": [
-      "0x8cc1c06462a278f970130b26f8b92b024a6d711330fb4a4154638532ea5894db"
+      "0x5b74128e0abd64b874a932d02950433756bf8531a7c37cbf5118fae6933b9edb"
     ],
-    "notes": "Queued benign setFee(35); malicious upgradeTo(0x09635F64…8ceBef) was presented and flagged by the Sentinel (Static bytecode analysis detected: Dangerous opcode detected: DELEGATECALL (0xf4) in implementation bytecode; Dangerous opcode detected: SELFDESTRUCT (0xff) in implementation bytecode); guardian halt 0x23f93f55…4d9541; evidenceRoot 0xeb0f856c…62cc56."
+    "notes": "Queued benign setFee(35); malicious upgradeTo(0x2bdCC0de…EFABa3) was presented and flagged by the Sentinel (Static bytecode analysis detected: Dangerous opcode detected: DELEGATECALL (0xf4) in implementation bytecode; Dangerous opcode detected: SELFDESTRUCT (0xff) in implementation bytecode); guardian halt 0xc19a4aec…3108c0; evidenceRoot 0xeb0f856c…62cc56."
   },
   "3": {
     "title": "Ecosystem grant with hidden link",
     "govId": "3",
     "state": "Challenged",
-    "commitment": "0x5fc9111a8e144baf2ec8a981fddf8d1955cf0845be4125fdaf3b811a2e59c933",
+    "commitment": "0x0cdf8cf155224d66b4f0f9e1aa99e102a4b96db23fc6ecbe807175b6c7faa9e4",
     "versionChain": [
-      "0x9ed033272dd6f1cd05a270c6290d5d01f8a85717c37ef9b65d37b364e89c046c"
+      "0x4224d8a43dd6d40a098783bc9275bff30fb8c22049514a0751f8f5d7876d49d2"
     ],
     "notes": "Governor state VotingOpen; disclosure challenged and verified (1 ETH bond slashed to challenger); linkEvidenceHash 0x8b8958ef…815baa; evidenceRoot 0x9d457c9c…6ab382; intermediary path is SIMULATED graph data."
   },
@@ -34,9 +34,9 @@
     "title": "Infrastructure budget",
     "govId": "4",
     "state": "VotingOpen",
-    "commitment": "0x3bcc553544df539e92be901ec428e5e2f0ddb0cd15f4da5c0d1380dac168baf7",
+    "commitment": "0x5962a873945aaaa925ae4348cc606b091863ed272870bc516da9e8992a5dce0f",
     "versionChain": [
-      "0x0c3f1575dc540c84a22debb910fa72d5824f527756deb0579880b341d87c1907"
+      "0xa463601fe0c283ed2ddcf25d002c02b87fe96b71c3bf11b675e4d9eb63c604ac"
     ],
     "notes": "Voting open with mixed informed/uninformed votes; no disclosure challenge and no Sentinel halt; awaiting finalization."
   },
@@ -46,7 +46,7 @@
     "state": "Drafted",
     "commitment": null,
     "versionChain": [
-      "0x089c927eefa0b066a2194b73037bec94247a78e9de85ecba282a953b2c932a92"
+      "0x83a55c4a33e5d66f466cfb450d2806610ed54bad530adf84cf5dbb6bdcf29cbb"
     ],
     "notes": "Draft only (not submitted to governor). 4 UNRESOLVED item(s): What exact amount should be transferred? The proposal delegates discretion. What exact recipient and value should be committed before voting? Is this a one-time action or a recurring commitment? The current ActionKind model encodes one-time actions only. No executable action could be grounded in the proposal text."
   },
@@ -54,9 +54,9 @@
     "title": "Routine parameter tuning (obfuscated)",
     "govId": "5",
     "state": "VotingOpen",
-    "commitment": "0xab80149ed2518fd2cc76d55c4237a692bee92682238743c8ab884297d5c9eef3",
+    "commitment": "0x5cd903e5d02b3c6e82b7b513378511e67d45e3e00c2854ed82a78dbbdc03ce4e",
     "versionChain": [
-      "0x45d6ff35ef77a39cf340a3d34b7f69073170d453b0803a792f6c094f25b4847d"
+      "0x30bd5ac369183ab675a91f1fb09def04589470fcf7db1afae1d23777bc371746"
     ],
     "notes": "Committed calldata is a multicall([upgradeTo, transferOwnership]) while the stated intent and committed rules describe only setFee(35). The pre-vote effect preview must flag the implementation and owner changes BEFORE the vote."
   }

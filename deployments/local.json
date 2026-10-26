@@ -2,8 +2,8 @@
   "network": "local",
   "chainId": 31337,
   "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
-  "deployedAt": "2026-10-25T23:36:04.297Z",
-  "deploymentBlock": 19,
+  "deployedAt": "2026-10-26T03:17:26.336Z",
+  "deploymentBlock": 86,
   "timing": {
     "timelockDelay": 3600,
     "maxDelay": 1209600,
@@ -13,27 +13,27 @@
     "quorum": "1000000000000000000000"
   },
   "setup": {
-    "setGovernorTx": "0x01c0163002c4e300549e54a66e8fa674b8c41f5efe85942f8aa8b3f1c7949173",
+    "setGovernorTx": "0x4b198fef9560f2983562140640c9dc0b689561a50de0eff276f69dc989715787",
     "governanceMints": [
       {
         "to": "0x90F79bf6EB2c4f870365E785982E1f101E93b906",
         "amount": "1000000000000000000000",
-        "txHash": "0x6ce400499ad07dc1b6ad70f8135d10152cffdfd45371aececfe4538c007f7661"
+        "txHash": "0x26dd0005e2cdcbed9a963339b2d9c926f4f56ccd352a54d23251a5aa6319b5c4"
       },
       {
         "to": "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65",
         "amount": "1000000000000000000000",
-        "txHash": "0xbbc48480ef79433c2b4d3fbbb1ed87349340cb4bacd8f34a7a10d99dd84bbf05"
+        "txHash": "0xd0cf0107055dc1d6e66d54b55076d31ec4f0a47257a9e6483428468bf05a4ff4"
       },
       {
         "to": "0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc",
         "amount": "1000000000000000000000",
-        "txHash": "0xbbff294f96553612389ff0111a560a753416ba404059f16e551356d3deb84d7e"
+        "txHash": "0x0c952b6bccda1d21b1115b2f8bc55c7eaf4f98d7dc78bffe18bfcafefae057e8"
       },
       {
         "to": "0x976EA74026E726554dB657fA54763abd0C3a0aa9",
         "amount": "1000000000000000000000",
-        "txHash": "0xd94cb7d6d349a9f59c1ba77a4b1d11072d7c81d6fde11aa3e972253f2c173da6"
+        "txHash": "0x5908e3a5233a1cc2300e44e0bbb755cd551cac26d1dba549ce6c03c13f16ee29"
       }
     ],
     "usdcSeeds": {
@@ -43,7 +43,7 @@
   },
   "contracts": {
     "MockUSDC": {
-      "address": "0x68B1D87F95878fE05B998F19b66F4baba5De1aed",
+      "address": "0x5eb3Bc0a489C5A8288765d2336659EbCA68FCd00",
       "abi": [
         {
           "inputs": [],
@@ -396,12 +396,12 @@
         }
       ],
       "args": [],
-      "blockNumber": 19,
-      "txHash": "0xff107b7ba0a972679808f48256ddf3a8a12873de8dfebf8f14009f608d20ca67",
+      "blockNumber": 86,
+      "txHash": "0xff8b2455705e7c41a7ba607cbe8628336ba30fa16e54cf0ed10fcfaec0c42c32",
       "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
     },
     "GovernanceToken": {
-      "address": "0x3Aa5ebB10DC797CAC828524e59A333d0A371443c",
+      "address": "0x36C02dA8a0983159322a80FFE9F24b1acfF8B570",
       "abi": [
         {
           "inputs": [],
@@ -754,12 +754,12 @@
         }
       ],
       "args": [],
-      "blockNumber": 20,
-      "txHash": "0x37893c2a80f2d3080b243611fd8d89f883697acc396f4e2beb09761d89bc32ce",
+      "blockNumber": 87,
+      "txHash": "0x23a053754ac87d3a9db1082c2cb532a74769db714e2006e35c24902232ad64b1",
       "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
     },
     "ProposalRegistry": {
-      "address": "0xc6e7DF5E7b4f2A278906862b61205850344D4e7d",
+      "address": "0x809d550fca64d94Bd9F66E60752A544199cfAC3D",
       "abi": [
         {
           "inputs": [
@@ -1199,12 +1199,12 @@
         }
       ],
       "args": [],
-      "blockNumber": 21,
-      "txHash": "0x1be2c2981c473da468a8ecc4af543c4681fa3f0afb51716458fe193acadfe19d",
+      "blockNumber": 88,
+      "txHash": "0x7c5e7fec7e40675aeda4c4940eec60554f0fa7c9e74f2fe12708813d993a8863",
       "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
     },
     "DisclosureRegistry": {
-      "address": "0x59b670e9fA9D0A427751Af201D676719a970857b",
+      "address": "0x4c5859f0F772848b2D91F1D83E2Fe57935348029",
       "abi": [
         {
           "inputs": [
@@ -1950,12 +1950,12 @@
           "value": "259200"
         }
       ],
-      "blockNumber": 22,
-      "txHash": "0xfa32bb86ba4537d61d026a28972701b925688f2b2ecf52f80ec51bee96a713ff",
+      "blockNumber": 89,
+      "txHash": "0x18d834b1628471ab23615bedc119d84c301a8707cc0d1ee69489ff375603c34d",
       "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
     },
     "IntentLockExecutor": {
-      "address": "0x4ed7c70F96B99c776995fB64377f0d4aB3B0e1C1",
+      "address": "0x1291Be112d480055DaFd8a610b7d1e203891C274",
       "abi": [
         {
           "inputs": [
@@ -2034,6 +2034,11 @@
             }
           ],
           "name": "BadCalldataLength",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "BadSignature",
           "type": "error"
         },
         {
@@ -2152,6 +2157,22 @@
           "inputs": [
             {
               "internalType": "address",
+              "name": "signer",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "nonce",
+              "type": "uint256"
+            }
+          ],
+          "name": "NonceUsed",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
               "name": "caller",
               "type": "address"
             }
@@ -2248,6 +2269,17 @@
             }
           ],
           "name": "SelectorNotAllowed",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "deadline",
+              "type": "uint256"
+            }
+          ],
+          "name": "SignatureExpired",
           "type": "error"
         },
         {
@@ -2415,6 +2447,43 @@
             },
             {
               "indexed": true,
+              "internalType": "address",
+              "name": "guardian",
+              "type": "address"
+            },
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "relayer",
+              "type": "address"
+            },
+            {
+              "indexed": false,
+              "internalType": "bytes32",
+              "name": "reportHash",
+              "type": "bytes32"
+            },
+            {
+              "indexed": false,
+              "internalType": "string",
+              "name": "reason",
+              "type": "string"
+            }
+          ],
+          "name": "HaltRelayed",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "bytes32",
+              "name": "commitment",
+              "type": "bytes32"
+            },
+            {
+              "indexed": true,
               "internalType": "uint256",
               "name": "proposalId",
               "type": "uint256"
@@ -2495,6 +2564,58 @@
         {
           "inputs": [],
           "name": "COMMIT_TYPEHASH",
+          "outputs": [
+            {
+              "internalType": "bytes32",
+              "name": "",
+              "type": "bytes32"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "DOMAIN_SEPARATOR",
+          "outputs": [
+            {
+              "internalType": "bytes32",
+              "name": "",
+              "type": "bytes32"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "EIP712_NAME",
+          "outputs": [
+            {
+              "internalType": "string",
+              "name": "",
+              "type": "string"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "EIP712_VERSION",
+          "outputs": [
+            {
+              "internalType": "string",
+              "name": "",
+              "type": "string"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "INTENT_HALT_TYPEHASH",
           "outputs": [
             {
               "internalType": "bytes32",
@@ -2740,6 +2861,63 @@
           "type": "function"
         },
         {
+          "inputs": [
+            {
+              "internalType": "bytes32",
+              "name": "commitment",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "reportHash",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "string",
+              "name": "reason",
+              "type": "string"
+            },
+            {
+              "internalType": "uint256",
+              "name": "nonce",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "deadline",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bytes",
+              "name": "signature",
+              "type": "bytes"
+            }
+          ],
+          "name": "haltBySig",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "name": "haltNonces",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
           "inputs": [],
           "name": "maxDelay",
           "outputs": [
@@ -2907,7 +3085,7 @@
       "args": [
         {
           "type": "address",
-          "value": "0xc6e7DF5E7b4f2A278906862b61205850344D4e7d"
+          "value": "0x809d550fca64d94Bd9F66E60752A544199cfAC3D"
         },
         {
           "type": "address",
@@ -2926,12 +3104,12 @@
           "value": "1209600"
         }
       ],
-      "blockNumber": 23,
-      "txHash": "0xa7282c74dc98008f27a28c014128929074a4d1534f7f9996f3be733ef0f4eda1",
+      "blockNumber": 90,
+      "txHash": "0x9f146ac8b612e79284a1789dac0ad686c653fc7addbefd37b1eb62a030af9ebd",
       "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
     },
     "IntentGovernor": {
-      "address": "0x322813Fd9A801c5507c9de605d63CEA4f2CE6c44",
+      "address": "0x5f3f1dBD7B74C6B46e8c44f98792A1dAf8d69154",
       "abi": [
         {
           "inputs": [
@@ -2983,6 +3161,11 @@
             }
           ],
           "name": "AlreadyVoted",
+          "type": "error"
+        },
+        {
+          "inputs": [],
+          "name": "BadSignature",
           "type": "error"
         },
         {
@@ -3038,6 +3221,22 @@
           "inputs": [
             {
               "internalType": "address",
+              "name": "signer",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "nonce",
+              "type": "uint256"
+            }
+          ],
+          "name": "NonceUsed",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "address",
               "name": "caller",
               "type": "address"
             },
@@ -3064,6 +3263,17 @@
             }
           ],
           "name": "QuorumNotReached",
+          "type": "error"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "deadline",
+              "type": "uint256"
+            }
+          ],
+          "name": "SignatureExpired",
           "type": "error"
         },
         {
@@ -3254,6 +3464,37 @@
               "type": "uint256"
             },
             {
+              "indexed": true,
+              "internalType": "address",
+              "name": "voter",
+              "type": "address"
+            },
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "relayer",
+              "type": "address"
+            },
+            {
+              "indexed": false,
+              "internalType": "bytes32",
+              "name": "briefHash",
+              "type": "bytes32"
+            }
+          ],
+          "name": "VoteRelayed",
+          "type": "event"
+        },
+        {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "uint256",
+              "name": "govId",
+              "type": "uint256"
+            },
+            {
               "indexed": false,
               "internalType": "uint256",
               "name": "voteStart",
@@ -3268,6 +3509,58 @@
           ],
           "name": "VotingOpened",
           "type": "event"
+        },
+        {
+          "inputs": [],
+          "name": "DOMAIN_SEPARATOR",
+          "outputs": [
+            {
+              "internalType": "bytes32",
+              "name": "",
+              "type": "bytes32"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "EIP712_NAME",
+          "outputs": [
+            {
+              "internalType": "string",
+              "name": "",
+              "type": "string"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "EIP712_VERSION",
+          "outputs": [
+            {
+              "internalType": "string",
+              "name": "",
+              "type": "string"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [],
+          "name": "INTENT_VOTE_TYPEHASH",
+          "outputs": [
+            {
+              "internalType": "bytes32",
+              "name": "",
+              "type": "bytes32"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
         },
         {
           "inputs": [
@@ -3649,6 +3942,25 @@
         {
           "inputs": [
             {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "name": "nonces",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "view",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
               "internalType": "uint256",
               "name": "govId",
               "type": "uint256"
@@ -3795,6 +4107,54 @@
               "type": "uint256"
             },
             {
+              "internalType": "address",
+              "name": "voter",
+              "type": "address"
+            },
+            {
+              "internalType": "uint8",
+              "name": "support",
+              "type": "uint8"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "briefHash",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "string",
+              "name": "statement",
+              "type": "string"
+            },
+            {
+              "internalType": "uint256",
+              "name": "nonce",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "deadline",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bytes",
+              "name": "signature",
+              "type": "bytes"
+            }
+          ],
+          "name": "voteBySig",
+          "outputs": [],
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "inputs": [
+            {
+              "internalType": "uint256",
+              "name": "govId",
+              "type": "uint256"
+            },
+            {
               "internalType": "uint8",
               "name": "support",
               "type": "uint8"
@@ -3879,19 +4239,19 @@
       "args": [
         {
           "type": "address",
-          "value": "0x3Aa5ebB10DC797CAC828524e59A333d0A371443c"
+          "value": "0x36C02dA8a0983159322a80FFE9F24b1acfF8B570"
         },
         {
           "type": "address",
-          "value": "0xc6e7DF5E7b4f2A278906862b61205850344D4e7d"
+          "value": "0x809d550fca64d94Bd9F66E60752A544199cfAC3D"
         },
         {
           "type": "address",
-          "value": "0x59b670e9fA9D0A427751Af201D676719a970857b"
+          "value": "0x4c5859f0F772848b2D91F1D83E2Fe57935348029"
         },
         {
           "type": "address",
-          "value": "0x4ed7c70F96B99c776995fB64377f0d4aB3B0e1C1"
+          "value": "0x1291Be112d480055DaFd8a610b7d1e203891C274"
         },
         {
           "type": "uint256",
@@ -3906,12 +4266,12 @@
           "value": "3600"
         }
       ],
-      "blockNumber": 24,
-      "txHash": "0xb2d2ddfc5250b1172989b6eeeffb53f3515db59cccb5e80fe50ccd5efa1fb87c",
+      "blockNumber": 91,
+      "txHash": "0xa73e7aed4a13abdb423334bb82795ef97e0c3819bfea638385ab5a7e633525a6",
       "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
     },
     "FeeModule": {
-      "address": "0x4A679253410272dd5232B3Ff7cF5dbB88f295319",
+      "address": "0xCD8a1C3ba11CF5ECfa6267617243239504a98d90",
       "abi": [
         {
           "inputs": [
@@ -4062,15 +4422,15 @@
         },
         {
           "type": "address",
-          "value": "0x4ed7c70F96B99c776995fB64377f0d4aB3B0e1C1"
+          "value": "0x1291Be112d480055DaFd8a610b7d1e203891C274"
         }
       ],
-      "blockNumber": 26,
-      "txHash": "0xb9dfc7b961b1b5205d68cb549956a9a6d49973ac5ce70ae20079f59c005d5b77",
+      "blockNumber": 93,
+      "txHash": "0x16917494af31acea60b8107cc51e55626509dcdb995945f530aff2654fd60d92",
       "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
     },
     "TreasuryProxy": {
-      "address": "0x7a2088a1bFc9d81c55368AE168C2C02570cB814F",
+      "address": "0x82e01223d51Eb87e16A03E24687EDF0F294da6f1",
       "abi": [
         {
           "inputs": [
@@ -4267,19 +4627,19 @@
       "args": [
         {
           "type": "address",
-          "value": "0x4ed7c70F96B99c776995fB64377f0d4aB3B0e1C1"
+          "value": "0x1291Be112d480055DaFd8a610b7d1e203891C274"
         },
         {
           "type": "address",
-          "value": "0x4A679253410272dd5232B3Ff7cF5dbB88f295319"
+          "value": "0xCD8a1C3ba11CF5ECfa6267617243239504a98d90"
         }
       ],
-      "blockNumber": 27,
-      "txHash": "0xa5027674ab3a4ddebd948193124b0c3e59dce768eb601bfbf447aa55b2abe591",
+      "blockNumber": 94,
+      "txHash": "0x9e38bb111b6637ef9832b7618a53fae9c9340b2d3a4f8a0a5c15fec5a5513d5d",
       "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
     },
     "MaliciousImpl": {
-      "address": "0x09635F643e140090A9A8Dcd712eD6285858ceBef",
+      "address": "0x2bdCC0de6bE1f7D2ee689a0342D76F52E8EFABa3",
       "abi": [
         {
           "inputs": [
@@ -4381,12 +4741,12 @@
           "value": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
         }
       ],
-      "blockNumber": 28,
-      "txHash": "0x4de383051bb0affaf151842178f060c0929968e67955e2f40a054b5534b4318b",
+      "blockNumber": 95,
+      "txHash": "0x7e6954322eac5bd296feec63544b2e2c15c1cf59f7c1af8f599b75eb53304d51",
       "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
     },
     "ReentrantRecipient": {
-      "address": "0xc5a5C42992dECbae36851359345FE25997F5C42d",
+      "address": "0x7969c5eD335650692Bc04293B07F5BF2e7A673C0",
       "abi": [
         {
           "inputs": [
@@ -4724,15 +5084,15 @@
       "args": [
         {
           "type": "address",
-          "value": "0x4ed7c70F96B99c776995fB64377f0d4aB3B0e1C1"
+          "value": "0x1291Be112d480055DaFd8a610b7d1e203891C274"
         }
       ],
-      "blockNumber": 29,
-      "txHash": "0xbe2ba3b49bab18890b06c8d7ec7ad60ff6ed6987ab9fccd0c7d5a205f197d75a",
+      "blockNumber": 96,
+      "txHash": "0x1f1b4096ff12625d2680dcd421b277e786b6c2b3c079bff65dc4e4af92edb00c",
       "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
     },
     "VulnerableProxy": {
-      "address": "0x67d269191c92Caf3cD7723F116c85e6E9bf55933",
+      "address": "0x7bc06c482DEAd17c0e297aFbC32f6e63d3846650",
       "abi": [
         {
           "inputs": [
@@ -4922,15 +5282,15 @@
       "args": [
         {
           "type": "address",
-          "value": "0x4ed7c70F96B99c776995fB64377f0d4aB3B0e1C1"
+          "value": "0x1291Be112d480055DaFd8a610b7d1e203891C274"
         },
         {
           "type": "address",
-          "value": "0x4A679253410272dd5232B3Ff7cF5dbB88f295319"
+          "value": "0xCD8a1C3ba11CF5ECfa6267617243239504a98d90"
         }
       ],
-      "blockNumber": 30,
-      "txHash": "0x9f0617334903fb2d63f31639494ef5cfbed634bb3b5018d67d6a084afea3b372",
+      "blockNumber": 97,
+      "txHash": "0xcae9c5783b6f4a0153ca4daacfbe9241007d5d84c663b135b88c515cfaf5108d",
       "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
     }
   }
