@@ -42,6 +42,7 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  overscroll-behavior-y: none;
 }
 
 /* paper grain, held on its own compositor layer */
@@ -460,6 +461,7 @@ samp {
   position: sticky;
   top: 0;
   z-index: 40;
+  padding-top: env(safe-area-inset-top);
   border-bottom: 1px solid var(--color-edge);
   background: rgba(242, 239, 231, 0.9);
   backdrop-filter: blur(12px);
@@ -524,6 +526,49 @@ samp {
   text-decoration: underline;
   text-decoration-color: rgba(226, 59, 40, 0.55);
   text-underline-offset: 3px;
+}
+
+.app-install-link {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  color: var(--color-danger);
+  text-decoration: underline;
+  text-decoration-color: rgba(226, 59, 40, 0.4);
+  text-underline-offset: 3px;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+.app-install-link:hover {
+  color: var(--color-body);
+  text-decoration-color: var(--color-danger);
+}
+
+.signer-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-sans);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.signer-tag:hover {
+  color: var(--color-body);
+  text-decoration: underline;
+  text-decoration-color: rgba(226, 59, 40, 0.45);
+  text-underline-offset: 3px;
+}
+
+.signer-mark {
+  width: 6px;
+  height: 6px;
+  background: currentColor;
+  flex: none;
 }
 
 .app-header-note {
@@ -653,7 +698,7 @@ samp {
   margin: 0 auto;
   width: 100%;
   max-width: 1480px;
-  padding: 28px 18px 96px;
+  padding: 28px 18px calc(96px + env(safe-area-inset-bottom));
 }
 
 @media (min-width: 640px) {
@@ -673,6 +718,7 @@ samp {
 .app-footer {
   position: relative;
   z-index: 10;
+  padding-bottom: env(safe-area-inset-bottom);
   border-top: 1px solid var(--color-edge);
 }
 

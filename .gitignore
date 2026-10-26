@@ -19,3 +19,6 @@ packages/shared/fixtures/preview-cache.json
 
 console/public/atlas.html
 console/public/report.html
+
+console/certs/
+console/public/aegis-ca.crt

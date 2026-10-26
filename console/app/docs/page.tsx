@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { InstallApp } from "@/components/InstallApp";
 
 const TOUR = [
   { href: "/trail", label: "Decision trail", note: "the blocked record" },
@@ -125,6 +126,46 @@ npm run dev`}
               /api/live/proposals
             </Link>
           </div>
+        </section>
+
+        <section className="doc-section">
+          <div className="doc-section-head">
+            <h2 className="doc-section-title">Android app</h2>
+            <span className="doc-folio">installable PWA</span>
+          </div>
+          <p className="max-w-[66ch] text-[12.5px] leading-relaxed text-dim">
+            The console runs as a standalone Android app from Chrome. This is a
+            PWA, not a native APK: the narrative pages cache for offline use, while
+            the live chain needs the PC and the Hardhat node on the same Wi-Fi.
+          </p>
+          <ol className="mt-3 max-w-[72ch] list-decimal space-y-2 pl-5 text-[12px] leading-relaxed text-dim">
+            <li>
+              On the PC, from <code>console/</code>: <code>npm run build</code>,{" "}
+              <code>npm start</code>, <code>npm run android:cert</code>,{" "}
+              <code>npm run serve:https</code>.
+            </li>
+            <li>
+              On the phone, open <code>http://&lt;PC-IP&gt;:3000/aegis-ca.crt</code>{" "}
+              and install it as a CA certificate (Settings → Security → Encryption
+              &amp; credentials → Install a certificate → CA certificate).
+            </li>
+            <li>
+              Open <code>https://&lt;PC-IP&gt;:3443/trail</code> in Chrome, then use
+              the browser menu or the Install app button to install it.
+            </li>
+          </ol>
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <InstallApp />
+            <span className="doc-note">
+              The button appears when Chrome offers installation.
+            </span>
+          </div>
+          <p className="doc-note mt-3">
+            The HTTPS server prints the exact phone URLs. Find the PC address with{" "}
+            <code>ipconfig</code>, and allow Node through Windows Firewall on private
+            networks. A native APK would need the Android SDK and JDK, which are not
+            installed on this machine.
+          </p>
         </section>
 
         <section className="doc-section">

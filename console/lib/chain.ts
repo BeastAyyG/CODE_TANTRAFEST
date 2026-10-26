@@ -238,6 +238,23 @@ export async function getServerSigner(
   return getDevSigner(accountIndex ?? ROLE_DEV_INDEX[role]);
 }
 
+/**
+ * The relayer submits signed votes and halts and pays gas. It never holds a
+ * voter or guardian key. On the local chain a funded dev account is used.
+ */
+export async function getRelayerSigner(): Promise<ethers.Signer> {
+  const key = process.env.RELAYER_KEY;
+  if (key) {
+    return new ethers.Wallet(normalizeKey(key.trim()), getProvider());
+  }
+  if (APP_CHAIN_ID === 31337 && devSignerAllowed()) {
+    return getDevSigner(9);
+  }
+  throw new Error(
+    "RELAYER_KEY is required outside the local Hardhat chain. Fund a relayer and set it in .env."
+  );
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Contract instances (read-only)
 // ─────────────────────────────────────────────────────────────────────────────

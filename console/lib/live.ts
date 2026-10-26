@@ -13,11 +13,14 @@ import fs from "node:fs";
 import path from "node:path";
 import { repoRoot } from "./backend";
 import type {
+  AccountState,
   ActionReceipt,
   ChainVerification,
   DisclosureState,
   EvaluationChain,
   Proposal,
+  SignerType,
+  SigningConfig,
   VotingState,
   VersionChain,
   VersionEntry,
@@ -25,6 +28,7 @@ import type {
 import {
   getProvider,
   getServerSigner,
+  getRelayerSigner,
   getProposalRegistry,
   getIntentGovernor,
   getDisclosureRegistry,
@@ -33,6 +37,8 @@ import {
   ProposalState,
   decodeRevert,
 } from "./chain";
+import { readExecutionBundles, readLiveReports } from "../../sentinel/live-store";
+import { renderIntentStatement, type StatementAction } from "./signing";
 import {
   normalizeProposalTitle,
   proposalLabel,
@@ -356,6 +362,7 @@ export type TxStatus = "pending" | "confirmed" | "reverted";
 export interface TxResult {
   status: TxStatus;
   hash: string;
+  blockNumber?: number;
   decoded?: ReturnType<typeof decodeRevert>;
 }
 
@@ -381,26 +388,28 @@ async function waitTx(
     }
     return { status: "reverted", hash: tx.hash, decoded };
   }
-  return { status: "confirmed", hash: tx.hash };
+  return { status: "confirmed", hash: tx.hash, blockNumber: receipt?.blockNumber };
 }
 
-/** Vote for a proposal (support=1 = FOR). */
+/** Vote with the server-side dev signer. support: 0 against, 1 for, 2 abstain. */
 export async function liveCastVote(
   govId: string,
   withBrief: boolean,
   briefHash: string = ethers.ZeroHash,
-  accountIndex = 0
+  accountIndex = 0,
+  support = 1
 ): Promise<ActionReceipt> {
   const role = accountIndex === 1 ? "voter2" : accountIndex === 2 ? "voter3" : "voter1";
   const signer = await getServerSigner(role, 4 + Math.min(accountIndex, 2));
+  const signerAddress = await signer.getAddress();
   const gov = getIntentGovernor().connect(signer) as ethers.Contract;
   const gid = BigInt(govId);
 
   let tx: ethers.TransactionResponse;
   if (withBrief) {
-    tx = await gov.voteWithBrief(gid, 1, briefHash);
+    tx = await gov.voteWithBrief(gid, support, briefHash);
   } else {
-    tx = await gov.castVote(gid, 1);
+    tx = await gov.castVote(gid, support);
   }
 
   const result = await waitTx(tx);
@@ -415,6 +424,288 @@ export async function liveCastVote(
       ? `Vote cast with brief acknowledgment. Tx: ${result.hash}`
       : `Vote cast. Tx: ${result.hash}`,
     hash: result.hash,
+    blockNumber: result.blockNumber,
+    signerType: "DEV",
+    signerAddress,
+  };
+}
+
+function shortAddress(value: string | undefined): string {
+  if (!value) return "—";
+  return `${value.slice(0, 6)}…${value.slice(-4)}`;
+}
+
+function signingActionsFromBundle(
+  bundle:
+    | {
+        rules: { kind: number; target: string; counterparty: string; maxAmount: string }[];
+        labels?: Record<string, string>;
+      }
+    | undefined
+): StatementAction[] {
+  if (!bundle) return [];
+  const labels = bundle.labels ?? {};
+  const labelFor = (address: string | undefined, fallback: string) =>
+    address ? labels[address.toLowerCase()] ?? fallback : fallback;
+
+  return bundle.rules.map((rule) => {
+    const kindName =
+      rule.kind === 0
+        ? "ERC20_TRANSFER"
+        : rule.kind === 1
+          ? "ERC20_APPROVE"
+          : rule.kind === 2
+            ? "PARAM_SET"
+            : rule.kind === 3
+              ? "UPGRADE"
+              : rule.kind === 4
+                ? "OWNERSHIP_TRANSFER"
+                : "MULTICALL";
+    const target = labelFor(rule.target, shortAddress(rule.target));
+    const recipient = labelFor(rule.counterparty, shortAddress(rule.counterparty));
+    const amount =
+      rule.kind === 0 || rule.kind === 1
+        ? Number(ethers.formatUnits(BigInt(rule.maxAmount), 6)).toLocaleString("en-US", {
+            maximumFractionDigits: 0,
+          })
+        : undefined;
+    return {
+      kind: kindName,
+      amount,
+      token: rule.kind === 0 || rule.kind === 1 ? "USDC" : undefined,
+      target,
+      recipient,
+      label:
+        kindName === "MULTICALL"
+          ? "execute a multicall"
+          : undefined,
+    };
+  });
+}
+
+export async function liveGetAccountState(address: string): Promise<AccountState> {
+  if (!ethers.isAddress(address)) {
+    throw new Error("A valid account address is required.");
+  }
+  const account = ethers.getAddress(address);
+  const gov = getIntentGovernor();
+  const exec = getIntentLockExecutor();
+  const tokenAddress = await gov.votingToken();
+  const token = new ethers.Contract(
+    tokenAddress,
+    ["function balanceOf(address) view returns (uint256)"],
+    getProvider()
+  );
+  const guardian = await exec.guardian();
+
+  return {
+    address: account,
+    chainId: Number((await getProvider().getNetwork()).chainId),
+    nativeBalance: (await getProvider().getBalance(account)).toString(),
+    tokenBalance: (await token.balanceOf(account)).toString(),
+    tokenAddress,
+    isGuardian: account.toLowerCase() === guardian.toLowerCase(),
+    guardian,
+    voteNonce: String(await gov.nonces(account)),
+    haltNonce: String(await exec.haltNonces(account)),
+  };
+}
+
+export async function liveGetSigningConfig(input: {
+  govId: string;
+  voter?: string;
+  signer?: string;
+}): Promise<SigningConfig> {
+  const gov = getIntentGovernor();
+  const exec = getIntentLockExecutor();
+  const govId = BigInt(input.govId);
+  const proposal = await gov.getGovProposal(govId);
+  const commitment = hex32(proposal.commitment);
+  const state = GOV_STATE_LABEL[Number(proposal.state)] ?? "Unknown";
+  const bundle = Object.values(readExecutionBundles().bundles).find(
+    (candidate) =>
+      candidate.commitment.toLowerCase() === commitment.toLowerCase() ||
+      candidate.govId === input.govId
+  );
+  const actions = signingActionsFromBundle(bundle);
+  const statement = renderIntentStatement(
+    bundle?.title ?? `Proposal ${proposal.proposalId}`,
+    actions
+  );
+  const voter =
+    input.voter && ethers.isAddress(input.voter) ? ethers.getAddress(input.voter) : null;
+  const signer =
+    input.signer && ethers.isAddress(input.signer) ? ethers.getAddress(input.signer) : null;
+  const guardian = await exec.guardian();
+  const votingToken = await gov.votingToken();
+  const vote = voter ? await gov.votes(govId, voter) : null;
+  const balance = voter
+    ? await new ethers.Contract(
+        votingToken,
+        ["function balanceOf(address) view returns (uint256)"],
+        getProvider()
+      ).balanceOf(voter)
+    : 0n;
+
+  const reports = readLiveReports();
+  const pendingEvent = reports.events
+    .slice()
+    .reverse()
+    .find(
+      (event) =>
+        event.commitment.toLowerCase() === commitment.toLowerCase() &&
+        event.phase !== "HALTED" &&
+        Boolean(event.reportHash)
+    );
+  const pendingResult = reports.results[commitment.toLowerCase()];
+
+  return {
+    chainId: Number((await getProvider().getNetwork()).chainId),
+    govId: input.govId,
+    proposalId: String(proposal.proposalId),
+    title: bundle?.title ?? `Proposal ${proposal.proposalId}`,
+    state,
+    commitment,
+    version: Number(proposal.version),
+    governor: {
+      address: await gov.getAddress(),
+      name: await gov.EIP712_NAME(),
+      version: await gov.EIP712_VERSION(),
+      domainSeparator: await gov.DOMAIN_SEPARATOR(),
+    },
+    executor: {
+      address: await exec.getAddress(),
+      name: await exec.EIP712_NAME(),
+      version: await exec.EIP712_VERSION(),
+      domainSeparator: await exec.DOMAIN_SEPARATOR(),
+      guardian,
+    },
+    votingToken,
+    statement,
+    statementActions: actions,
+    briefHash: ethers.id(statement),
+    deadline: Math.floor(Date.now() / 1000) + 900,
+    voteNonce: voter ? String(await gov.nonces(voter)) : "0",
+    haltNonce: signer ? String(await exec.haltNonces(signer)) : "0",
+    voter,
+    voterBalance: String(balance ?? 0n),
+    voterHasVoted: Boolean(vote?.hasVoted),
+    isGuardian: Boolean(signer && signer.toLowerCase() === guardian.toLowerCase()),
+    pendingHalt:
+      pendingEvent?.reportHash
+        ? {
+            reportHash: pendingEvent.reportHash,
+            reason:
+              pendingResult?.reason ??
+              pendingEvent.report?.violatedConstraint.code ??
+              "Sentinel violation",
+            detail:
+              pendingEvent.report?.violatedConstraint.message ??
+              pendingEvent.detail,
+          }
+        : null,
+  };
+}
+
+export async function liveRelayVote(input: {
+  govId: string;
+  voter: string;
+  support: number;
+  briefHash: string;
+  statement: string;
+  nonce: string;
+  deadline: string;
+  signature: string;
+  signerType: SignerType;
+}): Promise<ActionReceipt> {
+  const relayer = await getRelayerSigner();
+  const gov = getIntentGovernor().connect(relayer) as ethers.Contract;
+  const tx = await gov.voteBySig(
+    BigInt(input.govId),
+    input.voter,
+    input.support,
+    input.briefHash,
+    input.statement,
+    BigInt(input.nonce),
+    BigInt(input.deadline),
+    input.signature
+  );
+  const result = await waitTx(tx);
+  if (result.status === "reverted") {
+    throw new Error(
+      result.decoded
+        ? `${result.decoded.title}: ${result.decoded.explanation}`
+        : `Relayed vote reverted (tx: ${result.hash})`
+    );
+  }
+  return {
+    message: `Vote relayed by ${await relayer.getAddress()}. Tx: ${result.hash}`,
+    hash: result.hash,
+    blockNumber: result.blockNumber,
+    signerType: input.signerType,
+    signerAddress: input.voter,
+  };
+}
+
+export async function liveRelayHalt(input: {
+  commitment: string;
+  reportHash: string;
+  reason: string;
+  nonce: string;
+  deadline: string;
+  signature: string;
+  signerType: SignerType;
+  signerAddress: string;
+}): Promise<ActionReceipt> {
+  const relayer = await getRelayerSigner();
+  const exec = getIntentLockExecutor().connect(relayer) as ethers.Contract;
+  const tx = await exec.haltBySig(
+    input.commitment,
+    input.reportHash,
+    input.reason,
+    BigInt(input.nonce),
+    BigInt(input.deadline),
+    input.signature
+  );
+  const result = await waitTx(tx);
+  if (result.status === "reverted") {
+    throw new Error(
+      result.decoded
+        ? `${result.decoded.title}: ${result.decoded.explanation}`
+        : `Relayed halt reverted (tx: ${result.hash})`
+    );
+  }
+  return {
+    message: `Guardian halt relayed by ${await relayer.getAddress()}. Tx: ${result.hash}`,
+    hash: result.hash,
+    blockNumber: result.blockNumber,
+    signerType: input.signerType,
+    signerAddress: input.signerAddress,
+  };
+}
+
+export async function liveAutoHalt(input: {
+  commitment: string;
+  reportHash: string;
+}): Promise<ActionReceipt> {
+  const guardian = await getServerSigner("guardian");
+  const guardianAddress = await guardian.getAddress();
+  const exec = getIntentLockExecutor().connect(guardian) as ethers.Contract;
+  const tx = await exec.halt(input.commitment, input.reportHash);
+  const result = await waitTx(tx);
+  if (result.status === "reverted") {
+    throw new Error(
+      result.decoded
+        ? `${result.decoded.title}: ${result.decoded.explanation}`
+        : `Automatic halt reverted (tx: ${result.hash})`
+    );
+  }
+  return {
+    message: `Halt submitted by the guardian dev signer. Tx: ${result.hash}`,
+    hash: result.hash,
+    blockNumber: result.blockNumber,
+    signerType: "DEV",
+    signerAddress: guardianAddress,
   };
 }
 

@@ -7,7 +7,8 @@ import {
   liveGetVotingState,
 } from "@/lib/live";
 import type { Proposal, VersionChain, VotingState } from "@/lib/types";
-import { LiveVote } from "@/components/LiveVote";
+import { GuardianHalt } from "@/components/GuardianHalt";
+import { HardwareVote } from "@/components/HardwareVote";
 import { HashLine, StatusPill, type StatusLike } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
@@ -299,10 +300,21 @@ export default async function LiveProposalPage({
           <section className="doc-section">
             <div className="doc-section-head">
               <h2 className="doc-section-title">Cast a live vote</h2>
-              <span className="doc-folio">local dev signer</span>
+              <span className="doc-folio">dev · browser · hardware</span>
             </div>
-            <LiveVote govId={proposal?.govId ?? ""} />
+            <HardwareVote
+              govId={proposal?.govId ?? ""}
+              proposalId={proposal?.id ?? id}
+              version={chain?.version ?? 1}
+            />
           </section>
+        ) : null}
+
+        {chain?.state === "Queued" ? (
+          <GuardianHalt
+            govId={proposal?.govId ?? ""}
+            commitment={chain.commitment}
+          />
         ) : null}
 
         <section className="doc-section">

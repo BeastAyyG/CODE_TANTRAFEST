@@ -3,7 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { MonitorPlay } from "lucide-react";
+import { InstallApp } from "@/components/InstallApp";
+import { InstallBanner } from "@/components/InstallBanner";
 import { JudgeMode } from "@/components/JudgeMode";
+import { SignerTag } from "@/components/SignerTag";
 
 const NAV = [
   { href: "/trail", label: "Trail" },
@@ -71,6 +74,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </nav>
 
           <div className="app-header-actions">
+            <SignerTag />
             <JudgeMode />
             <Link
               href="/present"
@@ -104,12 +108,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </nav>
       </header>
 
+      <InstallBanner />
+
       <main className="app-main">{children}</main>
 
       <footer className="app-footer">
         <div className="app-footer-inner">
-          <p>AegisDAO IntentLock · AIP-042 · editorial edition</p>
-          <p>Reference model · wallet data simulated · live chain at /live</p>
+          <p>AegisDAO IntentLock, AIP-042, editorial edition</p>
+          <div className="flex flex-wrap items-center gap-4">
+            <p>Reference model, wallet data simulated, live chain at /live</p>
+            <InstallApp />
+          </div>
         </div>
       </footer>
     </div>

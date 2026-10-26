@@ -360,9 +360,72 @@ export interface DisclosurePreview {
   interestsHash: string;
 }
 
+export type SignerType = "DEV" | "BROWSER" | "HARDWARE";
+
 export interface ActionReceipt {
   message: string;
   hash?: string;
+  blockNumber?: number;
+  signerType?: SignerType;
+  signerAddress?: string;
+}
+
+export interface AccountState {
+  address: string;
+  chainId: number;
+  nativeBalance: string;
+  tokenBalance: string;
+  tokenAddress: string;
+  isGuardian: boolean;
+  guardian: string;
+  voteNonce: string;
+  haltNonce: string;
+}
+
+export interface SigningConfig {
+  chainId: number;
+  govId: string;
+  proposalId: string;
+  title: string;
+  state: string;
+  commitment: string;
+  version: number;
+  governor: {
+    address: string;
+    name: string;
+    version: string;
+    domainSeparator: string;
+  };
+  executor: {
+    address: string;
+    name: string;
+    version: string;
+    domainSeparator: string;
+    guardian: string;
+  };
+  votingToken: string;
+  statement: string;
+  statementActions: {
+    kind: string;
+    amount?: string;
+    token?: string;
+    recipient?: string;
+    target?: string;
+    label?: string;
+  }[];
+  briefHash: string;
+  deadline: number;
+  voteNonce: string;
+  haltNonce: string;
+  voter: string | null;
+  voterBalance: string;
+  voterHasVoted: boolean;
+  isGuardian: boolean;
+  pendingHalt: {
+    reportHash: string;
+    reason: string;
+    detail: string;
+  } | null;
 }
 
 export interface RiskBrief {

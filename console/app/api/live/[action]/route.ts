@@ -1,13 +1,18 @@
 import { NextResponse } from "next/server";
 import {
+  liveAutoHalt,
   liveCastVote,
   liveFileChallenge,
+  liveGetAccountState,
   liveGetDisclosureState,
   liveGetExecutionState,
   liveGetProposals,
+  liveGetSigningConfig,
   liveGetVersionChain,
   liveGetVotingState,
   livePublishDisclosure,
+  liveRelayHalt,
+  liveRelayVote,
   liveSubmitDisclosure,
   liveVerifyVersionChain,
 } from "../../../../lib/live";
@@ -24,8 +29,23 @@ export async function GET(
   const proposalId = search.get("proposalId");
   const govId = search.get("govId");
   const commitment = search.get("commitment");
+  const voter = search.get("voter");
+  const signer = search.get("signer");
+  const address = search.get("address");
 
   try {
+    if (action === "account-state" && address) {
+      return NextResponse.json(await liveGetAccountState(address));
+    }
+    if (action === "signing-config" && govId) {
+      return NextResponse.json(
+        await liveGetSigningConfig({
+          govId,
+          voter: voter ?? undefined,
+          signer: signer ?? undefined,
+        })
+      );
+    }
     if (action === "proposals") {
       return NextResponse.json(await liveGetProposals());
     }
@@ -69,8 +89,84 @@ export async function POST(
       typeof body.withBrief === "boolean"
     ) {
       const briefHash = typeof body.briefHash === "string" ? body.briefHash : undefined;
+      const support =
+        typeof body.support === "number" && [0, 1, 2].includes(body.support)
+          ? body.support
+          : 1;
       return NextResponse.json(
-        await liveCastVote(body.govId, body.withBrief, briefHash, accountIndex)
+        await liveCastVote(
+          body.govId,
+          body.withBrief,
+          briefHash,
+          accountIndex,
+          support
+        )
+      );
+    }
+
+    if (
+      action === "relay-vote" &&
+      typeof body.govId === "string" &&
+      typeof body.voter === "string" &&
+      typeof body.support === "number" &&
+      [0, 1, 2].includes(body.support) &&
+      typeof body.briefHash === "string" &&
+      typeof body.statement === "string" &&
+      typeof body.nonce === "string" &&
+      typeof body.deadline === "string" &&
+      typeof body.signature === "string" &&
+      (body.signerType === "BROWSER" || body.signerType === "HARDWARE")
+    ) {
+      return NextResponse.json(
+        await liveRelayVote({
+          govId: body.govId,
+          voter: body.voter,
+          support: body.support,
+          briefHash: body.briefHash,
+          statement: body.statement,
+          nonce: body.nonce,
+          deadline: body.deadline,
+          signature: body.signature,
+          signerType: body.signerType,
+        })
+      );
+    }
+
+    if (
+      action === "relay-halt" &&
+      typeof body.commitment === "string" &&
+      typeof body.reportHash === "string" &&
+      typeof body.reason === "string" &&
+      typeof body.nonce === "string" &&
+      typeof body.deadline === "string" &&
+      typeof body.signature === "string" &&
+      typeof body.signerAddress === "string" &&
+      (body.signerType === "BROWSER" || body.signerType === "HARDWARE")
+    ) {
+      return NextResponse.json(
+        await liveRelayHalt({
+          commitment: body.commitment,
+          reportHash: body.reportHash,
+          reason: body.reason,
+          nonce: body.nonce,
+          deadline: body.deadline,
+          signature: body.signature,
+          signerType: body.signerType,
+          signerAddress: body.signerAddress,
+        })
+      );
+    }
+
+    if (
+      action === "auto-halt" &&
+      typeof body.commitment === "string" &&
+      typeof body.reportHash === "string"
+    ) {
+      return NextResponse.json(
+        await liveAutoHalt({
+          commitment: body.commitment,
+          reportHash: body.reportHash,
+        })
       );
     }
 

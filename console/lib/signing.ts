@@ -37,6 +37,7 @@ export type IntentHaltTypedDataInput = {
 export type IntentTypedData = {
   domain: ethers.TypedDataDomain;
   types: Record<string, { name: string; type: string }[]>;
+  primaryType: string;
   message: Record<string, unknown>;
 };
 
@@ -72,6 +73,7 @@ export function buildIntentVoteTypedData(
       verifyingContract: input.verifyingContract,
     },
     types: VOTE_TYPES,
+    primaryType: "IntentVote",
     message: {
       govId: input.govId,
       commitment: input.commitment,
@@ -94,6 +96,7 @@ export function buildIntentHaltTypedData(
       verifyingContract: input.verifyingContract,
     },
     types: HALT_TYPES,
+    primaryType: "IntentHalt",
     message: {
       commitment: input.commitment,
       reportHash: input.reportHash,
