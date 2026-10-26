@@ -80,21 +80,35 @@ async function getDmk(): Promise<DeviceManagementKit> {
   }
 }
 
-function formatDeviceError(error: unknown): string {
+export function formatDeviceError(error: unknown): string {
   if (!error) return "Unknown device error.";
   let raw = "";
   if (error instanceof Error) raw = error.message;
-  else if (typeof error === "object" && "message" in error) {
-    raw = String((error as { message: unknown }).message);
+  else if (typeof error === "object" && error !== null) {
+    if ("message" in error && typeof (error as { message: unknown }).message === "string") {
+      raw = (error as { message: string }).message;
+    } else if ("originalError" in error && (error as { originalError: unknown }).originalError instanceof Error) {
+      raw = ((error as { originalError: Error }).originalError).message;
+    } else if ("_tag" in error) {
+      raw = String((error as { _tag: unknown })._tag);
+    } else {
+      raw = JSON.stringify(error);
+    }
   } else {
-    raw = JSON.stringify(error);
+    raw = String(error);
   }
 
+  if (raw.includes("DeviceLocked") || raw.includes("5515")) {
+    return "Your Ledger is locked. Please enter your PIN on your Ledger device to unlock it.";
+  }
   if (raw.includes("Unknown application name") || raw.includes("6807")) {
     return "Ethereum app not open on device. Please unlock your Ledger and open the Ethereum app (ensure it is installed via Ledger Live).";
   }
   if (raw.includes("No selected device") || raw.includes("NoAccessibleDeviceError")) {
     return "No Ledger device selected. In the browser popup, click on your device name to select it, then click Connect.";
+  }
+  if (raw.includes("RefusedByUser") || raw.includes("6985") || raw.includes("UserRefused")) {
+    return "Action was rejected or cancelled on the Ledger device.";
   }
   return raw;
 }
@@ -253,56 +267,60 @@ export async function connectLedgerWallet(
     );
   }
 
-  const dmk = await getDmk();
-  const { webHidIdentifier } = await import(
-    "@ledgerhq/device-transport-kit-web-hid"
-  );
-  const { SignerEthBuilder } = await import(
-    "@ledgerhq/device-signer-kit-ethereum"
-  );
-
-  onProgress?.("Discovering Ledger device");
-  const device = await firstDiscovered(
-    dmk.startDiscovering({ transport: webHidIdentifier }) as unknown as ObservableLike<DiscoveredDevice>
-  );
-  await dmk.stopDiscovering();
-  onProgress?.("Connecting to Ledger");
-  const sessionId = await dmk.connect({ device });
-  const signer = new SignerEthBuilder({ dmk, sessionId }).build();
-  onProgress?.("Reading address");
-  let addressOutput: { address: string };
   try {
-    // Attempt 1: skipOpenApp: true (standard when Ethereum app is already opened on the device)
-    addressOutput = await runDeviceAction(
-      signer.getAddress(DEFAULT_DERIVATION_PATH, {
-        checkOnDevice: false,
-        skipOpenApp: true,
-      }) as unknown as ActionReturn<{ address: string }>,
-      onProgress
+    const dmk = await getDmk();
+    const { webHidIdentifier } = await import(
+      "@ledgerhq/device-transport-kit-web-hid"
     );
-  } catch (errFirst: unknown) {
-    // Attempt 2: If skipOpenApp: true failed, attempt skipOpenApp: false to ask the device to launch Ethereum
+    const { SignerEthBuilder } = await import(
+      "@ledgerhq/device-signer-kit-ethereum"
+    );
+
+    onProgress?.("Discovering Ledger device");
+    const device = await firstDiscovered(
+      dmk.startDiscovering({ transport: webHidIdentifier }) as unknown as ObservableLike<DiscoveredDevice>
+    );
+    await dmk.stopDiscovering();
+    onProgress?.("Connecting to Ledger");
+    const sessionId = await dmk.connect({ device });
+    const signer = new SignerEthBuilder({ dmk, sessionId }).build();
+    onProgress?.("Reading address");
+    let addressOutput: { address: string };
     try {
+      // Attempt 1: skipOpenApp: true (standard when Ethereum app is already opened on the device)
       addressOutput = await runDeviceAction(
         signer.getAddress(DEFAULT_DERIVATION_PATH, {
           checkOnDevice: false,
-          skipOpenApp: false,
+          skipOpenApp: true,
         }) as unknown as ActionReturn<{ address: string }>,
         onProgress
       );
-    } catch (errSecond: unknown) {
-      throw new Error(formatDeviceError(errSecond));
+    } catch (errFirst: unknown) {
+      // Attempt 2: If skipOpenApp: true failed, attempt skipOpenApp: false to ask the device to launch Ethereum
+      try {
+        addressOutput = await runDeviceAction(
+          signer.getAddress(DEFAULT_DERIVATION_PATH, {
+            checkOnDevice: false,
+            skipOpenApp: false,
+          }) as unknown as ActionReturn<{ address: string }>,
+          onProgress
+        );
+      } catch (errSecond: unknown) {
+        throw new Error(formatDeviceError(errSecond));
+      }
     }
-  }
 
-  return {
-    dmk,
-    sessionId,
-    signer,
-    address: addressOutput.address,
-    chainId: expectedChainId,
-    derivationPath: DEFAULT_DERIVATION_PATH,
-  };
+    return {
+      dmk,
+      sessionId,
+      signer,
+      address: addressOutput.address,
+      chainId: expectedChainId,
+      derivationPath: DEFAULT_DERIVATION_PATH,
+    };
+  } catch (err: unknown) {
+    throw new Error(formatDeviceError(err));
+  }
 }
 
 export async function signTypedDataWithLedger(

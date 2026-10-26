@@ -14,6 +14,7 @@ import {
   connectBrowserWallet,
   connectLedgerWallet,
   disconnectLedger,
+  formatDeviceError,
   signTypedDataWithBrowser,
   signTypedDataWithLedger,
   type BrowserConnection,
@@ -40,7 +41,8 @@ const WalletContext = createContext<WalletContextValue | null>(null);
 const APP_CHAIN_ID = Number(process.env.NEXT_PUBLIC_CHAIN_ID ?? 31337);
 
 function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
+  if (error instanceof Error) return formatDeviceError(error.message);
+  return formatDeviceError(error);
 }
 
 export function WalletProvider({ children }: { children: ReactNode }) {
