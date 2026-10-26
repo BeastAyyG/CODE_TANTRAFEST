@@ -19,7 +19,7 @@ const SHORT: Record<string, string> = {
 const TONE: Record<string, string> = {
   DEV: "text-faint",
   BROWSER: "text-info",
-  HARDWARE: "text-emerald-600 font-semibold dark:text-emerald-400",
+  HARDWARE: "text-emerald-800 font-bold dark:text-emerald-300",
 };
 
 export function SignerTag() {

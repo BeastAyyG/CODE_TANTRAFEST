@@ -135,22 +135,25 @@ export function StatusPreflight() {
           </div>
 
           {wallet.type === "HARDWARE" ? (
-            <div className="mt-4 flex items-center justify-between rounded border border-emerald-500/40 bg-emerald-950/20 px-3.5 py-2.5 text-emerald-400">
+            <div className="mt-4 flex items-center justify-between rounded-md border border-emerald-600/40 bg-emerald-50/90 dark:bg-emerald-950/40 px-4 py-3 shadow-xs">
               <div className="flex items-center gap-3">
-                <span className="relative flex h-3 w-3">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500" />
+                <span className="relative flex h-3.5 w-3.5 flex-none">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-600 shadow-sm" />
                 </span>
                 <div>
-                  <div className="text-[12px] font-semibold tracking-wide text-emerald-400 uppercase">
-                    Hardware Wallet Connected
+                  <div className="text-[13px] font-bold tracking-wide text-emerald-950 dark:text-emerald-100 flex items-center gap-2">
+                    <span>Hardware Wallet Connected</span>
+                    <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-200/80 text-emerald-900 dark:bg-emerald-800 dark:text-emerald-100 uppercase">
+                      Live WebHID
+                    </span>
                   </div>
-                  <div className="text-[11px] font-mono text-emerald-300/80">
+                  <div className="text-[11.5px] font-mono font-semibold text-emerald-800 dark:text-emerald-200 mt-0.5">
                     Ledger Nano (WebHID) · Verified Live Enclave · Chain {wallet.chainId} (Sepolia)
                   </div>
                 </div>
               </div>
-              <span className="rounded border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-0.5 text-[10.5px] font-mono font-medium text-emerald-300">
+              <span className="rounded border border-emerald-600/40 bg-emerald-200/80 dark:bg-emerald-900/60 px-3 py-1 text-[11px] font-mono font-bold text-emerald-950 dark:text-emerald-100 shadow-xs">
                 SECURE ENCLAVE
               </span>
             </div>
@@ -189,8 +192,8 @@ export function StatusPreflight() {
                 <th className="w-[160px]">Signer type</th>
                 <td>
                   {wallet.type === "HARDWARE" ? (
-                    <span className="inline-flex items-center gap-2 font-medium text-emerald-700 dark:text-emerald-400">
-                      <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="inline-flex items-center gap-2 font-bold text-emerald-800 dark:text-emerald-300">
+                      <span className="h-2.5 w-2.5 rounded-full bg-emerald-600 dark:bg-emerald-400 animate-pulse" />
                       Ledger Hardware (Nano S Plus · WebHID Connected)
                     </span>
                   ) : (
@@ -273,8 +276,8 @@ export function StatusPreflight() {
           ) : null}
 
           {wallet.type === "HARDWARE" ? (
-            <div className="mt-4 border-l-2 border-emerald-500 pl-3 text-[11.5px] leading-relaxed text-dim">
-              <span className="font-semibold text-emerald-600 dark:text-emerald-400">Hardware Security Active.</span>{" "}
+            <div className="mt-4 border-l-2 border-emerald-600 bg-emerald-50/60 dark:bg-emerald-950/20 py-2.5 pl-3.5 pr-3 text-[11.5px] leading-relaxed text-emerald-950 dark:text-emerald-100 rounded-r">
+              <span className="font-bold text-emerald-900 dark:text-emerald-300">Hardware Security Active.</span>{" "}
               Device paired via WebHID on derivation path <code>44&apos;/60&apos;/0&apos;/0/0</code>.
               EIP-712 structured payloads are cryptographically verified and signed for on-chain
               governor and guardian execution.

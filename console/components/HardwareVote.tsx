@@ -249,22 +249,25 @@ export function HardwareVote({
       </div>
 
       {wallet.type === "HARDWARE" && (
-        <div className="flex items-center justify-between rounded border border-emerald-500/40 bg-emerald-950/20 px-3.5 py-2.5 text-emerald-400">
+        <div className="flex items-center justify-between rounded-md border border-emerald-600/40 bg-emerald-50/90 dark:bg-emerald-950/40 px-4 py-3 shadow-xs">
           <div className="flex items-center gap-3">
-            <span className="relative flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500" />
+            <span className="relative flex h-3.5 w-3.5 flex-none">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75" />
+              <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-600 shadow-sm" />
             </span>
             <div>
-              <div className="text-[12px] font-semibold tracking-wide text-emerald-400 uppercase">
-                Hardware Wallet Connected
+              <div className="text-[13px] font-bold tracking-wide text-emerald-950 dark:text-emerald-100 flex items-center gap-2">
+                <span>Hardware Wallet Connected</span>
+                <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-200/80 text-emerald-900 dark:bg-emerald-800 dark:text-emerald-100 uppercase">
+                  Live WebHID
+                </span>
               </div>
-              <div className="text-[11px] font-mono text-emerald-300/80">
+              <div className="text-[11.5px] font-mono font-semibold text-emerald-800 dark:text-emerald-200 mt-0.5">
                 Ledger Nano (WebHID) · Verified Hardware Enclave · Sepolia Live
               </div>
             </div>
           </div>
-          <span className="rounded border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-0.5 text-[10.5px] font-mono font-medium text-emerald-300">
+          <span className="rounded border border-emerald-600/40 bg-emerald-200/80 dark:bg-emerald-900/60 px-3 py-1 text-[11px] font-mono font-bold text-emerald-950 dark:text-emerald-100 shadow-xs">
             ENCLAVE READY
           </span>
         </div>
