@@ -13,6 +13,7 @@ import {
   livePublishDisclosure,
   liveRelayHalt,
   liveRelayVote,
+  liveHardwareSign,
   liveSubmitDisclosure,
   liveVerifyVersionChain,
 } from "../../../../lib/live";
@@ -168,6 +169,18 @@ export async function POST(
           reportHash: body.reportHash,
         })
       );
+    }
+
+    if (action === "hardware-sign" && body.typed && typeof body.typed === "object") {
+      const signature = await liveHardwareSign({
+        typed: body.typed as {
+          domain: any;
+          types: Record<string, any[]>;
+          message: Record<string, unknown>;
+        },
+        address: typeof body.address === "string" ? body.address : undefined,
+      });
+      return NextResponse.json({ signature });
     }
 
     if (

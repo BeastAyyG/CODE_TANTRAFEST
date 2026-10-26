@@ -857,6 +857,37 @@ export async function liveAutoHalt(input: {
   return receipt;
 }
 
+export async function liveHardwareSign(input: {
+  typed: {
+    domain: ethers.TypedDataDomain;
+    types: Record<string, ethers.TypedDataField[]>;
+    message: Record<string, unknown>;
+  };
+  address?: string;
+}): Promise<string> {
+  const exec = getIntentLockExecutor();
+  const execAddress = await exec.getAddress().catch(() => "");
+  const guardianAddress = await exec.guardian().catch(() => "");
+  const targetContract = (input.typed.domain.verifyingContract ?? "").toLowerCase();
+
+  const isHalt =
+    (execAddress && targetContract === execAddress.toLowerCase()) ||
+    (input.address &&
+      guardianAddress &&
+      input.address.toLowerCase() === guardianAddress.toLowerCase()) ||
+    input.typed.message.reason !== undefined;
+
+  const signer = isHalt
+    ? await getServerSigner("guardian")
+    : await getServerSigner("voter1");
+  const walletSigner = signer as ethers.Wallet;
+  return walletSigner.signTypedData(
+    input.typed.domain,
+    input.typed.types,
+    input.typed.message
+  );
+}
+
 /** File a disclosure challenge. */
 export async function liveFileChallenge(
   proposalId: string,

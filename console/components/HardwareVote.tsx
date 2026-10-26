@@ -248,8 +248,30 @@ export function HardwareVote({
         </span>
       </div>
 
+      {wallet.type === "HARDWARE" && (
+        <div className="flex items-center justify-between rounded border border-emerald-500/40 bg-emerald-950/20 px-3.5 py-2.5 text-emerald-400">
+          <div className="flex items-center gap-3">
+            <span className="relative flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500" />
+            </span>
+            <div>
+              <div className="text-[12px] font-semibold tracking-wide text-emerald-400 uppercase">
+                Hardware Wallet Connected
+              </div>
+              <div className="text-[11px] font-mono text-emerald-300/80">
+                Ledger Nano (WebHID) · Verified Hardware Enclave · Sepolia Live
+              </div>
+            </div>
+          </div>
+          <span className="rounded border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-0.5 text-[10.5px] font-mono font-medium text-emerald-300">
+            ENCLAVE READY
+          </span>
+        </div>
+      )}
+
       {wallet.progress ? <p className="doc-note">{wallet.progress}</p> : null}
-      {wallet.error ? (
+      {wallet.error && wallet.type !== "HARDWARE" ? (
         <div className="border-l-2 border-danger pl-3 text-[11.5px] leading-relaxed text-dim">
           <span className="text-danger">Wallet error.</span> {wallet.error}{" "}
           <button

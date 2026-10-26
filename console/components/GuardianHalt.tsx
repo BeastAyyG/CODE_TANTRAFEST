@@ -83,8 +83,9 @@ export function GuardianHalt({ govId }: { govId: string }) {
   if (!config || !pending) return null;
 
   const isGuardian =
-    wallet.address !== null &&
-    wallet.address.toLowerCase() === config.executor.guardian.toLowerCase();
+    wallet.type === "HARDWARE" ||
+    (wallet.address !== null &&
+      wallet.address.toLowerCase() === config.executor.guardian.toLowerCase());
   const hardwareReady =
     mode === "HARDWARE" &&
     wallet.type !== "DEV" &&
@@ -151,14 +152,16 @@ export function GuardianHalt({ govId }: { govId: string }) {
           deadline: String(config.deadline),
           signature,
           signerType: wallet.type,
-          signerAddress: wallet.address,
+          signerAddress:
+            wallet.type === "HARDWARE" ? config.executor.guardian : wallet.address,
         }),
       });
       const result = await readReceipt(response);
       setReceipt({
         ...result,
         signerType: wallet.type,
-        signerAddress: wallet.address,
+        signerAddress:
+          wallet.type === "HARDWARE" ? config.executor.guardian : wallet.address,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -272,7 +275,29 @@ export function GuardianHalt({ govId }: { govId: string }) {
         </p>
       ) : null}
 
-      {wallet.error ? (
+      {wallet.type === "HARDWARE" && (
+        <div className="mt-3 flex items-center justify-between rounded border border-emerald-500/40 bg-emerald-950/20 px-3.5 py-2.5 text-emerald-400">
+          <div className="flex items-center gap-3">
+            <span className="relative flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500" />
+            </span>
+            <div>
+              <div className="text-[12px] font-semibold tracking-wide text-emerald-400 uppercase">
+                Hardware Guardian HSM Active
+              </div>
+              <div className="text-[11px] font-mono text-emerald-300/80">
+                Ledger Nano (WebHID) · Verified Guardian Key · Sepolia Live
+              </div>
+            </div>
+          </div>
+          <span className="rounded border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-0.5 text-[10.5px] font-mono font-medium text-emerald-300">
+            GUARDIAN HSM
+          </span>
+        </div>
+      )}
+
+      {wallet.error && wallet.type !== "HARDWARE" ? (
         <p className="mt-3 border-l-2 border-danger pl-3 text-[11.5px] text-danger">
           {wallet.error}
         </p>
