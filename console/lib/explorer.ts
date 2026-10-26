@@ -27,8 +27,9 @@ export function chainLabel(): string {
 }
 
 export function explorerTxUrl(hash?: string | null): string | null {
-  const base = explorerBaseUrl();
-  return base && hash ? `${base}/tx/${hash}` : null;
+  if (!hash) return null;
+  const base = explorerBaseUrl() ?? "https://sepolia.etherscan.io";
+  return `${base}/tx/${hash}`;
 }
 
 export function explorerAddressUrl(address?: string | null): string | null {

@@ -352,7 +352,22 @@ export function GuardianHalt({ govId }: { govId: string }) {
             <tbody>
               <tr>
                 <th className="w-[130px]">Transaction</th>
-                <td className="font-mono text-[10.5px]">{receipt.hash}</td>
+                <td className="font-mono text-[10.5px]">
+                  {receipt.hash ? (
+                    <a
+                      href={explorerTxUrl(receipt.hash) ?? `https://sepolia.etherscan.io/tx/${receipt.hash}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-danger underline decoration-danger/40 hover:decoration-danger inline-flex items-center gap-1"
+                      title="Open on Sepolia Etherscan"
+                    >
+                      <span className="break-all">{receipt.hash}</span>
+                      <span aria-hidden="true" className="no-underline">↗</span>
+                    </a>
+                  ) : (
+                    "—"
+                  )}
+                </td>
               </tr>
               <tr>
                 <th>Block</th>
@@ -372,15 +387,20 @@ export function GuardianHalt({ govId }: { govId: string }) {
               </tr>
             </tbody>
           </table>
-          {receipt.hash && explorerTxUrl(receipt.hash) ? (
-            <a
-              href={explorerTxUrl(receipt.hash) as string}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-2 inline-flex text-[11px] text-danger underline decoration-danger/40 underline-offset-2"
-            >
-              Open transaction on Etherscan
-            </a>
+          {receipt.hash ? (
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <a
+                href={explorerTxUrl(receipt.hash) ?? `https://sepolia.etherscan.io/tx/${receipt.hash}`}
+                target="_blank"
+                rel="noreferrer"
+                className="btn btn-sm btn-primary inline-flex items-center gap-1.5"
+              >
+                <span>View on Sepolia Etherscan ↗</span>
+              </a>
+              <span className="doc-note">
+                Confirmed on block {receipt.blockNumber ?? "latest"}
+              </span>
+            </div>
           ) : (
             <p className="doc-note mt-2">Local Hardhat transaction, no explorer.</p>
           )}
