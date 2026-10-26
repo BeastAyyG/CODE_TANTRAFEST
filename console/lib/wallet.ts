@@ -82,11 +82,21 @@ async function getDmk(): Promise<DeviceManagementKit> {
 
 function formatDeviceError(error: unknown): string {
   if (!error) return "Unknown device error.";
-  if (error instanceof Error) return error.message;
-  if (typeof error === "object" && "message" in error) {
-    return String((error as { message: unknown }).message);
+  let raw = "";
+  if (error instanceof Error) raw = error.message;
+  else if (typeof error === "object" && "message" in error) {
+    raw = String((error as { message: unknown }).message);
+  } else {
+    raw = JSON.stringify(error);
   }
-  return JSON.stringify(error);
+
+  if (raw.includes("Unknown application name") || raw.includes("6807")) {
+    return "Ethereum app not open on device. Please unlock your Ledger and open the Ethereum app (ensure it is installed via Ledger Live).";
+  }
+  if (raw.includes("No selected device") || raw.includes("NoAccessibleDeviceError")) {
+    return "No Ledger device selected. In the browser popup, click on your device name to select it, then click Connect.";
+  }
+  return raw;
 }
 
 function firstDiscovered(observable: ObservableLike<DiscoveredDevice>): Promise<DiscoveredDevice> {
@@ -260,13 +270,30 @@ export async function connectLedgerWallet(
   const sessionId = await dmk.connect({ device });
   const signer = new SignerEthBuilder({ dmk, sessionId }).build();
   onProgress?.("Reading address");
-  const addressOutput = await runDeviceAction(
-    signer.getAddress(DEFAULT_DERIVATION_PATH, {
-      checkOnDevice: false,
-      skipOpenApp: false,
-    }) as unknown as ActionReturn<{ address: string }>,
-    onProgress
-  );
+  let addressOutput: { address: string };
+  try {
+    // Attempt 1: skipOpenApp: true (standard when Ethereum app is already opened on the device)
+    addressOutput = await runDeviceAction(
+      signer.getAddress(DEFAULT_DERIVATION_PATH, {
+        checkOnDevice: false,
+        skipOpenApp: true,
+      }) as unknown as ActionReturn<{ address: string }>,
+      onProgress
+    );
+  } catch (errFirst: unknown) {
+    // Attempt 2: If skipOpenApp: true failed, attempt skipOpenApp: false to ask the device to launch Ethereum
+    try {
+      addressOutput = await runDeviceAction(
+        signer.getAddress(DEFAULT_DERIVATION_PATH, {
+          checkOnDevice: false,
+          skipOpenApp: false,
+        }) as unknown as ActionReturn<{ address: string }>,
+        onProgress
+      );
+    } catch (errSecond: unknown) {
+      throw new Error(formatDeviceError(errSecond));
+    }
+  }
 
   return {
     dmk,
@@ -290,18 +317,40 @@ export async function signTypedDataWithLedger(
     verifyingContract?: string;
     salt?: string;
   };
-  const result = await runDeviceAction(
-    connection.signer.signTypedData(
-      connection.derivationPath,
-      {
-        domain,
-        types: typed.types,
-        primaryType: typed.primaryType,
-        message: typed.message,
-      }
-    ) as unknown as ActionReturn<{ r: string; s: string; v: number }>,
-    onProgress
-  );
+  let result: { r: string; s: string; v: number };
+  try {
+    result = await runDeviceAction(
+      connection.signer.signTypedData(
+        connection.derivationPath,
+        {
+          domain,
+          types: typed.types,
+          primaryType: typed.primaryType,
+          message: typed.message,
+        },
+        { skipOpenApp: true }
+      ) as unknown as ActionReturn<{ r: string; s: string; v: number }>,
+      onProgress
+    );
+  } catch (errFirst: unknown) {
+    try {
+      result = await runDeviceAction(
+        connection.signer.signTypedData(
+          connection.derivationPath,
+          {
+            domain,
+            types: typed.types,
+            primaryType: typed.primaryType,
+            message: typed.message,
+          },
+          { skipOpenApp: false }
+        ) as unknown as ActionReturn<{ r: string; s: string; v: number }>,
+        onProgress
+      );
+    } catch (errSecond: unknown) {
+      throw new Error(formatDeviceError(errSecond));
+    }
+  }
 
   const v = result.v < 27 ? result.v + 27 : result.v;
   return ethers.Signature.from({
