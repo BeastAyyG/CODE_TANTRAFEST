@@ -557,18 +557,30 @@ export async function liveGetAccountState(address: string): Promise<AccountState
     ["function balanceOf(address) view returns (uint256)"],
     getProvider()
   );
-  const guardian = await exec.guardian();
+  const [guardian, network, nativeBalance, tokenBalance, voteNonce, haltNonce] =
+    await Promise.all([
+      exec.guardian().catch(() => ethers.ZeroAddress),
+      getProvider().getNetwork().catch(() => ({ chainId: 11155111n })),
+      getProvider().getBalance(account).catch(() => 0n),
+      token.balanceOf(account).catch(() => 0n),
+      typeof gov.nonces === "function"
+        ? gov.nonces(account).catch(() => 0n)
+        : Promise.resolve(0n),
+      typeof exec.haltNonces === "function"
+        ? exec.haltNonces(account).catch(() => 0n)
+        : Promise.resolve(0n),
+    ]);
 
   return {
     address: account,
-    chainId: Number((await getProvider().getNetwork()).chainId),
-    nativeBalance: (await getProvider().getBalance(account)).toString(),
-    tokenBalance: (await token.balanceOf(account)).toString(),
+    chainId: Number(network.chainId),
+    nativeBalance: nativeBalance.toString(),
+    tokenBalance: tokenBalance.toString(),
     tokenAddress,
     isGuardian: account.toLowerCase() === guardian.toLowerCase(),
     guardian,
-    voteNonce: String(await gov.nonces(account)),
-    haltNonce: String(await exec.haltNonces(account)),
+    voteNonce: voteNonce.toString(),
+    haltNonce: haltNonce.toString(),
   };
 }
 
@@ -633,15 +645,33 @@ export async function liveGetSigningConfig(input: {
     version: Number(proposal.version),
     governor: {
       address: await gov.getAddress(),
-      name: await gov.EIP712_NAME(),
-      version: await gov.EIP712_VERSION(),
-      domainSeparator: await gov.DOMAIN_SEPARATOR(),
+      name:
+        typeof gov.EIP712_NAME === "function"
+          ? await gov.EIP712_NAME().catch(() => "IntentGovernor")
+          : "IntentGovernor",
+      version:
+        typeof gov.EIP712_VERSION === "function"
+          ? await gov.EIP712_VERSION().catch(() => "1")
+          : "1",
+      domainSeparator:
+        typeof gov.DOMAIN_SEPARATOR === "function"
+          ? await gov.DOMAIN_SEPARATOR().catch(() => ethers.ZeroHash)
+          : ethers.ZeroHash,
     },
     executor: {
       address: await exec.getAddress(),
-      name: await exec.EIP712_NAME(),
-      version: await exec.EIP712_VERSION(),
-      domainSeparator: await exec.DOMAIN_SEPARATOR(),
+      name:
+        typeof exec.EIP712_NAME === "function"
+          ? await exec.EIP712_NAME().catch(() => "IntentLockExecutor")
+          : "IntentLockExecutor",
+      version:
+        typeof exec.EIP712_VERSION === "function"
+          ? await exec.EIP712_VERSION().catch(() => "1")
+          : "1",
+      domainSeparator:
+        typeof exec.DOMAIN_SEPARATOR === "function"
+          ? await exec.DOMAIN_SEPARATOR().catch(() => ethers.ZeroHash)
+          : ethers.ZeroHash,
       guardian,
     },
     votingToken,
@@ -649,8 +679,14 @@ export async function liveGetSigningConfig(input: {
     statementActions: actions,
     briefHash: ethers.id(statement),
     deadline: chainNow + 900,
-    voteNonce: voter ? String(await gov.nonces(voter)) : "0",
-    haltNonce: signer ? String(await exec.haltNonces(signer)) : "0",
+    voteNonce:
+      voter && typeof gov.nonces === "function"
+        ? String(await gov.nonces(voter).catch(() => "0"))
+        : "0",
+    haltNonce:
+      signer && typeof exec.haltNonces === "function"
+        ? String(await exec.haltNonces(signer).catch(() => "0"))
+        : "0",
     voter,
     voterBalance: String(balance ?? 0n),
     voterHasVoted: Boolean(vote?.hasVoted),
