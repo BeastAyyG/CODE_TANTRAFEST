@@ -211,6 +211,86 @@ export interface ProposeOptions {
  * vote, finalize, queue in executor, and optionally advance time past the
  * timelock.
  */
+export async function proposeAndOpenVoting(
+  f: DeployFixture,
+  actions: Action[],
+  rules: ActionRule[],
+  title: string = "Signature Proposal"
+) {
+  const actionsHash = hashActions(actions);
+  const intentHash = hashRules(rules);
+
+  const contentHash = ethers.keccak256(ethers.toUtf8Bytes(title));
+  const evidenceRoot = ethers.keccak256(ethers.toUtf8Bytes("evidence.json"));
+  const financialAssumptionsHash = ethers.keccak256(ethers.toUtf8Bytes("budget"));
+  const technicalAssessmentHash = ethers.keccak256(ethers.toUtf8Bytes("audit"));
+  const walletListHash = ethers.keccak256(ethers.toUtf8Bytes("wallets-list"));
+  const interestsHash = ethers.keccak256(ethers.toUtf8Bytes("interests-none"));
+
+  await (
+    await f.registry.connect(f.proposer).createProposal(
+      contentHash,
+      evidenceRoot,
+      financialAssumptionsHash,
+      technicalAssessmentHash,
+      intentHash,
+      walletListHash
+    )
+  ).wait();
+  const proposalId = (await f.registry.nextProposalId()) - 1n;
+  const versionHash = await f.registry.latestVersionHash(proposalId);
+  const version = 1n;
+
+  const signedDisc = await signDisclosure(
+    f.disclosureRegistry,
+    f.proposer,
+    proposalId,
+    walletListHash,
+    interestsHash,
+    0n
+  );
+  await f.disclosureRegistry.connect(f.proposer).submitDisclosure(
+    signedDisc.proposalId,
+    signedDisc.proposer,
+    signedDisc.walletListHash,
+    signedDisc.interestsHash,
+    signedDisc.bondAmount,
+    signedDisc.nonce,
+    signedDisc.v,
+    signedDisc.r,
+    signedDisc.s
+  );
+  const disclosureHash = await f.disclosureRegistry.getDisclosureHash(proposalId);
+
+  await (
+    await f.governor
+      .connect(f.proposer)
+      .submitProposal(
+        proposalId,
+        version,
+        versionHash,
+        actionsHash,
+        intentHash,
+        disclosureHash
+      )
+  ).wait();
+  const govId = (await f.governor.nextGovId()) - 1n;
+  await f.governor.connect(f.proposer).openVoting(govId);
+
+  const govProp = await f.governor.getGovProposal(govId);
+
+  return {
+    proposalId,
+    version,
+    versionHash,
+    actionsHash,
+    intentHash,
+    disclosureHash,
+    commitment: govProp.commitment,
+    govId,
+  };
+}
+
 export async function proposeAndQueue(
   f: DeployFixture,
   actions: Action[],

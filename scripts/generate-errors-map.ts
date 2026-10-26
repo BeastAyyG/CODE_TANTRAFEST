@@ -275,6 +275,24 @@ const ERROR_DEFINITIONS: ErrorDef[] = [
     title: "Quorum Not Reached",
     explanation: "The total votes cast did not meet the minimum quorum threshold.",
   },
+  {
+    signature: "BadSignature()",
+    contract: "IntentGovernor + IntentLockExecutor",
+    title: "Invalid EIP-712 Signature",
+    explanation: "The signature does not recover to the expected voter for this governor, or guardian for this executor.",
+  },
+  {
+    signature: "SignatureExpired(uint256)",
+    contract: "IntentGovernor + IntentLockExecutor",
+    title: "EIP-712 Signature Expired",
+    explanation: "The signed payload is past its deadline.",
+  },
+  {
+    signature: "NonceUsed(address,uint256)",
+    contract: "IntentGovernor + IntentLockExecutor",
+    title: "EIP-712 Nonce Already Used",
+    explanation: "The signed nonce is not the current on-chain nonce. The payload was replayed or is out of order.",
+  },
 ];
 
 export function generateErrorsMap() {
