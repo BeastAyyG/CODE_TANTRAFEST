@@ -22,8 +22,8 @@
     "demo:attack": "hardhat run scripts/demo-attack.ts --network localhost",
     "generate:errors": "ts-node scripts/generate-errors-map.ts",
     "test:intelligence": "ts-mocha --timeout 10000 intelligence/__tests__/intelligence.test.ts",
-    "plan": "ts-node scripts/local-ai-plan.ts",
-    "test:local-ai": "ts-mocha --timeout 10000 intelligence/__tests__/local-ai.test.ts"
+    "test:decide": "ts-mocha --timeout 10000 intelligence/__tests__/tiny-model.test.ts",
+    "decide": "ts-node scripts/decide.ts"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
