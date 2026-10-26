@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "./ProposalRegistry.sol";
 import "./DisclosureRegistry.sol";
 import "./IntentLockExecutor.sol";
@@ -24,6 +25,23 @@ import "./IntentLockExecutor.sol";
  * @dev    See Sections 4.3, 5.1, 9.5 of the blueprint.
  */
 contract IntentGovernor {
+    // ──────────────────────────────────────────
+    // EIP-712
+    // ──────────────────────────────────────────
+
+    string public constant EIP712_NAME = "AegisIntentGovernor";
+    string public constant EIP712_VERSION = "1";
+
+    bytes32 public constant INTENT_VOTE_TYPEHASH = keccak256(
+        "IntentVote(uint256 govId,bytes32 commitment,uint8 support,bytes32 briefHash,string statement,uint256 nonce,uint256 deadline)"
+    );
+
+    bytes32 private constant _DOMAIN_TYPEHASH = keccak256(
+        "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
+    );
+
+    bytes32 public immutable DOMAIN_SEPARATOR;
+
     // ──────────────────────────────────────────
     // Types
     // ──────────────────────────────────────────
@@ -112,6 +130,9 @@ contract IntentGovernor {
     /// @notice commitment => govId (reverse lookup)
     mapping(bytes32 => uint256) public commitmentToGovId;
 
+    /// @notice voter => EIP-712 nonce (replay protection for signed votes)
+    mapping(address => uint256) public nonces;
+
     // ──────────────────────────────────────────
     // Events
     // ──────────────────────────────────────────
@@ -135,6 +156,13 @@ contract IntentGovernor {
         bytes32 briefHash
     );
 
+    event VoteRelayed(
+        uint256 indexed govId,
+        address indexed voter,
+        address indexed relayer,
+        bytes32 briefHash
+    );
+
     event ProposalPassed(uint256 indexed govId, bytes32 commitment);
     event ProposalDefeated(uint256 indexed govId);
     event ProposalQueuedInExecutor(uint256 indexed govId, bytes32 commitment);
@@ -154,6 +182,9 @@ contract IntentGovernor {
     error InsufficientVotingPower(address voter);
     error QuorumNotReached(uint256 totalVotes, uint256 required);
     error ZeroCommitment();
+    error BadSignature();
+    error SignatureExpired(uint256 deadline);
+    error NonceUsed(address signer, uint256 nonce);
 
     // ──────────────────────────────────────────
     // Constructor
@@ -175,6 +206,16 @@ contract IntentGovernor {
         votingPeriod = _votingPeriod;
         quorum = _quorum;
         timelockDelay = _timelockDelay;
+
+        DOMAIN_SEPARATOR = keccak256(
+            abi.encode(
+                _DOMAIN_TYPEHASH,
+                keccak256(bytes("AegisIntentGovernor")),
+                keccak256(bytes("1")),
+                block.chainid,
+                address(this)
+            )
+        );
     }
 
     // ──────────────────────────────────────────
@@ -315,7 +356,68 @@ contract IntentGovernor {
         _castVote(govId, support, briefHash);
     }
 
+    /**
+     * @notice Cast a vote with an EIP-712 signature. A relayer submits the
+     *         transaction; the voter's key never leaves the signing device.
+     *
+     *         The commitment is read from governor storage, never supplied by
+     *         the caller, so the relayer cannot change what the voter signed.
+     */
+    function voteBySig(
+        uint256 govId,
+        address voter,
+        uint8 support,
+        bytes32 briefHash,
+        string calldata statement,
+        uint256 nonce,
+        uint256 deadline,
+        bytes calldata signature
+    ) external {
+        if (block.timestamp > deadline) {
+            revert SignatureExpired(deadline);
+        }
+
+        GovProposal storage p = govProposals[govId];
+        bytes32 structHash = keccak256(
+            abi.encode(
+                INTENT_VOTE_TYPEHASH,
+                govId,
+                p.commitment,
+                support,
+                briefHash,
+                keccak256(bytes(statement)),
+                nonce,
+                deadline
+            )
+        );
+        bytes32 digest = _hashTypedDataV4(structHash);
+        (address signer, ECDSA.RecoverError err, bytes32 errArg) =
+            ECDSA.tryRecoverCalldata(digest, signature);
+        errArg; // silence unused-variable warning; the selector is enough
+
+        if (err != ECDSA.RecoverError.NoError || signer == address(0) || signer != voter) {
+            revert BadSignature();
+        }
+        if (nonce != nonces[voter]) {
+            revert NonceUsed(voter, nonce);
+        }
+
+        nonces[voter] = nonce + 1;
+        _castVoteFor(voter, govId, support, briefHash);
+
+        emit VoteRelayed(govId, voter, msg.sender, briefHash);
+    }
+
     function _castVote(
+        uint256 govId,
+        uint8 support,
+        bytes32 briefHash
+    ) internal {
+        _castVoteFor(msg.sender, govId, support, briefHash);
+    }
+
+    function _castVoteFor(
+        address voter,
         uint256 govId,
         uint8 support,
         bytes32 briefHash
@@ -328,16 +430,16 @@ contract IntentGovernor {
             revert VotingNotOpen(govId);
         }
 
-        Vote storage v = votes[govId][msg.sender];
+        Vote storage v = votes[govId][voter];
         if (v.hasVoted) {
-            revert AlreadyVoted(msg.sender);
+            revert AlreadyVoted(voter);
         }
 
-        // Use current balance as voting weight
-        // (In production, use snapshot-based balances)
-        uint256 weight = votingToken.balanceOf(msg.sender);
+        // The demo token has no historical checkpoints; weight is the
+        // voter's balance when the vote is cast.
+        uint256 weight = votingToken.balanceOf(voter);
         if (weight == 0) {
-            revert InsufficientVotingPower(msg.sender);
+            revert InsufficientVotingPower(voter);
         }
 
         v.hasVoted = true;
@@ -360,7 +462,7 @@ contract IntentGovernor {
             p.totalBriefAcks += 1;
         }
 
-        emit VoteCast(govId, msg.sender, support, weight, briefHash);
+        emit VoteCast(govId, voter, support, weight, briefHash);
     }
 
     // ──────────────────────────────────────────
@@ -530,5 +632,9 @@ contract IntentGovernor {
                 disclosureHash
             )
         );
+    }
+
+    function _hashTypedDataV4(bytes32 structHash) internal view returns (bytes32) {
+        return keccak256(abi.encodePacked("\x19\x01", DOMAIN_SEPARATOR, structHash));
     }
 }
