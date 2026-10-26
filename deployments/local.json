@@ -2,8 +2,8 @@
   "network": "local",
   "chainId": 31337,
   "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
-  "deployedAt": "2026-10-26T03:17:26.336Z",
-  "deploymentBlock": 86,
+  "deployedAt": "2026-10-26T03:35:13.332Z",
+  "deploymentBlock": 216,
   "timing": {
     "timelockDelay": 3600,
     "maxDelay": 1209600,
@@ -13,27 +13,27 @@
     "quorum": "1000000000000000000000"
   },
   "setup": {
-    "setGovernorTx": "0x4b198fef9560f2983562140640c9dc0b689561a50de0eff276f69dc989715787",
+    "setGovernorTx": "0x9cb5533edecf56c3104030d0bcad5c67d5c9c32b1ec1205b7257c9581ebba19f",
     "governanceMints": [
       {
         "to": "0x90F79bf6EB2c4f870365E785982E1f101E93b906",
         "amount": "1000000000000000000000",
-        "txHash": "0x26dd0005e2cdcbed9a963339b2d9c926f4f56ccd352a54d23251a5aa6319b5c4"
+        "txHash": "0xd5c61da4b1d3b1ae1027cd3890f8061623ba5643ef2074f71398239c08df9bd1"
       },
       {
         "to": "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65",
         "amount": "1000000000000000000000",
-        "txHash": "0xd0cf0107055dc1d6e66d54b55076d31ec4f0a47257a9e6483428468bf05a4ff4"
+        "txHash": "0x91179724fd8d7b015ed303f1d2eceba769fe925d4b8432b8c8f071c00b415afd"
       },
       {
         "to": "0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc",
         "amount": "1000000000000000000000",
-        "txHash": "0x0c952b6bccda1d21b1115b2f8bc55c7eaf4f98d7dc78bffe18bfcafefae057e8"
+        "txHash": "0x55385dbc2e2f07d06b598d13d4df54456a48da26fe97d0fb7fc963946da454a4"
       },
       {
         "to": "0x976EA74026E726554dB657fA54763abd0C3a0aa9",
         "amount": "1000000000000000000000",
-        "txHash": "0x5908e3a5233a1cc2300e44e0bbb755cd551cac26d1dba549ce6c03c13f16ee29"
+        "txHash": "0x9813da9401b0b259b9c19126dda596673e02f63c2f5a4ef8d2ae75667597da11"
       }
     ],
     "usdcSeeds": {
@@ -43,7 +43,7 @@
   },
   "contracts": {
     "MockUSDC": {
-      "address": "0x5eb3Bc0a489C5A8288765d2336659EbCA68FCd00",
+      "address": "0x5067457698Fd6Fa1C6964e416b3f42713513B3dD",
       "abi": [
         {
           "inputs": [],
@@ -396,12 +396,12 @@
         }
       ],
       "args": [],
-      "blockNumber": 86,
-      "txHash": "0xff8b2455705e7c41a7ba607cbe8628336ba30fa16e54cf0ed10fcfaec0c42c32",
+      "blockNumber": 216,
+      "txHash": "0x1b6074d955e065bb1ce43bb20b2fe019612661b1e1e90d116a871207d1994b44",
       "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
     },
     "GovernanceToken": {
-      "address": "0x36C02dA8a0983159322a80FFE9F24b1acfF8B570",
+      "address": "0x18E317A7D70d8fBf8e6E893616b52390EbBdb629",
       "abi": [
         {
           "inputs": [],
@@ -754,12 +754,12 @@
         }
       ],
       "args": [],
-      "blockNumber": 87,
-      "txHash": "0x23a053754ac87d3a9db1082c2cb532a74769db714e2006e35c24902232ad64b1",
+      "blockNumber": 217,
+      "txHash": "0x645e6893460cd2aeb4f40eb6d37b4def202d3866b00be9541314aa9df10469d7",
       "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
     },
     "ProposalRegistry": {
-      "address": "0x809d550fca64d94Bd9F66E60752A544199cfAC3D",
+      "address": "0x4b6aB5F819A515382B0dEB6935D793817bB4af28",
       "abi": [
         {
           "inputs": [
@@ -1199,12 +1199,12 @@
         }
       ],
       "args": [],
-      "blockNumber": 88,
-      "txHash": "0x7c5e7fec7e40675aeda4c4940eec60554f0fa7c9e74f2fe12708813d993a8863",
+      "blockNumber": 218,
+      "txHash": "0x41f9d842154abd3e2697559ca94e78c5acf3b90972c1a18645d16c014a96acd2",
       "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
     },
     "DisclosureRegistry": {
-      "address": "0x4c5859f0F772848b2D91F1D83E2Fe57935348029",
+      "address": "0xCace1b78160AE76398F486c8a18044da0d66d86D",
       "abi": [
         {
           "inputs": [
@@ -1950,12 +1950,12 @@
           "value": "259200"
         }
       ],
-      "blockNumber": 89,
-      "txHash": "0x18d834b1628471ab23615bedc119d84c301a8707cc0d1ee69489ff375603c34d",
+      "blockNumber": 219,
+      "txHash": "0x978123dbf102ccba49363af6b296c0a61b4016d5151a075b1b4c01fd7b152f32",
       "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
     },
     "IntentLockExecutor": {
-      "address": "0x1291Be112d480055DaFd8a610b7d1e203891C274",
+      "address": "0xD5ac451B0c50B9476107823Af206eD814a2e2580",
       "abi": [
         {
           "inputs": [
@@ -3085,7 +3085,7 @@
       "args": [
         {
           "type": "address",
-          "value": "0x809d550fca64d94Bd9F66E60752A544199cfAC3D"
+          "value": "0x4b6aB5F819A515382B0dEB6935D793817bB4af28"
         },
         {
           "type": "address",
@@ -3104,12 +3104,12 @@
           "value": "1209600"
         }
       ],
-      "blockNumber": 90,
-      "txHash": "0x9f146ac8b612e79284a1789dac0ad686c653fc7addbefd37b1eb62a030af9ebd",
+      "blockNumber": 220,
+      "txHash": "0x536613ba71a984e446841a8d7030c6829ae375b1d8ce46f874813afde76cf2d5",
       "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
     },
     "IntentGovernor": {
-      "address": "0x5f3f1dBD7B74C6B46e8c44f98792A1dAf8d69154",
+      "address": "0xF8e31cb472bc70500f08Cd84917E5A1912Ec8397",
       "abi": [
         {
           "inputs": [
@@ -4239,19 +4239,19 @@
       "args": [
         {
           "type": "address",
-          "value": "0x36C02dA8a0983159322a80FFE9F24b1acfF8B570"
+          "value": "0x18E317A7D70d8fBf8e6E893616b52390EbBdb629"
         },
         {
           "type": "address",
-          "value": "0x809d550fca64d94Bd9F66E60752A544199cfAC3D"
+          "value": "0x4b6aB5F819A515382B0dEB6935D793817bB4af28"
         },
         {
           "type": "address",
-          "value": "0x4c5859f0F772848b2D91F1D83E2Fe57935348029"
+          "value": "0xCace1b78160AE76398F486c8a18044da0d66d86D"
         },
         {
           "type": "address",
-          "value": "0x1291Be112d480055DaFd8a610b7d1e203891C274"
+          "value": "0xD5ac451B0c50B9476107823Af206eD814a2e2580"
         },
         {
           "type": "uint256",
@@ -4266,12 +4266,12 @@
           "value": "3600"
         }
       ],
-      "blockNumber": 91,
-      "txHash": "0xa73e7aed4a13abdb423334bb82795ef97e0c3819bfea638385ab5a7e633525a6",
+      "blockNumber": 221,
+      "txHash": "0x8d42a43ada4a62f5a4ec97e20f2057a613171b865247a22bee58afd355bc1252",
       "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
     },
     "FeeModule": {
-      "address": "0xCD8a1C3ba11CF5ECfa6267617243239504a98d90",
+      "address": "0xc96304e3c037f81dA488ed9dEa1D8F2a48278a75",
       "abi": [
         {
           "inputs": [
@@ -4422,15 +4422,15 @@
         },
         {
           "type": "address",
-          "value": "0x1291Be112d480055DaFd8a610b7d1e203891C274"
+          "value": "0xD5ac451B0c50B9476107823Af206eD814a2e2580"
         }
       ],
-      "blockNumber": 93,
-      "txHash": "0x16917494af31acea60b8107cc51e55626509dcdb995945f530aff2654fd60d92",
+      "blockNumber": 223,
+      "txHash": "0xbc8cf37255b2b634f1d54be56d237ec5a1718af6ecb6cd277f750586536938bd",
       "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
     },
     "TreasuryProxy": {
-      "address": "0x82e01223d51Eb87e16A03E24687EDF0F294da6f1",
+      "address": "0x34B40BA116d5Dec75548a9e9A8f15411461E8c70",
       "abi": [
         {
           "inputs": [
@@ -4627,19 +4627,19 @@
       "args": [
         {
           "type": "address",
-          "value": "0x1291Be112d480055DaFd8a610b7d1e203891C274"
+          "value": "0xD5ac451B0c50B9476107823Af206eD814a2e2580"
         },
         {
           "type": "address",
-          "value": "0xCD8a1C3ba11CF5ECfa6267617243239504a98d90"
+          "value": "0xc96304e3c037f81dA488ed9dEa1D8F2a48278a75"
         }
       ],
-      "blockNumber": 94,
-      "txHash": "0x9e38bb111b6637ef9832b7618a53fae9c9340b2d3a4f8a0a5c15fec5a5513d5d",
+      "blockNumber": 224,
+      "txHash": "0xafc0d8f4f952c5459e732f44ef1d3ed0c88c96361cbedaec26dcd8155d92ce6f",
       "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
     },
     "MaliciousImpl": {
-      "address": "0x2bdCC0de6bE1f7D2ee689a0342D76F52E8EFABa3",
+      "address": "0xD0141E899a65C95a556fE2B27e5982A6DE7fDD7A",
       "abi": [
         {
           "inputs": [
@@ -4741,12 +4741,12 @@
           "value": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
         }
       ],
-      "blockNumber": 95,
-      "txHash": "0x7e6954322eac5bd296feec63544b2e2c15c1cf59f7c1af8f599b75eb53304d51",
+      "blockNumber": 225,
+      "txHash": "0x7c10f503ba56d58d5984635d89e069321dc0e5ae8e16c27f4279904d09ff7e3b",
       "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
     },
     "ReentrantRecipient": {
-      "address": "0x7969c5eD335650692Bc04293B07F5BF2e7A673C0",
+      "address": "0x07882Ae1ecB7429a84f1D53048d35c4bB2056877",
       "abi": [
         {
           "inputs": [
@@ -5084,15 +5084,15 @@
       "args": [
         {
           "type": "address",
-          "value": "0x1291Be112d480055DaFd8a610b7d1e203891C274"
+          "value": "0xD5ac451B0c50B9476107823Af206eD814a2e2580"
         }
       ],
-      "blockNumber": 96,
-      "txHash": "0x1f1b4096ff12625d2680dcd421b277e786b6c2b3c079bff65dc4e4af92edb00c",
+      "blockNumber": 226,
+      "txHash": "0x0b28aea34177ca4bf9fda969bbb0291e2eca5adc41b6b7be8f7a51da68eeeac5",
       "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
     },
     "VulnerableProxy": {
-      "address": "0x7bc06c482DEAd17c0e297aFbC32f6e63d3846650",
+      "address": "0x22753E4264FDDc6181dc7cce468904A80a363E44",
       "abi": [
         {
           "inputs": [
@@ -5282,15 +5282,15 @@
       "args": [
         {
           "type": "address",
-          "value": "0x1291Be112d480055DaFd8a610b7d1e203891C274"
+          "value": "0xD5ac451B0c50B9476107823Af206eD814a2e2580"
         },
         {
           "type": "address",
-          "value": "0xCD8a1C3ba11CF5ECfa6267617243239504a98d90"
+          "value": "0xc96304e3c037f81dA488ed9dEa1D8F2a48278a75"
         }
       ],
-      "blockNumber": 97,
-      "txHash": "0xcae9c5783b6f4a0153ca4daacfbe9241007d5d84c663b135b88c515cfaf5108d",
+      "blockNumber": 227,
+      "txHash": "0x64ede0b4ac9360896c95e0108299e93b37f71bb5aacab2e39c01ffdcc553af48",
       "deployer": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
     }
   }

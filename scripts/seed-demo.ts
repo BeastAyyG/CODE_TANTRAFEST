@@ -18,9 +18,14 @@ import { EvidenceStore } from "../intelligence/evidence";
 import { extractIntentHeuristic } from "../intelligence/ai-draft";
 import { assessConflictOfInterest, buildSeedData } from "../intelligence/graph";
 import { simulateProposalExecution } from "../sentinel/simulate";
-import { buildViolationReport } from "../sentinel/report";
+import { buildViolationReport, hashViolationReport } from "../sentinel/report";
 import { haltProposal } from "../sentinel/halt";
-import { upsertExecutionBundle } from "../sentinel/live-store";
+import {
+  appendSentinelEvent,
+  readLiveReports,
+  upsertExecutionBundle,
+  writeLiveReports,
+} from "../sentinel/live-store";
 import { signDisclosure } from "../test/redteam/fixture";
 import {
   Action,
@@ -33,6 +38,9 @@ import {
 const MIN_DELAY = 3600;
 const VOTING_PERIOD = 3 * 86400;
 const ZERO = ethers.ZeroHash;
+// "hardware" leaves P2 queued with a pending Sentinel report so the guardian
+// can sign the halt. "auto" keeps the original software guardian halt.
+const GUARDIAN_MODE = (process.env.GUARDIAN_MODE ?? "hardware").toLowerCase();
 const USDC = (whole: number) => ethers.parseUnits(String(whole), 6);
 
 interface DemoEntry {
@@ -514,28 +522,88 @@ async function seedP2(ctx: Ctx): Promise<{ id: bigint; entry: DemoEntry }> {
     status: "FLAGGED",
   });
   report.evidence.commitment = commitment;
-  const halt = await haltProposal(ctx.executor, ctx.guardian, commitment, report);
-  await (await ctx.governor.syncFromExecutor(govId)).wait();
-
-  const execState = Number(await ctx.executor.getState(commitment));
-  const govState = Number((await ctx.governor.getGovProposal(govId)).state);
-  if (execState !== 3 || govState !== 7) {
-    throw new Error(`P2 unexpected states: executor=${execState} governor=${govState}`);
-  }
   const chain = await ctx.registry.getVersionChain(proposalId);
+  const reportHash = hashViolationReport(report);
+  let entryState: string;
+  let notes: string;
+
+  if (GUARDIAN_MODE === "auto") {
+    const halt = await haltProposal(ctx.executor, ctx.guardian, commitment, report);
+    await (await ctx.governor.syncFromExecutor(govId)).wait();
+
+    const execState = Number(await ctx.executor.getState(commitment));
+    const govState = Number((await ctx.governor.getGovProposal(govId)).state);
+    if (execState !== 3 || govState !== 7) {
+      throw new Error(`P2 unexpected states: executor=${execState} governor=${govState}`);
+    }
+    entryState = "Halted";
+    notes =
+      `Queued benign setFee(35); malicious upgradeTo(${short(ctx.addresses.MaliciousImpl)}) ` +
+      `was presented and flagged by the Sentinel (${simulation.haltReason ?? "violation"}); ` +
+      `guardian halt ${short(halt.reportHash)}; evidenceRoot ${short(root)}.`;
+  } else {
+    const execState = Number(await ctx.executor.getState(commitment));
+    const govState = Number((await ctx.governor.getGovProposal(govId)).state);
+    if (execState !== 1 || govState !== 5) {
+      throw new Error(
+        `P2 hardware mode expected Queued, got executor=${execState} governor=${govState}`
+      );
+    }
+
+    const reports = readLiveReports();
+    reports.watcher = null;
+    reports.events = [];
+    reports.results = {};
+    const now = new Date().toISOString();
+    appendSentinelEvent(
+      reports,
+      {
+        id: `p2-pending-${Date.now()}`,
+        at: now,
+        phase: "VIOLATION",
+        proposalId: proposalId.toString(),
+        govId: govId.toString(),
+        commitment,
+        title: "Routine parameter tuning of the fee module",
+        blockNumber: null,
+        txHash: null,
+        detail:
+          "Sentinel flagged an uncommitted upgrade in the queued bundle. " +
+          "Awaiting guardian signature.",
+        reportHash,
+        report,
+      },
+      {
+        proposalId: proposalId.toString(),
+        govId: govId.toString(),
+        commitment,
+        title: "Routine parameter tuning of the fee module",
+        status: "OBSERVED",
+        updatedAt: now,
+        reason: "Uncommitted upgradeTo in the queued execution bundle",
+        reportHash,
+        report,
+      }
+    );
+    writeLiveReports(reports);
+
+    entryState = "Queued";
+    notes =
+      `Queued benign setFee(35); malicious upgradeTo(${short(ctx.addresses.MaliciousImpl)}) ` +
+      `was presented and flagged by the Sentinel (${simulation.haltReason ?? "violation"}); ` +
+      `report ${short(reportHash)} is awaiting a guardian signature (hardware-confirmed mode); ` +
+      `evidenceRoot ${short(root)}.`;
+  }
 
   return {
     id: proposalId,
     entry: {
       title: "Routine parameter tuning of the fee module",
       govId: govId.toString(),
-      state: "Halted",
+      state: entryState,
       commitment,
       versionChain: chain,
-      notes:
-        `Queued benign setFee(35); malicious upgradeTo(${short(ctx.addresses.MaliciousImpl)}) ` +
-        `was presented and flagged by the Sentinel (${simulation.haltReason ?? "violation"}); ` +
-        `guardian halt ${short(halt.reportHash)}; evidenceRoot ${short(root)}.`,
+      notes,
     },
   };
 }
@@ -924,8 +992,14 @@ async function verifyDemoState(ctx: Ctx, demo: DemoState): Promise<void> {
         assertEqual(Number(await ctx.executor.getState(gov.commitment)), 2, "P1 executor state");
         assertEqual(govState, 6, "P1 governor state");
       } else if (key === "2") {
-        assertEqual(Number(await ctx.executor.getState(gov.commitment)), 3, "P2 executor state");
-        assertEqual(govState, 7, "P2 governor state");
+        const expectedExec = GUARDIAN_MODE === "auto" ? 3 : 1;
+        const expectedGov = GUARDIAN_MODE === "auto" ? 7 : 5;
+        assertEqual(
+          Number(await ctx.executor.getState(gov.commitment)),
+          expectedExec,
+          "P2 executor state"
+        );
+        assertEqual(govState, expectedGov, "P2 governor state");
       } else if (key === "3") {
         assertEqual(govState, 2, "P3 governor state");
         if (!(await ctx.disclosure.isChallenged(id))) {
