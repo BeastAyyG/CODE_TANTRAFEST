@@ -242,7 +242,7 @@ export function IntentReview() {
       <div className="space-y-4">
         <section id="claims">
           <SectionHeader
-            eyebrow="Extraction · schema (a)"
+            eyebrow="Extraction, schema (a)"
             title="Claims with document spans"
             description="Every retained claim points to an exact quote in the evidence manifest. The validator rejects unsourced claims; the reviewer does not get to guess."
             right={
@@ -257,7 +257,7 @@ export function IntentReview() {
               <div className="flex items-center gap-2">
                 <ListChecks size={14} className="text-signal" />
                 <span className="text-[12px] text-body">Strict validation</span>
-                <span className="chip">zod · schema a</span>
+                <span className="chip">zod, schema a</span>
               </div>
               <div className="flex items-center gap-3 font-mono text-[9px] uppercase tracking-[0.08em] text-faint">
                 <span>{demo.validation.rejected.length} rejected</span>
@@ -280,7 +280,7 @@ export function IntentReview() {
                 <div className="flex items-start gap-2 text-[11px] leading-relaxed text-dim">
                   <AlertTriangle size={13} className="mt-0.5 shrink-0 text-signal" />
                   <span>
-                    {demo.validation.warnings.map((warning) => `${warning.id}: ${warning.message}`).join(" · ")}
+                    {demo.validation.warnings.map((warning) => `${warning.id}: ${warning.message}`).join(", ")}
                     {" "}The 42% tentative upgrade claim is why a reviewer must decide before the
                     intent can be committed.
                   </span>
@@ -292,7 +292,7 @@ export function IntentReview() {
 
         <section>
           <SectionHeader
-            eyebrow={`Live rule set · ${resolved.actions.length} actions`}
+            eyebrow={`Live rule set, ${resolved.actions.length} actions`}
             title="Proposed on-chain rules"
             description="The intent hash covers these rules only. Sources and confidence inform the reviewer, but never enter the hash."
             right={<span className="chip">{liveActionsHash.slice(0, 10)}…</span>}
@@ -329,7 +329,7 @@ export function IntentReview() {
                             {action.kind.replaceAll("_", " ")}
                           </span>
                           {tentative ? (
-                            <span className="chip border-signal/40 text-signal">tentative · unresolved</span>
+                            <span className="chip border-signal/40 text-signal">tentative, unresolved</span>
                           ) : null}
                           {authorized ? (
                             <span className="chip border-signal/40 text-signal">reviewer authorized</span>
@@ -380,7 +380,7 @@ export function IntentReview() {
               <Stat
                 label="Total grants"
                 value={`${formatTokenAmount(liveBrief.totalGrantsUsdc)}`}
-                sub="USDC · transfers only"
+                sub="USDC, transfers only"
               />
               <Stat
                 label="Allowance"
@@ -531,7 +531,7 @@ export function IntentReview() {
                 <span className="font-mono text-[10px] text-faint">
                   {demo.claimsScoreAsExtracted.score.toFixed(2)} → {liveClaims.score.toFixed(2)}
                 </span>
-                <StatusPill status={liveClaims.status}>{liveClaims.status}</StatusPill>
+                <StatusPill status={liveClaims.status} />
               </div>
             </div>
           </div>
@@ -565,7 +565,7 @@ export function IntentReview() {
             />
             <HashCompare
               label="commitment"
-              description="chain · executor · version · actions · intent · evidence · disclosure"
+              description="chain, executor, version, actions, intent, evidence, disclosure"
               live={liveCommitment}
               committed={demo.commitment}
               match={commitmentMatch}
@@ -578,8 +578,8 @@ export function IntentReview() {
                 <div className="mt-1 flex items-center gap-2">
                   <BadgeCheck size={13} className="text-safe" />
                   <span>
-                    {resolved.actions.length} rules · {resolved.assumptions.length} sourced
-                    assumptions · evidence root {demo.manifest.root.slice(0, 10)}…
+                    {resolved.actions.length} rules, {resolved.assumptions.length} sourced
+                    assumptions, evidence root {demo.manifest.root.slice(0, 10)}…
                   </span>
                 </div>
               </Callout>
@@ -645,7 +645,7 @@ export function IntentReview() {
             <div className="text-[10.5px] leading-snug text-faint">
               {liveClaims.reason}
               <div className="mt-1">
-                {liveClaims.rejectedClaimIds.length} tentative claim removed · {liveClaims.open} open
+                {liveClaims.rejectedClaimIds.length} tentative claim removed, {liveClaims.open} open
               </div>
             </div>
           </div>

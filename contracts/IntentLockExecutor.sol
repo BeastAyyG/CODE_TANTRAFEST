@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./libs/ActionDecoder.sol";
 import "./ProposalRegistry.sol";
@@ -33,8 +34,21 @@ contract IntentLockExecutor is ReentrancyGuard {
     // Constants
     // ──────────────────────────────────────────
 
+    string public constant EIP712_NAME = "AegisIntentLockExecutor";
+    string public constant EIP712_VERSION = "1";
+
+    bytes32 private constant _DOMAIN_TYPEHASH = keccak256(
+        "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
+    );
+
+    bytes32 public immutable DOMAIN_SEPARATOR;
+
     bytes32 public constant COMMIT_TYPEHASH = keccak256(
         "Commitment(uint256 chainId,address executor,uint256 proposalId,uint256 version,bytes32 versionHash,bytes32 actionsHash,bytes32 intentHash,bytes32 disclosureHash)"
+    );
+
+    bytes32 public constant INTENT_HALT_TYPEHASH = keccak256(
+        "IntentHalt(bytes32 commitment,bytes32 reportHash,string reason,uint256 nonce,uint256 deadline)"
     );
 
     // ──────────────────────────────────────────
@@ -89,6 +103,9 @@ contract IntentLockExecutor is ReentrancyGuard {
     /// @notice Maximum timelock delay in seconds.
     uint256 public immutable maxDelay;
 
+    /// @notice guardian => EIP-712 nonce for signed halts
+    mapping(address => uint256) public haltNonces;
+
     // ──────────────────────────────────────────
     // Events
     // ──────────────────────────────────────────
@@ -108,6 +125,14 @@ contract IntentLockExecutor is ReentrancyGuard {
         bytes32 indexed commitment,
         uint256 indexed proposalId,
         bytes32 reportHash
+    );
+
+    event HaltRelayed(
+        bytes32 indexed commitment,
+        address indexed guardian,
+        address indexed relayer,
+        bytes32 reportHash,
+        string reason
     );
 
     event ProposalCancelled(
@@ -139,6 +164,9 @@ contract IntentLockExecutor is ReentrancyGuard {
     error ActionExecutionFailed(uint256 actionIndex, address target, bytes returnData);
     error PostConditionFailed(string check, bytes data);
     error RuleLengthMismatch(uint256 actionsLength, uint256 rulesLength);
+    error BadSignature();
+    error SignatureExpired(uint256 deadline);
+    error NonceUsed(address signer, uint256 nonce);
 
     // ──────────────────────────────────────────
     // Modifiers
@@ -170,6 +198,16 @@ contract IntentLockExecutor is ReentrancyGuard {
         governor = _governor;
         minDelay = _minDelay;
         maxDelay = _maxDelay;
+
+        DOMAIN_SEPARATOR = keccak256(
+            abi.encode(
+                _DOMAIN_TYPEHASH,
+                keccak256(bytes("AegisIntentLockExecutor")),
+                keccak256(bytes("1")),
+                block.chainid,
+                address(this)
+            )
+        );
     }
 
     // ──────────────────────────────────────────
@@ -356,6 +394,61 @@ contract IntentLockExecutor is ReentrancyGuard {
     }
 
     /**
+     * @notice Guardian halts a queued proposal with an EIP-712 signature.
+     *         A relayer submits the transaction; the guardian key never leaves
+     *         the signing device. Halt only: this function cannot execute,
+     *         edit, or substitute an action.
+     */
+    function haltBySig(
+        bytes32 commitment,
+        bytes32 reportHash,
+        string calldata reason,
+        uint256 nonce,
+        uint256 deadline,
+        bytes calldata signature
+    ) external {
+        if (block.timestamp > deadline) {
+            revert SignatureExpired(deadline);
+        }
+
+        bytes32 structHash = keccak256(
+            abi.encode(
+                INTENT_HALT_TYPEHASH,
+                commitment,
+                reportHash,
+                keccak256(bytes(reason)),
+                nonce,
+                deadline
+            )
+        );
+        bytes32 digest = _hashTypedDataV4(structHash);
+        (address signer, ECDSA.RecoverError err, bytes32 errArg) =
+            ECDSA.tryRecoverCalldata(digest, signature);
+        errArg; // unused; the signature error code is sufficient
+
+        if (err != ECDSA.RecoverError.NoError || signer == address(0)) {
+            revert BadSignature();
+        }
+        if (signer != guardian) {
+            revert NotGuardian(signer);
+        }
+        if (nonce != haltNonces[signer]) {
+            revert NonceUsed(signer, nonce);
+        }
+
+        QueuedProposal storage prop = proposals[commitment];
+        if (prop.state != ProposalState.Queued) {
+            revert ProposalNotInState(ProposalState.Queued, prop.state);
+        }
+
+        haltNonces[signer] = nonce + 1;
+        prop.state = ProposalState.Halted;
+
+        emit ProposalHalted(commitment, prop.proposalId, reportHash);
+        emit HaltRelayed(commitment, signer, msg.sender, reportHash, reason);
+    }
+
+    /**
      * @notice Governor can cancel a queued proposal (e.g., after a halt
      *         is challenged and the DAO votes to cancel).
      */
@@ -417,6 +510,10 @@ contract IntentLockExecutor is ReentrancyGuard {
                 disclosureHash
             )
         );
+    }
+
+    function _hashTypedDataV4(bytes32 structHash) internal view returns (bytes32) {
+        return keccak256(abi.encodePacked("\x19\x01", DOMAIN_SEPARATOR, structHash));
     }
 
     function _hashActions(Action[] calldata actions) internal pure returns (bytes32) {

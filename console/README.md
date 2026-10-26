@@ -5,6 +5,8 @@
 
 A decision-integrity console for DAO treasury proposals. A proposal passes a vote; the queued transaction does something else. IntentLock binds the vote to the exact calldata, anchors the evidence behind the proposal, surfaces conflicts of interest, and makes the executor's rejection legible.
 
+> **2026-10-26 — unified frontend.** This app now serves the editorial Atlas from the repo-root `public/` folder at `/`, the AIP-042 report at `/report`, the decision console at `/trail`, and a live local-chain section at `/live`. The dark console theme has been replaced by the paper/editorial theme. See the root README for the new layout.
+
 The demo proposal is **AIP-042, "Ecosystem Growth Grant — GrowthLabs × Developer Guild"**, requesting **250,000 USDC**. The committed intent authorizes two one-time transfers and a bounded allowance. The queued transaction is an uncommitted `upgradeTo(maliciousImpl)` on the treasury proxy. The reference executor rejects it with `SelectorNotAuthorized`.
 
 The problem is not that votes are secret. It is that **voting transparency is not informed consent**: a voter can see the forum post, the delegate tally and the timelock, and still have no idea which bytes will execute. IntentLock makes the gap between "what the proposal said" and "what the transaction does" the primary artifact.
@@ -79,9 +81,14 @@ It prints validation, hashes, scores, versions, the treasury brief and all scena
 
 ## Demo path (7 app routes + presentation)
 
+> Route note: `/` is now the editorial Atlas and the Decision Trail lives at `/trail`. `/live` reads the local Hardhat chain; `/live/[id]` adds a real dev-signer vote panel.
+
 | Route | What it shows |
 | :--- | :--- |
-| `/` | Decision Trail: Claims → COI → Voting → Execution, the queued-call verdict, and the said-vs-does gap. |
+| `/` | Editorial Atlas, served from `public/ecosystem.html`. |
+| `/report` | AIP-042 editorial report, served from `public/report-editorial.html`. |
+| `/live` | Live proposals, governor state, contracts and Sentinel events from the local Hardhat chain. |
+| `/trail` | Decision Trail: Claims → COI → Voting → Execution, the queued-call verdict, and the said-vs-does gap. |
 | `/intent` | Source-linked claims, two unresolved ambiguities, live rule set, treasury brief, and the intent/content/commitment match check. |
 | `/timeline` | Three hash-chained versions, version diffs, four anchored evidence documents with local verification, and the signed disclosure. |
 | `/graph` | Disclosed vs discovered wallets, four scored links, noisy-OR risk, and the disclosure-challenge payload. |

@@ -7,7 +7,6 @@ import {
   ChevronDown,
   CircleDollarSign,
   FileWarning,
-  GitBranch,
   Info,
   Wallet,
 } from "lucide-react";
@@ -20,16 +19,15 @@ import {
   Panel,
   RiskMeter,
   SectionHeader,
-  Stat,
   StatusPill,
   cn,
 } from "@/components/ui";
 
 const EDGE_COLORS: Record<GraphEdge["type"], string> = {
-  DIRECT_TRANSFER: "#ff6464",
-  FUNDING: "#f1b54a",
-  CONTRACT_CREATION: "#596675",
-  INTERNAL: "#2b3745",
+  DIRECT_TRANSFER: "#c62f1c",
+  FUNDING: "#9a6b15",
+  CONTRACT_CREATION: "#6b655b",
+  INTERNAL: "#b9b1a2",
 };
 
 const LINK_LABEL: Record<DiscoveredLink["type"], string> = {
@@ -50,12 +48,12 @@ function edgeStrength(
 
 function NodeShape({ node }: { node: GraphNode }) {
   const isRecipient = node.group === "recipient";
-  const stroke = node.disclosed ? "#67c9f0" : isRecipient ? "#596675" : "#ff6464";
-  const fill = node.disclosed ? "#0c171d" : isRecipient ? "#10151c" : "#1a1210";
+  const stroke = node.disclosed ? "#1f6f8b" : isRecipient ? "#6b655b" : "#c62f1c";
+  const fill = node.disclosed ? "#e8f2f6" : isRecipient ? "#f0ece4" : "#fbe9e5";
   return (
     <>
       {!node.disclosed && !isRecipient ? (
-        <circle cx={node.x} cy={node.y} r={18} fill="none" stroke="#ff6464" strokeWidth={1} opacity={0.18} />
+        <circle cx={node.x} cy={node.y} r={18} fill="none" stroke="#c62f1c" strokeWidth={1} opacity={0.18} />
       ) : null}
       {node.shape === "multisig" ? (
         <rect
@@ -107,65 +105,60 @@ export function GraphView() {
   }
 
   return (
-    <div className="space-y-5">
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Panel className="p-4">
-          <Stat
-            label="Noisy-OR risk"
-            value={graph.overallRisk.toFixed(2)}
-            tone="danger"
-            sub={`red threshold ${graph.thresholds.red.toFixed(2)} · higher is worse`}
-          />
-          <RiskMeter
-            value={graph.overallRisk}
-            status={graph.status}
-            threshold={graph.thresholds.red}
-            className="mt-3"
-          />
-        </Panel>
-        <Panel className="p-4">
-          <Stat label="Discovered links" value={String(graph.links.length)} sub="two transfers · funder · timing" />
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {graph.links.map((link) => (
-              <span key={link.id} className="chip">
-                {LINK_LABEL[link.type]} {link.strength.toFixed(2)}
-              </span>
-            ))}
-          </div>
-        </Panel>
-        <Panel className="p-4">
-          <Stat label="Disclosed wallets" value="2" sub="in the signed proposal disclosure" />
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {demo.proposal.disclosure.wallets.map((wallet) => (
-              <span key={wallet} className="chip border-info/30 text-info">
-                {shortAddress(wallet)}
-              </span>
-            ))}
-          </div>
-        </Panel>
-        <Panel className="p-4">
-          <Stat label="Discovered wallets" value={String(graph.discoveredWallets.length)} sub="one funding path to the recipient" tone="danger" />
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {graph.discoveredWallets.map((wallet) => (
-              <span key={wallet} className="chip border-danger/30 text-danger">
-                {shortAddress(wallet)}
-              </span>
-            ))}
-          </div>
-        </Panel>
+    <div className="space-y-6">
+      <div className="border-t border-edge pt-3">
+        <table className="doc-ledger">
+          <tbody>
+            <tr>
+              <th className="w-[130px]">Risk</th>
+              <td className="text-danger">
+                {graph.overallRisk.toFixed(2)}, red threshold{" "}
+                {graph.thresholds.red.toFixed(2)}, higher is worse
+              </td>
+            </tr>
+            <tr>
+              <th>Links</th>
+              <td>
+                {graph.links.length}:{" "}
+                {graph.links
+                  .map((link) => `${LINK_LABEL[link.type]} ${link.strength.toFixed(2)}`)
+                  .join(", ")}
+              </td>
+            </tr>
+            <tr>
+              <th>Disclosed</th>
+              <td>
+                {demo.proposal.disclosure.wallets
+                  .map((wallet) => shortAddress(wallet))
+                  .join(", ")}
+              </td>
+            </tr>
+            <tr>
+              <th>Discovered</th>
+              <td className="text-danger">
+                {graph.discoveredWallets.length}:{" "}
+                {graph.discoveredWallets.map((wallet) => shortAddress(wallet)).join(", ")}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <RiskMeter
+          value={graph.overallRisk}
+          status={graph.status}
+          threshold={graph.thresholds.red}
+          className="mt-3"
+        />
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(0,0.8fr)]">
         <Panel className="overflow-hidden">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-edge px-4 py-3">
-            <div className="flex items-center gap-2">
-              <GitBranch size={14} className="text-signal" />
-              <span className="text-[12.5px] font-medium text-body">Disclosed vs discovered</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="chip border-danger/30 text-danger">simulated data</span>
-              <span className="chip">click an edge</span>
-            </div>
+          <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-edge py-2.5">
+            <span className="text-[12.5px] font-medium text-body">
+              Disclosed vs discovered
+            </span>
+            <span className="doc-folio text-danger">
+              simulated data, click an edge
+            </span>
           </div>
 
           <div className="overflow-x-auto">
@@ -177,18 +170,18 @@ export function GraphView() {
             >
               <defs>
                 <pattern id="graph-grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                  <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#121921" strokeWidth="1" />
+                  <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#e2dccf" strokeWidth="1" />
                 </pattern>
                 <radialGradient id="graph-glow" cx="50%" cy="50%" r="50%">
-                  <stop offset="0%" stopColor="#ff6464" stopOpacity="0.12" />
-                  <stop offset="100%" stopColor="#ff6464" stopOpacity="0" />
+                  <stop offset="0%" stopColor="#c62f1c" stopOpacity="0.10" />
+                  <stop offset="100%" stopColor="#c62f1c" stopOpacity="0" />
                 </radialGradient>
               </defs>
               <rect width="940" height="470" fill="url(#graph-grid)" />
               <circle cx="460" cy="230" r="260" fill="url(#graph-glow)" />
 
-              <text x="24" y="34" fill="#596675" fontFamily="IBM Plex Mono, monospace" fontSize="9" letterSpacing="2">
-                AIP-042 · SIMULATED TRANSACTION GRAPH · 2025-11 → 2026-10
+              <text x="24" y="34" fill="#857e72" fontFamily="ui-monospace, monospace" fontSize="9" letterSpacing="2">
+                AIP-042, SIMULATED TRANSACTION GRAPH, 2025-11 → 2026-10
               </text>
 
               {graph.fixture.edges.map((edge) => {
@@ -236,21 +229,21 @@ export function GraphView() {
                       <text
                         x={(from.x + to.x) / 2 + 8}
                         y={(from.y + to.y) / 2 - 7}
-                        fill={selected ? "#e7eef6" : "#596675"}
-                        fontFamily="IBM Plex Mono, monospace"
+                        fill={selected ? "#111110" : "#6b655b"}
+                        fontFamily="ui-monospace, monospace"
                         fontSize="8.5"
                       >
                         {formatNumber(Number(edge.amountUsdc), 0)}
                       </text>
                     ) : null}
-                    <title>{`${edge.type} · ${edge.amountUsdc} USDC · ${edge.txHash}`}</title>
+                    <title>{`${edge.type}, ${edge.amountUsdc} USDC, ${edge.txHash}`}</title>
                   </g>
                 );
               })}
 
               {nodes.map((node) => {
                 const isRecipient = node.group === "recipient";
-                const labelColor = node.disclosed ? "#a7b7c8" : isRecipient ? "#8b99a9" : "#ffb0b0";
+                const labelColor = node.disclosed ? "#1f6f8b" : isRecipient ? "#575149" : "#a52a18";
                 return (
                   <g key={node.id}>
                     <NodeShape node={node} />
@@ -259,7 +252,7 @@ export function GraphView() {
                       y={node.y + 29}
                       textAnchor="middle"
                       fill={labelColor}
-                      fontFamily="IBM Plex Sans, sans-serif"
+                      fontFamily="Helvetica Neue, Helvetica, Arial, sans-serif"
                       fontSize="10.5"
                       fontWeight="500"
                     >
@@ -269,14 +262,14 @@ export function GraphView() {
                       x={node.x}
                       y={node.y + 41}
                       textAnchor="middle"
-                      fill="#596675"
-                      fontFamily="IBM Plex Mono, monospace"
+                      fill="#857e72"
+                      fontFamily="ui-monospace, monospace"
                       fontSize="7.5"
                       letterSpacing="0.6"
                     >
                       {node.role.toUpperCase()}
                     </text>
-                    <title>{`${node.label} · ${node.address}`}</title>
+                    <title>{`${node.label}, ${node.address}`}</title>
                   </g>
                 );
               })}
@@ -285,11 +278,11 @@ export function GraphView() {
 
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-edge px-4 py-2.5">
             {[
-              { color: "#67c9f0", label: "disclosed" },
-              { color: "#ff6464", label: "discovered" },
-              { color: "#596675", label: "recipient" },
-              { color: "#f1b54a", label: "funding" },
-              { color: "#2b3745", label: "internal / creation" },
+              { color: "#1f6f8b", label: "disclosed" },
+              { color: "#c62f1c", label: "discovered" },
+              { color: "#6b655b", label: "recipient" },
+              { color: "#9a6b15", label: "funding" },
+              { color: "#b9b1a2", label: "internal / creation" },
             ].map((legend) => (
               <span key={legend.label} className="inline-flex items-center gap-1.5 font-mono text-[8.5px] uppercase tracking-[0.06em] text-faint">
                 <span className="h-1.5 w-1.5 rounded-full" style={{ background: legend.color }} />
@@ -312,11 +305,11 @@ export function GraphView() {
               <>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <span className="chip" style={{ borderColor: `${EDGE_COLORS[selectedEdge.type]}55`, color: EDGE_COLORS[selectedEdge.type] }}>
-                    edge · {selectedEdge.type.replaceAll("_", " ")}
+                    edge, {selectedEdge.type.replaceAll("_", " ")}
                   </span>
                   {selectedLink ? (
                     <span className="chip border-danger/30 text-danger">
-                      link {selectedLink.strength.toFixed(2)} · {LINK_LABEL[selectedLink.type]}
+                      link {selectedLink.strength.toFixed(2)}, {LINK_LABEL[selectedLink.type]}
                     </span>
                   ) : null}
                 </div>
@@ -438,8 +431,8 @@ export function GraphView() {
         <Panel id="challenge" className="p-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <div className="mono-label mb-1">Disclosure challenge · already filed</div>
-              <h2 className="text-[14px] font-medium text-body">{demo.proposal.challenge.filer} · {formatTimestamp(demo.proposal.challenge.filedAt)}</h2>
+              <div className="mono-label mb-1">Disclosure challenge, already filed</div>
+              <h2 className="text-[14px] font-medium text-body">{demo.proposal.challenge.filer}, {formatTimestamp(demo.proposal.challenge.filedAt)}</h2>
               <p className="mt-1.5 max-w-xl text-[11px] leading-relaxed text-dim">{demo.proposal.challenge.claim}</p>
             </div>
             <div className="flex items-center gap-2">

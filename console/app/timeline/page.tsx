@@ -7,28 +7,21 @@ export default function TimelinePage() {
   return (
     <>
       <PageHeader
-        eyebrow="Proposal timeline · AIP-042"
-        title={
-          <>
-            Versions are hash-chained.
-            <br />
-            <span className="text-signal">Documents are anchored.</span>
-          </>
-        }
-        description="Every version commits to the previous one, to a rule set, and to an evidence root. A wording change can move the content hash without moving the rules — the commitment still moves."
+        title="Version history"
+        description="v2 raised the GrowthLabs amount and added two actions. v3 added the technical assessment. The rules did not change between v2 and v3; the content hash and evidence root did."
         meta={
           <>
-            <span className="chip">3 versions</span>
-            <span className="chip">4 anchored documents</span>
-            <span className="chip border-safe/30 text-safe">verify locally</span>
+            <span className="doc-folio">AIP-042</span>
+            <span className="doc-folio">3 versions</span>
+            <span className="doc-folio">4 evidence documents</span>
           </>
         }
         actions={
           <>
-            <a href="#evidence" className="btn">
+            <a href="#evidence" className="arrow-link">
               Verify evidence
             </a>
-            <a href="#disclosure" className="btn">
+            <a href="#disclosure" className="arrow-link">
               Disclosure
             </a>
           </>

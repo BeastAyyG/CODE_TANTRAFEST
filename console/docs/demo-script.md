@@ -9,7 +9,7 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:3000`. Confirm `npm test` is green (57 tests) and, if you changed fixtures, run `npm run demo:check`. Have a terminal in the repo root as backup for `npm run arena -- 3`.
+Open `http://localhost:3000` for the Atlas, or go straight to `http://localhost:3000/trail` for the Decision Trail. Confirm `npm test` is green (57 tests) and, if you changed fixtures, run `npm run demo:check`. Have a terminal in the repo root as backup for `npm run arena -- 3`.
 
 **One rule for the whole demo:** say "reference executor" or "executor model", never "the contract rejected it on-chain". Say "the wallet graph is simulated data with real link math", never "we proved they colluded".
 
@@ -21,9 +21,9 @@ Open `http://localhost:3000`. Confirm `npm test` is green (57 tests) and, if you
 
 ---
 
-## 0:00–0:35 — `/` Decision Trail
+## 0:00–0:35 — `/trail` Decision Trail
 
-**Click:** land on `/`. Do not scroll yet.
+**Click:** land on `/trail`. Do not scroll yet.
 
 **Say:**
 > "AIP-042 passed. It authorized 250,000 USDC: 200,000 to GrowthLabs, 50,000 to Developer Guild, and a 5,000 allowance. The queued transaction is an `upgradeTo` on the treasury proxy. The proposal never authorized an upgrade."
@@ -180,7 +180,7 @@ Use this if the room is running late, the network is unhappy, or an interactive 
 
 | Time | Route | Action | Say / expected |
 | ---: | :--- | :--- | :--- |
-| 0:00 | `/` | Point at the blocked banner and the four stages. | "The vote passed; the transaction does not match it. Claims 0.81, COI 0.88, voting 0.71, execution a red gate." |
+| 0:00 | `/trail` | Point at the blocked banner and the four stages. | "The vote passed; the transaction does not match it. Claims 0.81, COI 0.88, voting 0.71, execution a red gate." |
 | 0:25 | `/intent` | Click **Prefill sourced**, then **Confirm intent**. | "Two ambiguities resolved; all three hashes match v3; claims move 0.63 to 0.81." |
 | 1:00 | `/graph` | Click edge `e2`, then the challenge payload. | "Four links, noisy-OR 0.88. Simulated data, real math. The disclosure omits Nova Ops." |
 | 1:30 | `/arena/03-jargon-upgrade` | Open the report. | "Three approved actions, one queued upgrade, `SelectorNotAuthorized`." |

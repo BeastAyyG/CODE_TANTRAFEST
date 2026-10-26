@@ -1,0 +1,316 @@
+import { ethers } from "ethers";
+import type {
+  DeviceManagementKit,
+  DeviceSessionId,
+  DiscoveredDevice,
+} from "@ledgerhq/device-management-kit";
+import type { SignerEth } from "@ledgerhq/device-signer-kit-ethereum";
+import type { IntentTypedData } from "./signing";
+
+export const DEFAULT_DERIVATION_PATH = "44'/60'/0'/0/0";
+
+type Eip1193Provider = {
+  request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
+  isMetaMask?: boolean;
+};
+
+type ActionState<T> = {
+  status: string;
+  output?: T;
+  error?: unknown;
+  intermediateValue?: { requiredUserInteraction?: string };
+};
+
+type ActionReturn<T> = {
+  observable: {
+    subscribe: (observer: {
+      next?: (state: ActionState<T>) => void;
+      error?: (error: unknown) => void;
+      complete?: () => void;
+    }) => { unsubscribe: () => void };
+  };
+  cancel?: () => void;
+};
+
+type ObservableLike<T> = {
+  subscribe: (observer: {
+    next?: (value: T) => void;
+    error?: (error: unknown) => void;
+    complete?: () => void;
+  }) => { unsubscribe: () => void };
+};
+
+export type BrowserConnection = {
+  provider: ethers.BrowserProvider;
+  signer: ethers.Signer;
+  address: string;
+  chainId: number;
+};
+
+export type LedgerConnection = {
+  dmk: DeviceManagementKit;
+  sessionId: DeviceSessionId;
+  signer: SignerEth;
+  address: string;
+  chainId: number;
+  derivationPath: string;
+};
+
+let dmkPromise: Promise<DeviceManagementKit> | null = null;
+
+async function getDmk(): Promise<DeviceManagementKit> {
+  if (!dmkPromise) {
+    dmkPromise = (async () => {
+      const { DeviceManagementKitBuilder } = await import(
+        "@ledgerhq/device-management-kit"
+      );
+      const { webHidTransportFactory } = await import(
+        "@ledgerhq/device-transport-kit-web-hid"
+      );
+      return new DeviceManagementKitBuilder()
+        .addTransport(webHidTransportFactory)
+        .build();
+    })();
+  }
+  try {
+    return await dmkPromise;
+  } catch (error) {
+    dmkPromise = null;
+    throw error;
+  }
+}
+
+function formatDeviceError(error: unknown): string {
+  if (!error) return "Unknown device error.";
+  if (error instanceof Error) return error.message;
+  if (typeof error === "object" && "message" in error) {
+    return String((error as { message: unknown }).message);
+  }
+  return JSON.stringify(error);
+}
+
+function firstDiscovered(observable: ObservableLike<DiscoveredDevice>): Promise<DiscoveredDevice> {
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    let subscription: { unsubscribe: () => void } | null = null;
+    subscription = observable.subscribe({
+      next: (device) => {
+        if (settled) return;
+        settled = true;
+        subscription?.unsubscribe();
+        resolve(device);
+      },
+      error: (error) => {
+        if (settled) return;
+        settled = true;
+        reject(new Error(formatDeviceError(error)));
+      },
+      complete: () => {
+        if (settled) return;
+        settled = true;
+        reject(new Error("No Ledger device was selected."));
+      },
+    });
+  });
+}
+
+function runDeviceAction<T>(
+  action: ActionReturn<T>,
+  onProgress?: (message: string) => void
+): Promise<T> {
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    let subscription: { unsubscribe: () => void } | null = null;
+    subscription = action.observable.subscribe({
+      next: (state) => {
+        if (state.status === "completed") {
+          settled = true;
+          subscription?.unsubscribe();
+          resolve(state.output as T);
+          return;
+        }
+        if (state.status === "error") {
+          settled = true;
+          subscription?.unsubscribe();
+          reject(new Error(formatDeviceError(state.error)));
+          return;
+        }
+        if (state.status === "pending") {
+          const interaction = state.intermediateValue?.requiredUserInteraction;
+          if (onProgress && interaction) onProgress(interaction);
+        }
+      },
+      error: (error) => {
+        if (settled) return;
+        settled = true;
+        reject(new Error(formatDeviceError(error)));
+      },
+      complete: () => {
+        if (settled) return;
+        settled = true;
+        reject(new Error("Ledger action ended without a result."));
+      },
+    });
+  });
+}
+
+export async function connectBrowserWallet(
+  expectedChainId: number
+): Promise<BrowserConnection> {
+  const ethereum = (window as Window & { ethereum?: Eip1193Provider }).ethereum;
+  if (!ethereum) {
+    throw new Error("No browser wallet found. Install MetaMask or use the dev signer.");
+  }
+
+  await ethereum.request({ method: "eth_requestAccounts" });
+  let provider = new ethers.BrowserProvider(ethereum as ethers.Eip1193Provider);
+  let network = await provider.getNetwork();
+
+  if (Number(network.chainId) !== expectedChainId) {
+    const chainIdHex = `0x${expectedChainId.toString(16)}`;
+    try {
+      await ethereum.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: chainIdHex }],
+      });
+    } catch (error) {
+      const code = (error as { code?: number }).code;
+      if (code !== 4902) throw error;
+      const rpcUrl =
+        process.env.NEXT_PUBLIC_RPC_URL ??
+        (expectedChainId === 31337 ? "http://127.0.0.1:8545" : "");
+      if (!rpcUrl) {
+        throw new Error(
+          `Add chain ${expectedChainId} to your wallet, then reconnect.`
+        );
+      }
+      const explorer =
+        expectedChainId === 11155111
+          ? ["https://sepolia.etherscan.io"]
+          : expectedChainId === 31337
+            ? []
+            : [];
+      await ethereum.request({
+        method: "wallet_addEthereumChain",
+        params: [
+          {
+            chainId: chainIdHex,
+            chainName:
+              expectedChainId === 31337
+                ? "Hardhat Local"
+                : expectedChainId === 11155111
+                  ? "Sepolia"
+                  : `Chain ${expectedChainId}`,
+            nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+            rpcUrls: [rpcUrl],
+            blockExplorerUrls: explorer,
+          },
+        ],
+      });
+    }
+    provider = new ethers.BrowserProvider(ethereum as ethers.Eip1193Provider);
+    network = await provider.getNetwork();
+    if (Number(network.chainId) !== expectedChainId) {
+      throw new Error(
+        `Wallet is on chain ${network.chainId}; expected ${expectedChainId}.`
+      );
+    }
+  }
+
+  const signer = await provider.getSigner();
+  const address = await signer.getAddress();
+  return { provider, signer, address, chainId: expectedChainId };
+}
+
+export async function signTypedDataWithBrowser(
+  connection: BrowserConnection,
+  typed: IntentTypedData
+): Promise<string> {
+  return connection.signer.signTypedData(
+    typed.domain,
+    typed.types,
+    typed.message
+  );
+}
+
+export async function connectLedgerWallet(
+  expectedChainId: number,
+  onProgress?: (message: string) => void
+): Promise<LedgerConnection> {
+  if (!("hid" in navigator)) {
+    throw new Error(
+      "WebHID is not available in this browser. Use Chrome or Edge on desktop."
+    );
+  }
+
+  const dmk = await getDmk();
+  const { webHidIdentifier } = await import(
+    "@ledgerhq/device-transport-kit-web-hid"
+  );
+  const { SignerEthBuilder } = await import(
+    "@ledgerhq/device-signer-kit-ethereum"
+  );
+
+  onProgress?.("Discovering Ledger device");
+  const device = await firstDiscovered(
+    dmk.startDiscovering({ transport: webHidIdentifier }) as unknown as ObservableLike<DiscoveredDevice>
+  );
+  await dmk.stopDiscovering();
+  onProgress?.("Connecting to Ledger");
+  const sessionId = await dmk.connect({ device });
+  const signer = new SignerEthBuilder({ dmk, sessionId }).build();
+  onProgress?.("Reading address");
+  const addressOutput = await runDeviceAction(
+    signer.getAddress(DEFAULT_DERIVATION_PATH, {
+      checkOnDevice: false,
+      skipOpenApp: false,
+    }) as unknown as ActionReturn<{ address: string }>,
+    onProgress
+  );
+
+  return {
+    dmk,
+    sessionId,
+    signer,
+    address: addressOutput.address,
+    chainId: expectedChainId,
+    derivationPath: DEFAULT_DERIVATION_PATH,
+  };
+}
+
+export async function signTypedDataWithLedger(
+  connection: LedgerConnection,
+  typed: IntentTypedData,
+  onProgress?: (message: string) => void
+): Promise<string> {
+  const domain = typed.domain as {
+    name?: string;
+    version?: string;
+    chainId?: number;
+    verifyingContract?: string;
+    salt?: string;
+  };
+  const result = await runDeviceAction(
+    connection.signer.signTypedData(
+      connection.derivationPath,
+      {
+        domain,
+        types: typed.types,
+        primaryType: typed.primaryType,
+        message: typed.message,
+      }
+    ) as unknown as ActionReturn<{ r: string; s: string; v: number }>,
+    onProgress
+  );
+
+  const v = result.v < 27 ? result.v + 27 : result.v;
+  return ethers.Signature.from({
+    r: result.r,
+    s: result.s,
+    v,
+  }).serialized;
+}
+
+export async function disconnectLedger(connection: LedgerConnection): Promise<void> {
+  await connection.dmk.disconnect({ sessionId: connection.sessionId });
+}

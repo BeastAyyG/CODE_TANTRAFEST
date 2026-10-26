@@ -7,27 +7,21 @@ export default function IntentPage() {
   return (
     <>
       <PageHeader
-        eyebrow="AI intent drafting · AIP-042"
-        title={
-          <>
-            Every claim has a source.
-            <br />
-            <span className="text-signal">Two questions still change the rules.</span>
-          </>
-        }
-        description="The extractor proposes rules from the proposal text. A strict validator rejects any claim without a document span. The reviewer resolves each ambiguity; the intent hash and the treasury brief update live."
+        title="Intent review"
+        description="Seven claims, two unresolved. The reviewer's choices change the rule set, the intent hash and the commitment."
         meta={
           <>
-            <span className="chip border-signal/30 text-signal">pre-baked extraction · validator live</span>
-            <span className="chip">no LLM call at demo time</span>
+            <span className="doc-folio">AIP-042</span>
+            <span className="doc-folio">v3</span>
+            <span className="doc-folio">pre-baked extraction, validator live</span>
           </>
         }
         actions={
           <>
-            <a href="#claims" className="btn">
+            <a href="#claims" className="arrow-link">
               Claims
             </a>
-            <a href="#review" className="btn">
+            <a href="#review" className="arrow-link">
               Resolve ambiguities
             </a>
           </>

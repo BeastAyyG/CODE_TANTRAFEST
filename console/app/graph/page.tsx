@@ -7,27 +7,21 @@ export default function GraphPage() {
   return (
     <>
       <PageHeader
-        eyebrow="Conflict of interest · wallet graph"
-        title={
-          <>
-            The disclosure is incomplete.
-            <br />
-            <span className="text-signal">The funding path is not.</span>
-          </>
-        }
-        description="A disclosed proposer wallet funds an undisclosed operations wallet, which funds the GrowthLabs deployer 19 days before the proposal. The graph is a risk signal with transactions attached — not a conclusion of wrongdoing."
+        title="Disclosure graph"
+        description="Four links, noisy-OR risk 0.88. Two wallets were disclosed; the graph finds three more. It is a risk signal with transactions attached, not a finding of wrongdoing."
         meta={
           <>
-            <span className="chip border-danger/30 text-danger">simulated data</span>
-            <span className="chip">noisy-OR · 4 links</span>
+            <span className="doc-folio">AIP-042</span>
+            <span className="doc-folio text-danger">simulated data</span>
+            <span className="doc-folio">4 links</span>
           </>
         }
         actions={
           <>
-            <a href="#challenge" className="btn">
+            <a href="#challenge" className="arrow-link">
               Challenge payload
             </a>
-            <a href="#links" className="btn">
+            <a href="#links" className="arrow-link">
               Link evidence
             </a>
           </>

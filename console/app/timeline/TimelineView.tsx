@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
   ArrowDown,
-  ArrowRight,
   ArrowUpRight,
   Check,
   FileCheck2,
@@ -26,7 +25,6 @@ import {
   HashLine,
   Panel,
   SectionHeader,
-  Stat,
   StatusPill,
   cn,
 } from "@/components/ui";
@@ -67,17 +65,15 @@ function HashRow({ label, value, muted = false }: { label: string; value: string
 function VersionCard({ version, current }: { version: VersionRecord; current: boolean }) {
   const rulesUnchanged = version.version === 3;
   return (
-    <Panel className={cn("p-4", current && "border-signal/30")}>
+    <Panel className={cn("p-4", current && "border-t-danger")}>
       <div className="flex items-start justify-between gap-2">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="grid size-7 place-items-center rounded border border-edge font-mono text-[10px] text-faint">
-              v{version.version}
-            </span>
+          <div className="flex items-baseline gap-2">
+            <span className="doc-folio">v{version.version}</span>
             <span className="text-[13px] font-medium text-body">{version.note}</span>
           </div>
           <div className="mt-1.5 font-mono text-[9px] uppercase tracking-[0.08em] text-faint">
-            {formatTimestamp(version.createdAt)} · {version.author}
+            {formatTimestamp(version.createdAt)}, {version.author}
           </div>
         </div>
         <StatusPill status={current ? "GREEN" : "NEUTRAL"}>{current ? "current" : "superseded"}</StatusPill>
@@ -181,39 +177,45 @@ export function TimelineView() {
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Panel className="p-4">
-          <Stat label="Versions" value="3" sub="append-only · hash-chained" />
-        </Panel>
-        <Panel className="p-4">
-          <Stat label="Latest rules" value={`${demo.versions[2].actions.length}`} sub="v2 → v3 rules unchanged" tone="safe" />
-        </Panel>
-        <Panel className="p-4">
-          <Stat label="Evidence documents" value={`${demo.manifest.docs.length}`} sub={`${verifiedCount} verified this session`} tone={verifiedCount === 4 ? "safe" : "default"} />
-        </Panel>
-        <Panel className="p-4">
-          <Stat label="Disclosure" value="challenged" sub="post-queue review · simulated" tone="danger" />
-        </Panel>
+      <div className="border-t border-edge pt-3">
+        <table className="doc-ledger">
+          <tbody>
+            <tr>
+              <th className="w-[130px]">Versions</th>
+              <td>3, append-only and hash-chained.</td>
+            </tr>
+            <tr>
+              <th>Latest rules</th>
+              <td>{demo.versions[2].actions.length}, unchanged between v2 and v3.</td>
+            </tr>
+            <tr>
+              <th>Evidence</th>
+              <td>
+                {demo.manifest.docs.length} documents, {verifiedCount} verified this
+                session.
+              </td>
+            </tr>
+            <tr>
+              <th>Disclosure</th>
+              <td className="text-danger">Challenged, post-queue review.</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
       <section>
         <SectionHeader
-          eyebrow="Hash chain"
-          title="Three versions, one anchor path"
-          description="v2 raised the GrowthLabs amount and added two actions. v3 added the technical assessment and an assumption; the rules did not change, but the content hash and evidence root did."
-          right={<span className="chip border-safe/30 text-safe">prev → content</span>}
+          title="Hash chain"
+          description="Each version commits to the previous content hash. v2 and v3 share an intent hash; their content hashes differ."
+          right={<span className="doc-folio">previous, then content</span>}
         />
-        <div className="grid grid-cols-1 gap-2 lg:grid-cols-[1fr_28px_1fr_28px_1fr]">
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
           {demo.versions.map((version, index) => (
-            <div key={version.version} className="contents">
-              <VersionCard version={version} current={index === demo.versions.length - 1} />
-              {index < demo.versions.length - 1 ? (
-                <div className="flex items-center justify-center py-1 text-faint lg:py-0">
-                  <ArrowDown size={14} className="lg:hidden" />
-                  <ArrowRight size={14} className="hidden lg:block" />
-                </div>
-              ) : null}
-            </div>
+            <VersionCard
+              key={version.version}
+              version={version}
+              current={index === demo.versions.length - 1}
+            />
           ))}
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-edge pt-3">
@@ -233,7 +235,7 @@ export function TimelineView() {
           <Panel className="p-4">
             <div className="flex items-center gap-2">
               <GitBranch size={13} className="text-signal" />
-              <span className="mono-label">v1 → v2 · 08 Oct 2026</span>
+              <span className="mono-label">v1 → v2, 08 Oct 2026</span>
             </div>
             <ul className="mt-3 space-y-2 text-[11.5px] leading-relaxed text-dim">
               <li className="flex items-start gap-2">
@@ -257,7 +259,7 @@ export function TimelineView() {
           <Panel className="p-4">
             <div className="flex items-center gap-2">
               <GitBranch size={13} className="text-info" />
-              <span className="mono-label">v2 → v3 · 13 Oct 2026</span>
+              <span className="mono-label">v2 → v3, 13 Oct 2026</span>
             </div>
             <ul className="mt-3 space-y-2 text-[11.5px] leading-relaxed text-dim">
               <li className="flex items-start gap-2">
@@ -338,7 +340,7 @@ export function TimelineView() {
                         >
                           {ok ? <Check size={11} /> : <X size={11} />}
                           {ok
-                            ? `hash matches anchor · proof valid (${demo.manifest.proofs[doc.key]?.length ?? 0} siblings)`
+                            ? `hash matches anchor, proof valid (${demo.manifest.proofs[doc.key]?.length ?? 0} siblings)`
                             : "verification failed"}
                         </div>
                       ) : null}
@@ -367,8 +369,8 @@ export function TimelineView() {
         <Panel className="p-4">
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div>
-              <div className="mono-label mb-1">Signed disclosure · anchored in v3</div>
-              <h2 className="text-[14px] font-medium text-body">Nova Labs · 2 wallets</h2>
+              <div className="mono-label mb-1">Signed disclosure, anchored in v3</div>
+              <h2 className="text-[14px] font-medium text-body">Nova Labs, 2 wallets</h2>
             </div>
             <StatusPill status="FLAGGED">challenge filed</StatusPill>
           </div>
@@ -428,7 +430,7 @@ export function TimelineView() {
           See the remaining gaps <ArrowUpRight size={12} />
         </Link>
         <span className="ml-auto font-mono text-[9px] uppercase tracking-[0.08em] text-faint">
-          Evidence hashes are real · documents are demo seeds
+          Evidence hashes are real, documents are demo seeds
         </span>
       </div>
     </div>

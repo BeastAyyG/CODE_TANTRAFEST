@@ -2,15 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import {
-  ArrowUpRight,
-  CheckCircle2,
-  CircleDashed,
-  FileJson,
-  ShieldAlert,
-  Terminal,
-  XCircle,
-} from "lucide-react";
+import { ArrowUpRight, FileJson, ShieldAlert } from "lucide-react";
 import scorecardJson from "@/packages/shared/fixtures/scorecard.json";
 import metaJson from "@/packages/shared/fixtures/scorecard-meta.json";
 import type { ScorecardEntry } from "@/packages/shared/schemas";
@@ -18,7 +10,6 @@ import { formatTimestamp, shortHex } from "@/packages/shared/format";
 import { computeDocHash } from "@/packages/shared/hash";
 import { CopyButton } from "@/components/CopyButton";
 import {
-  Callout,
   Panel,
   SectionHeader,
   StatusPill,
@@ -75,57 +66,46 @@ export function ScorecardView() {
   const pending = entries.filter((entry) => entry.status === "TEST_REQUIRED");
 
   return (
-    <div className="space-y-5">
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Panel className="p-4">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 size={14} className="text-safe" />
-            <span className="mono-label">Executed & passed</span>
-          </div>
-          <div className="mt-2 font-mono text-[28px] leading-none text-safe">{summary.pass}</div>
-          <div className="mt-1.5 text-[10px] text-faint">reference model + unit checks</div>
-        </Panel>
-        <Panel className="p-4">
-          <div className="flex items-center gap-2">
-            <XCircle size={14} className={summary.fail > 0 ? "text-danger" : "text-faint"} />
-            <span className="mono-label">Failed</span>
-          </div>
-          <div className={cn("mt-2 font-mono text-[28px] leading-none", summary.fail > 0 ? "text-danger" : "text-steel")}>
-            {summary.fail}
-          </div>
-          <div className="mt-1.5 text-[10px] text-faint">would block the demo</div>
-        </Panel>
-        <Panel className="p-4">
-          <div className="flex items-center gap-2">
-            <CircleDashed size={14} className="text-signal" />
-            <span className="mono-label">Test required</span>
-          </div>
-          <div className="mt-2 font-mono text-[28px] leading-none text-signal">{summary.testRequired}</div>
-          <div className="mt-1.5 text-[10px] text-faint">Solidity-only · amber, never green</div>
-        </Panel>
-        <Panel className="p-4">
-          <div className="flex items-center gap-2">
-            <Terminal size={14} className="text-steel" />
-            <span className="mono-label">Generated</span>
-          </div>
-          <div className="mt-2 font-mono text-[13px] leading-tight text-body">
-            {formatTimestamp(meta.generatedAt)}
-          </div>
-          <div className="mt-1 flex items-center gap-1.5 text-[10px] text-faint">
-            <span>{meta.generator}</span>
-            <CopyButton value="npm run scorecard" compact />
-          </div>
-        </Panel>
+    <div className="space-y-6">
+      <div className="border-t border-edge pt-3">
+        <table className="doc-ledger">
+          <tbody>
+            <tr>
+              <th className="w-[160px]">Executed and passed</th>
+              <td>
+                {summary.pass}, reference model and unit checks.
+              </td>
+            </tr>
+            <tr>
+              <th>Failed</th>
+              <td className={summary.fail > 0 ? "text-danger" : undefined}>
+                {summary.fail}, would block the demo.
+              </td>
+            </tr>
+            <tr>
+              <th>Test required</th>
+              <td className="text-signal">
+                {summary.testRequired}, Solidity only, never green.
+              </td>
+            </tr>
+            <tr>
+              <th>Generated</th>
+              <td>
+                {formatTimestamp(meta.generatedAt)}, {meta.generator}{" "}
+                <CopyButton value="npm run scorecard" compact />
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
-      <Callout tone={summary.fail > 0 ? "danger" : "warn"} title="The scorecard is a test result, not a marketing number.">
-        <span className="font-mono text-[10px] uppercase tracking-[0.06em] text-signal">PASS</span> means
-        a check actually ran in this workspace.{" "}
-        <span className="font-mono text-[10px] uppercase tracking-[0.06em] text-danger">FAIL</span> would
-        block. <span className="font-mono text-[10px] uppercase tracking-[0.06em] text-signal">TEST_REQUIRED</span>{" "}
-        means the property cannot be honestly tested without Person A&apos;s Solidity contracts, a real
-        Hardhat run, or a fork simulation. Those rows are never rendered green.
-      </Callout>
+      <p className="doc-note max-w-[72ch]">
+        The scorecard is a test result, not a marketing number. PASS means a check
+        actually ran in this workspace. FAIL would block. TEST_REQUIRED means the
+        property cannot be honestly tested without Person A&apos;s Solidity
+        contracts, a real Hardhat run, or a fork simulation. Those rows are never
+        rendered green.
+      </p>
 
       <section id="checks">
         <SectionHeader
@@ -133,17 +113,17 @@ export function ScorecardView() {
           title={`${entries.length} properties`}
           description="Hash sensitivity, evidence proofs, decoder coverage, 11 attack scenarios, graph math, voting math, claim review, and the deterministic report."
           right={
-            <div className="flex flex-wrap items-center gap-1.5">
+            <div className="flex flex-wrap items-center gap-4">
               {(["ALL", "PASS", "FAIL", "TEST_REQUIRED"] as const).map((value) => (
                 <button
                   key={value}
                   type="button"
                   onClick={() => setFilter(value)}
                   className={cn(
-                    "rounded border px-2.5 py-1.5 font-mono text-[9px] uppercase tracking-[0.08em] transition-colors",
+                    "border-b px-0 py-1 font-sans text-[11px] transition-colors",
                     filter === value
-                      ? "border-signal/50 bg-signal/8 text-signal"
-                      : "border-edge text-dim hover:border-edge2 hover:text-body",
+                      ? "border-danger text-body"
+                      : "border-transparent text-dim hover:text-body",
                   )}
                 >
                   {value === "TEST_REQUIRED" ? "test required" : value.toLowerCase()}
@@ -176,7 +156,7 @@ export function ScorecardView() {
                 <div className="flex items-center justify-between gap-2 md:block">
                   <span className="font-mono text-[9.5px] text-faint">{entry.id}</span>
                   <span className="md:hidden">
-                    <StatusPill status={entry.status}>{entry.status.replace("_", " ")}</StatusPill>
+                    <StatusPill status={entry.status} />
                   </span>
                 </div>
                 <div className="min-w-0">
@@ -193,7 +173,7 @@ export function ScorecardView() {
                   </div>
                 </div>
                 <div className="hidden md:block">
-                  <StatusPill status={entry.status}>{entry.status.replace("_", " ")}</StatusPill>
+                  <StatusPill status={entry.status} />
                 </div>
                 <div className="hidden md:block">
                   <EvidenceKind kind={entry.evidenceKind} />
@@ -298,17 +278,16 @@ export function ScorecardView() {
               </>
             ) : (
               <p className="mt-2 text-[10px] leading-relaxed text-faint">
-                schema (d) · {entries.length} entries · generated {formatTimestamp(meta.generatedAt)}
+                schema (d), {entries.length} entries, generated {formatTimestamp(meta.generatedAt)}
               </p>
             )}
           </Panel>
 
-          <div className="flex items-center gap-2 rounded-lg border border-edge bg-white/2 px-3 py-2">
-            <Terminal size={12} className="text-faint" />
-            <span className="text-[10px] leading-snug text-faint">
+          <div className="border-t border-edge pt-2">
+            <span className="doc-note">
               Vitest covers the same pure functions; run{" "}
-              <code className="text-steel">npm test</code>. A green row without a test would be a
-              lie, so there are none.
+              <code className="text-steel">npm test</code>. A green row without a test
+              would be a lie, so there are none.
             </span>
           </div>
         </div>

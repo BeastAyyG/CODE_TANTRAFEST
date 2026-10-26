@@ -5,6 +5,8 @@ what is blocked, and where the detail lives.
 
 Last verified: **2026-10-25**. Everything below was executed, not asserted.
 
+> **2026-10-26 route update:** `/` is now the editorial Atlas, the Decision Trail is `/trail`, `/report` is the editorial report, and `/live` reads the local Hardhat chain (proposals, governor state, version chains, contracts, and a dev-signer vote panel). The screen descriptions below still apply. Production build passes with these routes; tests remain 57/57 and typecheck is clean.
+
 > **Whole-project view:** this file describes Person B's experience workspace. Person A's contracts and intelligence modules live on the public `main` branch and are **not merged** here. The visual atlas covers both halves and the integration gap: [PROJECT-ATLAS.html](PROJECT-ATLAS.html) · [PDF](PROJECT-ATLAS.pdf) · [PROJECT-MAP.md](PROJECT-MAP.md).
 
 ---

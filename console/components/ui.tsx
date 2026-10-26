@@ -1,6 +1,5 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { ArrowUpRight, Lock } from "lucide-react";
 import { CopyButton } from "./CopyButton";
 
 export function cn(...classes: (string | false | null | undefined)[]): string {
@@ -40,19 +39,26 @@ export function statusTone(status: StatusLike): "safe" | "warn" | "danger" | "ne
   }
 }
 
-const PILL_STYLES = {
-  safe: "border-safe/35 bg-safe/8 text-safe",
-  warn: "border-signal/35 bg-signal/8 text-signal",
-  danger: "border-danger/35 bg-danger/8 text-danger",
-  neutral: "border-edge2 bg-white/3 text-dim",
+const STATUS_MARKS = {
+  safe: "✓",
+  warn: "!",
+  danger: "✕",
+  neutral: "—",
 } as const;
 
-const DOT_STYLES = {
-  safe: "bg-safe",
-  warn: "bg-signal",
-  danger: "bg-danger",
-  neutral: "bg-dim",
-} as const;
+const STATUS_LABELS: Record<StatusLike, string> = {
+  GREEN: "clear",
+  AMBER: "review",
+  RED: "attention",
+  PASS: "pass",
+  FAIL: "fail",
+  PASSED: "passed",
+  REJECTED: "rejected",
+  FLAGGED: "flagged",
+  TEST_REQUIRED: "required",
+  OK: "ok",
+  NEUTRAL: "—",
+};
 
 export function StatusPill({
   status,
@@ -67,13 +73,15 @@ export function StatusPill({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded border px-2 py-1 font-mono text-[9px] uppercase tracking-[0.1em]",
-        PILL_STYLES[tone],
+        "inline-flex items-baseline gap-1.5 font-sans text-[10.5px] leading-none",
+        TONE_TEXT[tone],
         className,
       )}
     >
-      <span className={cn("h-1.5 w-1.5 rounded-full", DOT_STYLES[tone])} />
-      {children ?? status}
+      <span aria-hidden="true" className="text-[9px]">
+        {STATUS_MARKS[tone]}
+      </span>
+      <span>{children ?? STATUS_LABELS[status]}</span>
     </span>
   );
 }
@@ -90,44 +98,30 @@ export function statusTextClass(status: StatusLike): string {
 }
 
 export function LayerBadge({ layer }: { layer: "executor" | "sentinel" | "disclosure" }) {
-  const styles = {
-    executor: "border-edge2 bg-white/3 text-steel",
-    sentinel: "border-info/30 bg-info/8 text-info",
-    disclosure: "border-signal/30 bg-signal/8 text-signal",
-  } as const;
   return (
-    <span
-      className={cn(
-        "inline-flex rounded border px-2 py-1 font-mono text-[9px] uppercase tracking-[0.1em]",
-        styles[layer],
-      )}
-    >
-      layer · {layer}
+    <span className="font-sans text-[10.5px] text-faint">
+      Layer: {layer}
     </span>
   );
 }
 
 export function ModelBadge({ className }: { className?: string }) {
   return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1.5 rounded border border-signal/30 bg-signal/6 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.1em] text-signal",
-        className,
-      )}
-    >
-      Reference model · Solidity pending
+    <span className={cn("doc-stamp leading-tight", className)}>
+      Reference model
+      <br />
+      Solidity pending
     </span>
   );
 }
 
 export function PageHeader({
-  eyebrow,
   title,
   description,
   actions,
   meta,
 }: {
-  eyebrow: string;
+  eyebrow?: string;
   title: ReactNode;
   description?: ReactNode;
   actions?: ReactNode;
@@ -137,15 +131,10 @@ export function PageHeader({
     <header className="mb-7 border-b border-edge pb-6">
       <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
         <div className="max-w-3xl">
-          <div className="mb-3 flex flex-wrap items-center gap-2">
-            <span className="mono-label text-signal">{eyebrow}</span>
-            {meta}
-          </div>
-          <h1 className="text-balance text-[28px] font-semibold leading-[1.08] tracking-[-0.02em] text-body sm:text-[34px]">
-            {title}
-          </h1>
+          {meta ? <div className="mb-3 flex flex-wrap items-center gap-3">{meta}</div> : null}
+          <h1 className="doc-title text-body">{title}</h1>
           {description ? (
-            <p className="mt-3 max-w-2xl text-[13.5px] leading-relaxed text-dim">{description}</p>
+            <p className="doc-deck mt-4">{description}</p>
           ) : null}
         </div>
         {actions ? <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div> : null}
@@ -155,7 +144,6 @@ export function PageHeader({
 }
 
 export function SectionHeader({
-  eyebrow,
   title,
   description,
   right,
@@ -168,9 +156,8 @@ export function SectionHeader({
   return (
     <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
       <div>
-        {eyebrow ? <div className="mono-label mb-1.5">{eyebrow}</div> : null}
-        <h2 className="text-[17px] font-medium tracking-[-0.01em] text-body">{title}</h2>
-        {description ? <p className="mt-1.5 max-w-2xl text-[12.5px] leading-relaxed text-dim">{description}</p> : null}
+        <h2 className="doc-section-title text-body">{title}</h2>
+        {description ? <p className="mt-1.5 max-w-2xl text-[12px] leading-relaxed text-dim">{description}</p> : null}
       </div>
       {right}
     </div>
@@ -198,7 +185,6 @@ export function Panel({
 export function ScoreRing({
   score,
   status,
-  size = 64,
   label,
   hardGate = false,
 }: {
@@ -209,68 +195,43 @@ export function ScoreRing({
   hardGate?: boolean;
 }) {
   const tone = statusTone(status);
-  const stroke = tone === "safe" ? "#43d99a" : tone === "warn" ? "#f1b54a" : tone === "danger" ? "#ff6464" : "#596675";
-  const radius = size / 2 - 4;
-  const circumference = 2 * Math.PI * radius;
+  const toneClass =
+    tone === "danger"
+      ? "text-danger"
+      : tone === "warn"
+        ? "text-signal"
+        : tone === "safe"
+          ? "text-body"
+          : "text-dim";
   const value = score === null ? 0 : Math.max(0, Math.min(1, score));
-  const offset = circumference * (1 - value);
+
+  if (hardGate) {
+    return (
+      <div className="min-w-0">
+        <div className="flex items-baseline gap-2">
+          <span className="doc-score text-danger">—</span>
+          <span className="font-sans text-[10px] text-faint">hard gate</span>
+        </div>
+        <div className="mt-2 h-px w-full bg-edge">
+          <div className="h-px w-1/12 bg-danger" />
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="relative inline-grid shrink-0 place-items-center" style={{ width: size, height: size }}>
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          stroke="#1b2530"
-          strokeWidth={2.5}
+    <div className="min-w-0">
+      <div className="flex items-baseline gap-2">
+        <span className={cn("doc-score", toneClass)}>
+          {score === null ? "—" : score.toFixed(2)}
+        </span>
+        {label ? <span className="font-sans text-[10px] text-faint">{label}</span> : null}
+      </div>
+      <div className="mt-2 h-px w-full bg-edge">
+        <div
+          className={cn("h-px", tone === "danger" ? "bg-danger" : tone === "warn" ? "bg-signal" : "bg-ink")}
+          style={{ width: `${value * 100}%`, transition: "width 400ms ease" }}
         />
-        {hardGate ? (
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            fill="none"
-            stroke={stroke}
-            strokeWidth={2.5}
-            strokeDasharray={`${circumference * 0.12} ${circumference}`}
-            strokeLinecap="round"
-            transform={`rotate(-90 ${size / 2} ${size / 2})`}
-            opacity={0.7}
-          />
-        ) : (
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            fill="none"
-            stroke={stroke}
-            strokeWidth={2.5}
-            strokeDasharray={`${circumference} ${circumference}`}
-            strokeDashoffset={offset}
-            strokeLinecap="round"
-            transform={`rotate(-90 ${size / 2} ${size / 2})`}
-            style={{ transition: "stroke-dashoffset 500ms ease" }}
-          />
-        )}
-      </svg>
-      <div className="absolute inset-0 grid place-items-center">
-        {hardGate ? (
-          <div className="flex flex-col items-center gap-0.5 text-danger">
-            <Lock size={15} strokeWidth={1.8} />
-            <span className="font-mono text-[7.5px] uppercase tracking-[0.12em]">gate</span>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center">
-            <span className="font-mono text-[15px] font-medium leading-none text-body" style={{ color: stroke }}>
-              {score === null ? "—" : score.toFixed(2)}
-            </span>
-            {label ? (
-              <span className="mt-0.5 font-mono text-[7.5px] uppercase tracking-[0.12em] text-faint">{label}</span>
-            ) : null}
-          </div>
-        )}
       </div>
     </div>
   );
@@ -287,15 +248,15 @@ export function RiskMeter({
   threshold?: number;
   className?: string;
 }) {
-  const color = statusTone(status) === "danger" ? "#ff6464" : statusTone(status) === "warn" ? "#f1b54a" : "#43d99a";
+  const color = statusTone(status) === "danger" ? "var(--color-danger)" : statusTone(status) === "warn" ? "var(--color-signal)" : "var(--color-body)";
   return (
-    <div className={cn("relative h-1.5 w-full overflow-hidden rounded-full bg-edge", className)}>
+    <div className={cn("relative h-px w-full bg-edge", className)}>
       <div
-        className="h-full rounded-full"
-        style={{ width: `${Math.min(100, value * 100)}%`, background: color, transition: "width 500ms ease" }}
+        className="h-px"
+        style={{ width: `${Math.min(100, value * 100)}%`, background: color, transition: "width 400ms ease" }}
       />
       <div
-        className="absolute -top-1 h-3.5 w-px bg-body/50"
+        className="absolute -top-1 h-2.5 w-px bg-body/60"
         style={{ left: `${Math.min(100, threshold * 100)}%` }}
         title={`Red threshold ${(threshold * 100).toFixed(0)}%`}
       />
@@ -339,10 +300,10 @@ export function Stat({
   const toneClass =
     tone === "safe" ? "text-safe" : tone === "warn" ? "text-signal" : tone === "danger" ? "text-danger" : "text-body";
   return (
-    <div className="min-w-0">
-      <div className="mono-label">{label}</div>
-      <div className={cn("mt-1.5 font-mono text-[20px] leading-none tracking-tight", toneClass)}>{value}</div>
-      {sub ? <div className="mt-1.5 text-[11px] leading-snug text-faint">{sub}</div> : null}
+    <div className="grid grid-cols-[110px_minmax(0,1fr)] items-baseline gap-x-4 border-t border-edge/70 py-2.5">
+      <span className="mono-label">{label}</span>
+      <span className={cn("min-w-0 text-[13px] leading-snug", toneClass)}>{value}</span>
+      {sub ? <span className="col-start-2 text-[10.5px] leading-snug text-faint">{sub}</span> : null}
     </div>
   );
 }
@@ -359,14 +320,14 @@ export function Callout({
   className?: string;
 }) {
   const styles = {
-    safe: "border-safe/30 bg-safe/5",
-    warn: "border-signal/30 bg-signal/5",
-    danger: "border-danger/30 bg-danger/5",
-    info: "border-info/30 bg-info/5",
-    neutral: "border-edge bg-white/2",
+    safe: "border-safe",
+    warn: "border-signal",
+    danger: "border-danger",
+    info: "border-edge2",
+    neutral: "border-edge2",
   } as const;
   return (
-    <div className={cn("rounded-lg border px-4 py-3", styles[tone], className)}>
+    <div className={cn("border-l-2 pl-3", styles[tone], className)}>
       {title ? <div className="mb-1 text-[12.5px] font-medium text-body">{title}</div> : null}
       <div className="text-[12px] leading-relaxed text-dim">{children}</div>
     </div>
@@ -385,7 +346,6 @@ export function ArrowLink({
   return (
     <Link href={href} className={cn("arrow-link", className)}>
       {children}
-      <ArrowUpRight size={13} strokeWidth={1.8} />
     </Link>
   );
 }

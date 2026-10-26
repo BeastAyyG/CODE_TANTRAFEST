@@ -8,7 +8,7 @@ import { ArrowLeft, ArrowRight, Gavel, MonitorPlay, X } from "lucide-react";
 
 const STEPS = [
   {
-    path: "/",
+    path: "/trail",
     label: "Verdict",
     title: "The transaction does not match the vote",
     instruction: "Point at the blocked banner and the four stages. This is the whole story in one screen.",
@@ -125,10 +125,8 @@ export function JudgeMode() {
         onClick={open ? () => setOpen(false) : start}
         aria-pressed={open}
         title={open ? "Exit judge mode" : "Start the guided judge walkthrough"}
-        className={`inline-flex items-center gap-1.5 rounded border px-2 py-1 font-mono text-[9px] uppercase tracking-[0.1em] transition-colors ${
-          open
-            ? "border-signal bg-signal text-ink"
-            : "border-signal/40 bg-signal/8 text-signal hover:border-signal hover:bg-signal/12"
+        className={`inline-flex items-center gap-1.5 font-sans text-[11px] transition-colors ${
+          open ? "text-danger" : "text-dim hover:text-body"
         }`}
       >
         <Gavel size={11} strokeWidth={1.9} />
@@ -140,12 +138,12 @@ export function JudgeMode() {
 
       {open
         ? createPortal(
-            <div className="fixed inset-x-0 bottom-0 z-[85] border-t border-signal/35 bg-[#070a0e]/97 shadow-[0_-16px_48px_rgba(0,0,0,0.55)] backdrop-blur-md">
+            <div className="fixed inset-x-0 bottom-0 z-[85] border-t border-edge bg-ink/95 backdrop-blur-md">
               <div className="relative mx-auto w-full max-w-[1480px] px-3 pb-2.5 pt-2 sm:px-5">
-                <div className="absolute inset-x-0 top-0 h-[3px] bg-edge">
+                <div className="absolute inset-x-0 top-0 h-[2px] bg-edge">
                   <div
                     data-testid="judge-progress"
-                    className="h-full bg-signal transition-all duration-300"
+                    className="h-full bg-danger transition-all duration-300"
                     style={{ width: `${((step + 1) / STEPS.length) * 100}%` }}
                   />
                 </div>
@@ -155,15 +153,15 @@ export function JudgeMode() {
                   aria-live="polite"
                 >
                   <div className="flex min-w-0 items-start gap-3">
-                    <div className="flex shrink-0 flex-col items-center rounded border border-signal/35 bg-signal/8 px-2 py-1 text-signal">
-                      <span className="font-mono text-[8px] uppercase tracking-[0.12em]">judge</span>
-                      <span className="font-mono text-[12px] leading-none">
+                    <div className="flex shrink-0 flex-col items-center border border-danger/60 px-2 py-1 text-danger">
+                      <span className="font-sans text-[9px]">judge</span>
+                      <span className="font-sans text-[12px] leading-none">
                         {String(step + 1).padStart(2, "0")}
                       </span>
                     </div>
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="mono-label text-signal">{current.label}</span>
+                        <span className="mono-label text-danger">{current.label}</span>
                         <span className="chip">{step + 1} / {STEPS.length}</span>
                       </div>
                       <div className="truncate text-[14px] font-medium text-body">{current.title}</div>
@@ -220,14 +218,14 @@ export function JudgeMode() {
                         onClick={() => goTo(index)}
                         aria-label={`Open step ${index + 1}: ${item.label}`}
                         aria-current={index === step ? "step" : undefined}
-                        className={`h-1.5 rounded-full transition-all ${
-                          index === step ? "w-6 bg-signal" : "w-1.5 bg-edge2 hover:bg-steel"
+                        className={`h-1 transition-all ${
+                          index === step ? "w-6 bg-danger" : "w-1.5 bg-edge2 hover:bg-steel"
                         }`}
                       />
                     ))}
                   </div>
                   <span className="font-mono text-[8px] uppercase tracking-[0.08em] text-faint">
-                    judge path · 7 stops
+                    judge path, 7 stops
                   </span>
                 </div>
               </div>
