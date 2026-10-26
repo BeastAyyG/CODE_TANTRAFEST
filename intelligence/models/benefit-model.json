@@ -1,0 +1,26 @@
+{
+  "bias": -1.6079822947000129,
+  "weights": [
+    -5.716683771605612,
+    2.050399596683827,
+    0.6676298700920051,
+    -2.2440843244851303,
+    1.1103678274657112,
+    -3.8358031652436937,
+    1.1895147898453402,
+    1.1699684050414576,
+    1.2600441885803872
+  ],
+  "threshold": 0.5,
+  "featureNames": [
+    "spendRatio",
+    "runwayAfter",
+    "recipientKnown",
+    "recipientUnknown",
+    "evidenceLinked",
+    "coiRisk",
+    "selectorAuthorized",
+    "voteQuality",
+    "disclosure"
+  ]
+}

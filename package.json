@@ -23,7 +23,9 @@
     "generate:errors": "ts-node scripts/generate-errors-map.ts",
     "test:intelligence": "ts-mocha --timeout 10000 intelligence/__tests__/intelligence.test.ts",
     "test:decide": "ts-mocha --timeout 10000 intelligence/__tests__/tiny-model.test.ts",
-    "decide": "ts-node scripts/decide.ts"
+    "test:local-model": "ts-mocha --timeout 10000 intelligence/__tests__/local-model.test.ts",
+    "decide": "ts-node scripts/decide.ts",
+    "train:model": "ts-node scripts/train-local-model.ts"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",

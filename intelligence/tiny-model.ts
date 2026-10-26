@@ -112,6 +112,15 @@ export function trainTinyModel(
     learningRate?: number;
     l2?: number;
     init?: TinyModel;
+    /**
+     * Shrink the weights back toward a reference model while fitting.
+     * With a small labelled set, plain l2 (toward zero) can quietly erase a
+     * deliberate prior — e.g. it weakened `recipientUnknown` from -2.8 to
+     * -1.07 and started ACCEPTing unknown recipients. Anchoring to the prior
+     * keeps its sign structure and only lets strong evidence move it.
+     */
+    anchorTo?: TinyModel;
+    anchorStrength?: number;
   } = {}
 ): TinyModel {
   const epochs = options.epochs ?? 800;
@@ -121,6 +130,8 @@ export function trainTinyModel(
   const init = options.init ?? DEFAULT_MODEL;
   const weights = init.weights.slice(0, n);
   let bias = init.bias;
+  const anchor = options.anchorTo;
+  const anchorStrength = options.anchorStrength ?? 0;
 
   if (examples.length === 0) {
     return { ...init, featureNames: [...FEATURE_NAMES] };
@@ -143,9 +154,15 @@ export function trainTinyModel(
     }
 
     for (let i = 0; i < n; i++) {
-      weights[i] -= learningRate * (gradW[i] / examples.length + l2 * weights[i]);
+      const anchorPull =
+        anchor && anchorStrength > 0
+          ? anchorStrength * (weights[i] - (anchor.weights[i] ?? 0))
+          : 0;
+      weights[i] -= learningRate * (gradW[i] / examples.length + l2 * weights[i] + anchorPull);
     }
-    bias -= learningRate * (gradB / examples.length);
+    const biasPull =
+      anchor && anchorStrength > 0 ? anchorStrength * (bias - anchor.bias) : 0;
+    bias -= learningRate * (gradB / examples.length + biasPull);
   }
 
   return { bias, weights, threshold: 0.5, featureNames: [...FEATURE_NAMES] };
