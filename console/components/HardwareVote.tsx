@@ -364,10 +364,19 @@ export function HardwareVote({
             <p className="mt-3 border-l-2 border-danger pl-3 text-[12.5px] leading-relaxed text-body">
               {config.statement}
             </p>
-            <p className="doc-note mt-2">
-              Proposal {proposalId}. The statement is generated from the committed
-              rules; it is hashed into the signed brief hash.
-            </p>
+            <div className="mt-2 flex flex-wrap items-center gap-3">
+              <p className="doc-note">
+                Proposal {proposalId}. The statement is generated from the
+                committed rules; it is hashed into the signed brief hash.
+              </p>
+              <button
+                type="button"
+                className="arrow-link"
+                onClick={() => setReloadKey((key) => key + 1)}
+              >
+                Refresh fields
+              </button>
+            </div>
 
             <label className="mt-4 flex cursor-pointer items-start gap-3">
               <input

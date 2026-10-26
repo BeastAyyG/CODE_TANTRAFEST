@@ -35,6 +35,11 @@ const DOCS = [
     note: "contracts, ABIs and error-map swap points",
   },
   {
+    href: "https://github.com/BeastAyyG/CODE_TANTRAFEST/blob/main/docs/HARDWARE.md",
+    label: "Hardware signing",
+    note: "Ledger, browser wallet, relayer and pre-demo checklist",
+  },
+  {
     href: "https://github.com/BeastAyyG/CODE_TANTRAFEST/blob/main/MUSE_NEXT.md",
     label: "Next steps",
     note: "the integrator's queue",

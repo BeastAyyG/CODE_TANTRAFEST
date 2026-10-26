@@ -311,10 +311,7 @@ export default async function LiveProposalPage({
         ) : null}
 
         {chain?.state === "Queued" ? (
-          <GuardianHalt
-            govId={proposal?.govId ?? ""}
-            commitment={chain.commitment}
-          />
+          <GuardianHalt govId={proposal?.govId ?? ""} />
         ) : null}
 
         <section className="doc-section">

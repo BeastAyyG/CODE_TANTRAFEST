@@ -31,13 +31,7 @@ async function readReceipt(response: Response): Promise<ActionReceipt> {
   return payload;
 }
 
-export function GuardianHalt({
-  govId,
-  commitment,
-}: {
-  govId: string;
-  commitment: string;
-}) {
+export function GuardianHalt({ govId }: { govId: string }) {
   const wallet = useWallet();
   const [config, setConfig] = useState<SigningConfig | null>(null);
   const [configError, setConfigError] = useState<string | null>(null);
@@ -74,6 +68,16 @@ export function GuardianHalt({
       alive = false;
     };
   }, [govId, wallet.address, reloadKey]);
+
+  if (configError) {
+    return (
+      <section className="doc-section">
+        <p className="border-l-2 border-danger pl-3 text-[11.5px] text-danger">
+          {configError}
+        </p>
+      </section>
+    );
+  }
 
   const pending = config?.pendingHalt ?? null;
   if (!config || !pending) return null;
@@ -383,9 +387,6 @@ export function GuardianHalt({
         </div>
       ) : null}
 
-      {configError ? (
-        <p className="mt-3 text-[11.5px] text-danger">{configError}</p>
-      ) : null}
     </section>
   );
 }
