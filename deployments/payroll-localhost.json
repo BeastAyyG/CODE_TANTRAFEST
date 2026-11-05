@@ -1,7 +1,7 @@
 {
   "network": "localhost",
   "chainId": 31337,
-  "deployedAt": "2026-11-05T22:59:44.218Z",
+  "deployedAt": "2026-11-05T23:19:10.526Z",
   "description": "Employee-governed payroll DAO (ring-fenced PayrollVault + PayrollGovernor + WorkingCapitalVault)",
   "contracts": {
     "mockUsdc": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
