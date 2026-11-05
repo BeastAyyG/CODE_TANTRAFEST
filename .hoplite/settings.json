@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "scripts": {
+    "setup": {
+      "command": "npm ci && npm ci --prefix app && npm run build --prefix app"
+    },
+    "run": {
+      "command": "cd app && npm run start -- --hostname 0.0.0.0"
+    }
+  },
+  "ports": {
+    "preview": 3000,
+    "additional": {}
+  }
+}

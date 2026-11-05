@@ -1,3 +1,39 @@
+# Pact — employee-governed payroll
+
+Pact is the newest prototype in this repository: employees vote one-person-one-vote between two future work/pay packages, wages accrue in a ring-fenced mock-USDC payroll vault, and a separate working-capital vault cannot sweep payroll. Votes and board rate edits settle prior accrual first, so they cannot reduce earned pay.
+
+## Run the payroll prototype
+
+```bash
+npm ci
+npm ci --prefix app
+npx hardhat compile
+npx hardhat test test/payroll.test.ts
+
+# Terminal 1: local chain
+npx hardhat node
+
+# Terminal 2: deploy and run the live before/vote/after/withdraw demo
+npm run deploy:payroll
+npm run demo:payroll
+
+# Guided browser demo (simulated balances, no wallet required)
+npm run dev:payroll
+```
+
+Open `http://localhost:3000`; the research slide is at `/pitch`. The browser demo is intentionally labeled as simulated. The Hardhat script executes the actual contracts, including a reserve shortfall, one-way payroll funding, future-only rate changes, employee withdrawal, and a rejected treasury sweep.
+
+- [Payroll architecture and verification guide](PAYROLL.md)
+- [48-hour build plan](docs/payroll/BUILD_PLAN.md)
+- [One-slide research pitch](docs/payroll/PITCH.md)
+- [Judge Q&A](docs/payroll/JUDGE_QA.md)
+- [Legal-wrapper roadmap](docs/payroll/LEGAL.md)
+- [Research notes and source limitations](docs/payroll/RESEARCH.md)
+
+Prototype only: mock stablecoin, fixed board EOA, no external audit, and no employment/tax/legal compliance claim. A requested TalentDAO “Worker Compensation Study” could not be located; it is not presented as verified evidence.
+
+---
+
 # AegisDAO IntentLock
 
 > **Votes shouldn't authorize a vibe. They should authorize an exact action.**
