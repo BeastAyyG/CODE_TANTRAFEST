@@ -22,3 +22,4 @@ console/public/report.html
 
 console/certs/
 console/public/aegis-ca.crt
+.hoplite/artifacts/
