@@ -1,0 +1,11 @@
+{
+  "scripts": {
+    "run": {
+      "command": "cd app && npm run dev"
+    }
+  },
+  "ports": {
+    "preview": 3000,
+    "additional": []
+  }
+}
