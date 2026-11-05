@@ -1,97 +1,58 @@
-# 48-hour build plan — smallest working demo
+# Pact: 48-hour build plan
 
-Status: this is a plan. No payroll contracts exist in this repo yet (searched
-`contracts/`, `scripts/`, `test/` for payroll/wage/salary/stablecoin on 2026-11-05 — no
-matches). The repo's existing stack is reused as-is; the payroll contracts are new files
-under `contracts/payroll/`.
+**Status:** the smallest working reference demo is implemented in this repository. This plan preserves the 48-hour scope and shows where to cut if rehearsing the build again.
 
-## Smallest working demo — definition of done
+## Definition of done
 
-1. The deployer funds two separate vaults with a mock stablecoin: the payroll vault and
-   working capital.
-2. The board (owner) offers two work packages for the next epoch: high work/high pay and
-   low work/low pay.
-3. Registered employees vote one-person-one-vote. One address, one vote; double voting
-   reverts.
-4. The epoch commit applies the winning package to accrual **from the flip forward**.
-   Wages accrued before the flip are provably unchanged — asserted in a test and shown
-   live.
-5. An employee withdraws accrued wages: pull payment, no push.
-6. A transaction moving payroll funds to working capital (or anywhere but an employee)
-   reverts on-chain. That revert is a demo beat, not an accident.
-7. The vote cannot promise unbacked pay: committing a package whose projected payroll
-   exceeds the payroll vault balance reverts.
+- Separate mock-USDC payroll and working-capital vaults.
+- A board offers high-work/high-pay and low-work/low-pay packages.
+- Registered employees vote one-person-one-vote using a proposal-time snapshot.
+- Execution changes future accrual only; earned balances cannot shrink.
+- Employees withdraw vested pay through pull payments.
+- No board or treasury function can sweep payroll.
+- Public views distinguish accrued backing from accrued-plus-forward-runway backing.
+- Payouts never overdraw; any shortfall remains visible and owed.
+- A scripted demo and a guided browser walkthrough both complete.
 
-## Non-goals (cut in this order)
+The implemented demo **reports** underfunding. Rejecting an underfunded package at execution is a follow-up reserve gate, not part of the current guarantee.
 
-Continuous bidding (two fixed packages only) → on-chain identity beyond an owner-managed
-employee registry → mobile styling → Sepolia deployment (the local Hardhat network is
-enough) → multi-epoch history UI.
+## Contract structure
 
-## Contract structure (to build)
+| File | Scope |
+| --- | --- |
+| `PayrollVault.sol` | Employee registry, per-second streams, future-only rate updates, withdrawals, and backing reports. |
+| `PayrollGovernor.sol` | Exactly two packages, snapshot membership, one-person-one-vote, quorum, ties, and execution. |
+| `WorkingCapitalVault.sol` | Company spending and irreversible transfers into payroll. |
+| `MockUSDC.sol` | Existing six-decimal test token; never use its open mint in production. |
 
-`contracts/payroll/`:
+The employee registry intentionally lives in `PayrollVault` for the hackathon cut, avoiding a cross-contract registry without weakening the wage boundary.
 
-| Contract | Responsibility | Key surface |
-|---|---|---|
-| `MockStablecoin.sol` | ERC20 demo money (OZ `ERC20`) | `mint` for demo accounts |
-| `EmployeeRegistry.sol` | 1p1v weight source | owner adds/removes employees; `isEmployee`; `weightOf` is always 1 |
-| `PayrollVault.sol` | Ring-fenced wage vault | `fund()` (one-way in); `accruedWage(address)` view; `withdraw()` — the only outbound call; per-second accrual at the current rate since the employee's `accruedThrough` timestamp |
-| `WorkVote.sol` | Board packages + 1p1v vote | `proposePackages(highRate, lowRate)` (owner); `vote(package)`; `commitEpoch()` flips the accrual rate for the next epoch only; reverts if unbacked (I5) |
-| `WorkingCapital.sol` | Company operating money | admin spending for the demo; deliberately has no function touching `PayrollVault` |
+## Schedule
 
-Accrual model: each employee's owed balance advances at the current rate × elapsed seconds
-from their `accruedThrough` timestamp. A rate change at the epoch flip writes the new rate
-and resets the timestamp; balances accrued at the old rate are already banked in
-`accruedWage` and are unreachable by any vote. That single mechanism delivers I1.
+| Hours | Build | Exit check |
+| --- | --- | --- |
+| 0–4 | Confirm the two-package story, scaffold Hardhat, and write the invariants beside the API. | Empty contracts compile; demo script has named before/vote/after beats. |
+| 4–12 | Implement payroll accrual, deposits, withdrawal, and future-only base-rate updates. | Exact timestamp tests pass at old/new rates; earned balances never decrease except withdrawal. |
+| 12–18 | Add employee snapshots, two-package proposals, one-person-one-vote, quorum, ties, and execution. | Double votes and late members fail; both high and low outcomes pass. |
+| 18–22 | Add working capital, one-way payroll funding, and backing reports. | Treasury sweep reverts; accrued-only coverage is not called fully backed. |
+| 22–26 | Add underfunded payout behavior and negative tests. | No overdraw; shortfall remains owed and publicly reported. |
+| 26–32 | Build the guided vote → execute → withdraw interface and reserve view. | Either package can be demonstrated; working capital never changes on withdrawal. |
+| 32–36 | Add deployment and isolated live demo scripts. | Fresh local deployment and full scripted rehearsal pass. |
+| 36–40 | Finish the research slide, three judge answers, and legal roadmap. | Every research claim has a source or an explicit design-inference label. |
+| 40–44 | Run all tests, browser interactions, mobile layout, and two on-stage rehearsals. | No console errors; reset works; fallback recording is ready if needed. |
+| 44–48 | Buffer for failures and speaker preparation. Do not add features here. | One reliable demo path, one backup path, concise answers. |
 
-## Invariants (each gets a named test)
+## Cut lines
 
-- **I1 — earned wages immutable.** After any vote and epoch commit, every employee's
-  pre-flip accrued balance is bit-identical.
-- **I2 — ring fence.** `PayrollVault` has exactly one outbound call path: employee
-  `withdraw()`. Owner sweep, arbitrary transfer, and cross-vault pull all revert.
-- **I3 — one person, one vote.** Non-employees revert; a second vote from the same
-  address reverts; votes are never weighted by any balance.
-- **I4 — future-only.** A vote cast mid-epoch changes nothing until `commitEpoch`; the
-  committed package binds only to the next epoch.
-- **I5 — solvency guard.** `commitEpoch` reverts when projected payroll for the next
-  epoch exceeds the payroll vault balance — votes cannot promise unbacked pay.
-- **I6 — pull payments only.** No function in the system moves wages without the
-  employee's call.
+1. Cut Sepolia first; the local chain proves the mechanism without faucet risk.
+2. Cut wallet connection next; label the guided UI as simulated and keep the real on-chain script.
+3. Cut visual polish before cutting negative tests or the treasury-sweep demonstration.
+4. Never cut the future-only accrual test, one-person-one-vote check, or honest backing labels.
 
-## 48-hour schedule
+## Three-beat stage demo
 
-| Hours | Outcome | Cut line if behind |
-|---|---|---|
-| 0–4 | Scaffold `contracts/payroll/`; `npm run compile` green alongside existing contracts | none — non-negotiable |
-| 4–12 | `PayrollVault` accrual math + I1/I2/I6 tests green | drop event polish, keep the math |
-| 12–18 | `EmployeeRegistry` + `WorkVote` + I3/I4/I5 tests green | drop quorum niceties |
-| 18–22 | `WorkingCapital` + `MockStablecoin` + negative tests | fold `WorkingCapital` into the deploy script if desperate |
-| 22–30 | Demo page in the existing Next.js app (ethers v6): board panel, voter panel, vault panel with a live backing ratio | static screenshots as fallback |
-| 30–36 | `deploy` + `seed` scripts for the demo state on the local Hardhat network (31337); rehearse the three-beat script | skip Sepolia |
-| 36–42 | Full rehearsal ×3; record a clean fallback video; build the slide from `docs/payroll/PITCH.md` | — |
-| 42–48 | Buffer + triage | ship the contract-level script demo without UI if needed |
+1. **Choice:** show Focus and Sprint, the snapshot electorate, and one employee casting one vote.
+2. **Promise:** close the vote and show the future rate changing while the execution-time earned balance is preserved. Query the backing report.
+3. **Boundary:** withdraw vested pay, show working capital untouched, then attempt a board payroll sweep and show the revert.
 
-## Demo script (three beats, ~3 minutes)
-
-1. **Offer & vote.** The board proposes the two packages; two employees vote differently;
-   the tally is visibly one-person-one-vote (a whale wallet gets the same weight).
-2. **Flip.** `commitEpoch` fires; the UI shows the next-epoch stream change while the
-   earned-balance column stays frozen; a highlighted test assertion proves I1.
-3. **Attack.** From the working-capital admin, attempt to sweep payroll — the transaction
-   reverts on-chain; show the revert reason on screen.
-
-## Stack and commands (verified in this repo)
-
-- Solidity 0.8.24 (Cancun), Hardhat toolbox, OpenZeppelin contracts ^5.6.1, ethers
-  ^6.13.0, Node 20.12+ (see `hardhat.config.ts`).
-- `npm run compile` · `npm run test` · local network 31337; follow the existing
-  `deploy`/`seed` script patterns in `scripts/`; Sepolia guidance in `docs/SEPOLIA.md`
-  (optional for this demo).
-- Keep payroll tests in `test/payroll/` so the existing suite stays untouched.
-
-## Honest limits (say these before a judge does)
-
-Not production ready. No audit. Demo keys are demo keys. Testnet and mock token only.
-The employment/legal layer is a roadmap (`docs/payroll/LEGAL.md`), not a claim.
+Run `npm run demo:payroll` against a fresh local node for the contract-level version. The browser at `/` is the guided simulation, not an on-chain wallet demo.

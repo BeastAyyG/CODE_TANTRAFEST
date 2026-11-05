@@ -12,15 +12,15 @@ they can check. The DAO is just the mechanism that fixes it.
 | Research says | So we built |
 |---|---|
 | Token-weighted DAO voting hands power to whales — concentrated control is a documented governance vulnerability (Han/Lee/Li 2025; Buterin 2021) | **One employee, one vote.** Governance weight is a person, not a wallet |
-| Token voting entrenches control and invites vote buying and empty voting (Strnad 2024; Buterin 2021) | **Votes change only future pay.** Wages already earned sit on-chain, outside every vote's reach |
-| DAO pay design is an unsolved governance problem; time-based schedules misalign (Davidson 2023) | **Pay in a stablecoin from a ring-fenced payroll vault.** Same unit on day one as on day thirty — so backing is publicly checkable |
-| DAO governance research centres token holders; contributor engagement is measurable and design-linked (Han/Lee/Li 2025 scope; talentDAO organisational-health work) | **The work-vs-pay tradeoff is the governed object.** The board offers two packages; employees vote |
+| Token voting entrenches control and invites vote buying and empty voting (Strnad 2024; Buterin 2021) | **Keep payroll authority narrow and inspectable.** Our inference: votes change only future pay, while backing is public |
+| DAO pay design is an unsolved governance problem; Davidson proposes an alternative to time-based vesting (2023) | **Make work/pay terms an explicit employee choice.** Our inference: use stablecoins and a ring-fenced vault, not volatile token wages |
+| Locatable talentDAO work measures organisational health, not payroll governance; the requested compensation study is unverified | **The work-vs-pay tradeoff is the governed object.** Retention impact is a hypothesis to test, not a claimed finding |
 
-Bottom bar: **"Research says governance failures are about money and control. So the
-payroll vault — not the token — is what we govern."**
+Bottom bar: **"Research says governance failures are about money and control. So the vote
+governs future work, while the vault protects earned pay."**
 
-Citations: full records in `docs/payroll/RESEARCH.md`. Rows 1–3 are paper-backed; row 4's
-payroll application is our design inference on top of a real research gap.
+Citations: full records in `docs/payroll/RESEARCH.md`. Source findings are paper-backed;
+the payroll mappings are explicitly our design inferences, not results tested by the papers.
 
 ## Speaker narrative (~90 seconds)
 
@@ -33,8 +33,8 @@ missing is verification. You can't audit your employer's payroll, and you can't 
 either. DAO research keeps documenting what happens when money and control share one
 weighting: whales."
 
-**0:40 — the mechanism, one breath (30s).** "So we made the payroll vault the thing you
-govern. Pay accrues in a ring-fenced stablecoin vault anyone can verify on-chain. The
+**0:40 — the mechanism, one breath (30s).** "So we made future work terms governable and
+payroll independently verifiable. Pay accrues in a ring-fenced stablecoin vault anyone can query on-chain. The
 board offers two work packages — high work, high pay, or the opposite — and employees vote
 one-person-one-vote. And here is the rule that makes it safe: a vote can only change
 future pay. What you have already earned is locked, out of every vote's reach."
@@ -52,8 +52,8 @@ raid payroll. The chain says no."
 
 ## Labels we keep on stage
 
-- Research rows are paper-backed (`docs/payroll/RESEARCH.md`); the payroll application is
-  our design.
+- Source findings are paper-backed (`docs/payroll/RESEARCH.md`); every payroll application
+  is labeled as our design.
 - The talentDAO citation is directional — no verified pay-governance study exists; we lean
   on their verified organisational-health work and say so if pressed.
 - Legal appears as a roadmap slide only (`docs/payroll/LEGAL.md`): entity wrapper options

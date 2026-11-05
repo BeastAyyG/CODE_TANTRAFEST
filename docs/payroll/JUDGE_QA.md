@@ -26,12 +26,12 @@ enforcement plus public verifiability, not exotic voting math.
 **30-second answer.** The payroll vault has exactly one outbound function: an employee
 withdrawing wages they already accrued. There is no admin sweep, no bridge out, and the
 vote object is the *future* accrual rate — never the earned balance. Funding is one-way,
-and the working-capital contract has no function that can touch payroll. You do not have
+and the working-capital contract has no function that can pull payroll back. You do not have
 to trust us: watch the sweep attempt revert on-chain, then read the one outbound path in
 the source.
 
 **Point at:** the revert in beat 3 of the demo; invariants I1/I2 in
-`docs/payroll/BUILD_PLAN.md`.
+`PAYROLL.md`.
 
 ## Q3 — "Is employees voting on pay even legal?"
 
@@ -50,8 +50,9 @@ written down (`docs/payroll/LEGAL.md`). "Engage counsel" is on the slide on purp
 - **Why a stablecoin?** Pay in a native token makes wages swing with price; a stablecoin
   keeps the unit fixed so backing is actually checkable. Our design choice (D1 in
   RESEARCH.md), not a paper claim.
-- **What if the vote picks pay the company can't fund?** It can't: `commitEpoch` reverts
-  if projected payroll exceeds the vault balance (I5). Votes cannot promise unbacked pay.
+- **What if the vote picks pay the company can't fund?** The current prototype exposes
+  accrued and forward-runway shortfalls and never overdraws; it does not reject an
+  underfunded winner. An execution-time reserve gate is the next hardening step.
 - **Why not just a multisig?** A multisig moves money; it does not make the payroll
   promise publicly verifiable, and it cannot stop a majority from touching earned wages.
 - **Low turnout — the participation problem Strnad documents (S3)?** If no quorum is
