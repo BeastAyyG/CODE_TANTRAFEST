@@ -2,7 +2,7 @@
 
 **Not legal advice. No counsel was consulted for this document. Everything here is
 jurisdiction-dependent and changes over time; verify with a lawyer before any real wages
-flow.** The hackathon prototype runs on testnet with a mock stablecoin — no real
+flow.** The hackathon prototype runs on a local test chain with a mock stablecoin — no real
 employment, wages, or filings are implicated by building it.
 
 ## What the slide says
