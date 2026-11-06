@@ -357,6 +357,7 @@ async function ensureDisclosure(
   )) as string;
 }
 
+/** Call before openVoting: votes are weighed at the block before voting opens. */
 async function ensureGovTokens(ctx: Ctx, wallets: Wallet[]): Promise<void> {
   const target = ethers.parseUnits(process.env.GOV_TOKEN_MINT_TOKENS ?? "1000", 18);
   for (const wallet of wallets) {
@@ -979,12 +980,12 @@ async function seedP3(ctx: Ctx, progress: Progress): Promise<DemoEntry> {
     labels: { [recipient.toLowerCase()]: "Ecosystem recipient" },
   });
   if (Number(p.state) === 1) {
+    await ensureGovTokens(ctx, [ctx.voter1]);
     await send("openVoting P3", () => ctx.governor.connect(ctx.proposer).openVoting(govId));
     p = await retry("getGovProposal", () => ctx.governor.getGovProposal(govId));
   }
 
   if (Number(p.state) === 2) {
-    await ensureGovTokens(ctx, [ctx.voter1]);
     const existing = await retry("getVote", () =>
       ctx.governor.getVote(govId, ctx.voter1.address)
     );
@@ -1094,12 +1095,12 @@ async function seedP4(ctx: Ctx, progress: Progress): Promise<DemoEntry> {
     labels: { [ctx.vendor.toLowerCase()]: "Vendor" },
   });
   if (Number(p.state) === 1) {
+    await ensureGovTokens(ctx, [ctx.voter1, ctx.voter2, ctx.voter3]);
     await send("openVoting P4", () => ctx.governor.connect(ctx.proposer).openVoting(govId));
     p = await retry("getGovProposal", () => ctx.governor.getGovProposal(govId));
   }
 
   if (Number(p.state) === 2) {
-    await ensureGovTokens(ctx, [ctx.voter1, ctx.voter2, ctx.voter3]);
     const votes = [
       { wallet: ctx.voter1, support: 1, informed: true },
       { wallet: ctx.voter2, support: 1, informed: false },
@@ -1250,11 +1251,11 @@ async function seedP6(ctx: Ctx, progress: Progress): Promise<DemoEntry> {
 
   let p = proposal;
   if (Number(p.state) === 1) {
+    await ensureGovTokens(ctx, [ctx.voter1]);
     await send("openVoting P6", () => ctx.governor.connect(ctx.proposer).openVoting(govId));
     p = await retry("getGovProposal", () => ctx.governor.getGovProposal(govId));
   }
   if (Number(p.state) === 2) {
-    await ensureGovTokens(ctx, [ctx.voter1]);
     const existing = await retry("getVote", () =>
       ctx.governor.getVote(govId, ctx.voter1.address)
     );

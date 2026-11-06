@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/governance/utils/IVotes.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "./ProposalRegistry.sol";
 import "./DisclosureRegistry.sol";
@@ -72,7 +72,7 @@ contract IntentGovernor {
         // Voting parameters
         uint256            voteStart;           // block.timestamp when voting opens
         uint256            voteEnd;             // block.timestamp when voting closes
-        uint256            snapshotBlock;       // block number for balance snapshot
+        uint256            snapshotBlock;       // voting power is read at this block
 
         // Vote tallies
         uint256            forVotes;
@@ -97,8 +97,9 @@ contract IntentGovernor {
     // Storage
     // ──────────────────────────────────────────
 
-    /// @notice Governance token used for voting weight.
-    IERC20 public immutable votingToken;
+    /// @notice Governance token used for voting weight. Must checkpoint votes
+    ///         (ERC-5805 / IVotes) so weight can be read at a past block.
+    IVotes public immutable votingToken;
 
     /// @notice Proposal Registry for version verification.
     ProposalRegistry public immutable registry;
@@ -199,7 +200,7 @@ contract IntentGovernor {
         uint256 _quorum,
         uint256 _timelockDelay
     ) {
-        votingToken = IERC20(_votingToken);
+        votingToken = IVotes(_votingToken);
         registry = ProposalRegistry(_registry);
         disclosureRegistry = DisclosureRegistry(_disclosureRegistry);
         executor = IntentLockExecutor(payable(_executor));
@@ -319,7 +320,9 @@ contract IntentGovernor {
         p.state = GovProposalState.VotingOpen;
         p.voteStart = block.timestamp;
         p.voteEnd = block.timestamp + votingPeriod;
-        p.snapshotBlock = block.number;
+        // The last mined block: tokens borrowed, bought or moved once voting
+        // is open carry no weight on this proposal.
+        p.snapshotBlock = block.number - 1;
 
         // Commitment is now immutable — any change requires a new proposal
         emit VotingOpened(govId, p.voteStart, p.voteEnd);
@@ -435,9 +438,7 @@ contract IntentGovernor {
             revert AlreadyVoted(voter);
         }
 
-        // The demo token has no historical checkpoints; weight is the
-        // voter's balance when the vote is cast.
-        uint256 weight = votingToken.balanceOf(voter);
+        uint256 weight = votingToken.getPastVotes(voter, p.snapshotBlock);
         if (weight == 0) {
             revert InsufficientVotingPower(voter);
         }

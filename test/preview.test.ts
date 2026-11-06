@@ -311,8 +311,10 @@ describe("Pre-vote Effect Preview", () => {
       {
         target: await f.executor.getAddress(),
         value: 0n,
-        data: f.executor.interface.encodeFunctionData("setGovernor", [
-          f.attacker.address,
+        // Only the guardian may halt, so this reverts when the executor sends it.
+        data: f.executor.interface.encodeFunctionData("halt", [
+          ethers.ZeroHash,
+          ethers.ZeroHash,
         ]),
       },
     ];
@@ -354,8 +356,10 @@ describe("Pre-vote Effect Preview", () => {
       {
         target: await f.executor.getAddress(),
         value: 0n,
-        data: f.executor.interface.encodeFunctionData("setGovernor", [
-          f.attacker.address,
+        // Only the guardian may halt, so this reverts when the executor sends it.
+        data: f.executor.interface.encodeFunctionData("halt", [
+          ethers.ZeroHash,
+          ethers.ZeroHash,
         ]),
       },
     ];

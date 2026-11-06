@@ -53,5 +53,25 @@
     "id": 10,
     "property": "Hidden conflict-of-interest link flagged",
     "testFile": "test/redteam/scenario10-hidden-coi.test.ts"
+  },
+  {
+    "id": 11,
+    "property": "Recycled and flash-loaned votes carry no weight",
+    "testFile": "test/redteam/scenario11-vote-recycling.test.ts"
+  },
+  {
+    "id": 12,
+    "property": "Guardian cannot rotate the governor; only a passed proposal can",
+    "testFile": "test/redteam/scenario12-guardian-escalation.test.ts"
+  },
+  {
+    "id": 13,
+    "property": "Owner and implementation re-checked after execution",
+    "testFile": "test/redteam/scenario13-control-postconditions.test.ts"
+  },
+  {
+    "id": 14,
+    "property": "Treasury outflow capped at the committed budget",
+    "testFile": "test/redteam/scenario14-treasury-outflow.test.ts"
   }
 ]

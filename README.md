@@ -11,7 +11,7 @@ actually do while there is still time to vote against them.
 [![Solidity](https://img.shields.io/badge/solidity-0.8.24%20(cancun)-363636?logo=solidity)](contracts/)
 [![Hardhat](https://img.shields.io/badge/hardhat-2.29-fff100?logo=hardhat)](hardhat.config.ts)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=nextdotjs)](console/)
-[![tests](https://img.shields.io/badge/tests-202%2B%20passing-brightgreen)](#testing)
+[![tests](https://img.shields.io/badge/tests-213%2B%20passing-brightgreen)](#testing)
 [![network](https://img.shields.io/badge/network-Sepolia%20(11155111)%20%2B%20Local-blue)](docs/SEPOLIA.md)
 [![license](https://img.shields.io/badge/license-MIT-lightgrey)](#team-license-acknowledgements)
 
@@ -118,7 +118,7 @@ Three layers are kept deliberately separate:
 | Live contested upgrade | Decode, bytecode scan, snapshot simulation, trace diff, guardian halt | [`sentinel/`](sentinel/) |
 | Pre-vote understanding | Effect preview of the exact committed calldata | [`sentinel/preview.ts`](sentinel/preview.ts) |
 | Evaluation chain | Four-stage scorer with per-stage reasons and factors | [`intelligence/chain.ts`](intelligence/chain.ts) |
-| Red-team evidence | Eleven scenarios, scorecard generated from real tests | [`test/redteam/`](test/redteam/) |
+| Red-team evidence | Fifteen scenarios, scorecard generated from real tests | [`test/redteam/`](test/redteam/) |
 
 ### What makes it different
 
@@ -161,10 +161,10 @@ sub-capability is missing, and the gap is named · **Planned** = not built.
 | Recursive multicall checks (depth ≤ 2) | Implemented | Deeper nesting is rejected |
 | Bounded approvals; unlimited approvals rejected unless committed | Implemented | `UnlimitedApprovalNotCommitted` |
 | Upgrade code-hash pinning (`extcodehash` at execution) | Implemented | `CodeHashMismatch` |
-| Post-conditions after execution | Partial | ERC-20 allowance ceilings only; owner/admin, balance delta and EIP-1967 are not re-asserted after the call |
+| Post-conditions after execution | Implemented | Allowance ceilings; `owner()` and `implementation()` unchanged unless a rule commits the change; executor outflow per named token within the committed `maxAmount`s (S13, S14). Checked where the target exposes the getter |
 | Timelock, one-shot execution, reentrancy guard | Implemented | `TimelockNotExpired`; executed flag set before external calls; `nonReentrant` |
 | Replay and stale-version protection | Implemented | `chainId` in the commitment; `VersionSuperseded` |
-| Guardian halt only (`halt`, `haltBySig`) | Implemented | The guardian can also call `setGovernor`; see [SECURITY.md](docs/SECURITY.md#assumptions) |
+| Guardian halt only (`halt`, `haltBySig`) | Implemented | `setGovernor` accepts only the current governor or a passed, timelocked proposal (S12) |
 
 ### Forced disclosure and conflict-of-interest graph
 
@@ -214,13 +214,14 @@ sub-capability is missing, and the gap is named · **Planned** = not built.
 | Risk brief with treasury impact and unresolved items | Implemented | `/voting` |
 | Attention queue ranked by risk | Partial | Recorded data only; the live endpoint throws a named error |
 | EIP-712 relayed votes | Implemented | `voteBySig`, `IntentVote`, HS1–HS7 tests |
+| Snapshot voting weight | Implemented | `getPastVotes` at the block before voting opens; recycled and flash-loaned votes carry no weight (S11) |
 
 ### Red-Team Arena and scorecard
 
 | Feature | Status | Notes |
 | :--- | :--- | :--- |
-| Eleven reproducible attack scenarios as tests and console buttons | Implemented | `test/redteam/`, `POST /api/arena/:id` |
-| Scorecard generated from real test output | Implemented | `scripts/scorecard-reporter.js`; 11 PASS / 0 FAIL |
+| Fifteen reproducible attack scenarios as tests | Implemented | `test/redteam/`; console buttons cover 0–10 (`POST /api/arena/:id`) |
+| Scorecard generated from real test output | Implemented | `scripts/scorecard-reporter.js`; 15 PASS / 0 FAIL |
 
 ### Hardware and tri-mode signing
 
@@ -379,7 +380,7 @@ Full threat model, assumptions and limits: [SECURITY.md](docs/SECURITY.md).
 
 ### Arena results (latest run in this workspace)
 
-Twenty scenario tests passing; scorecard **11 PASS / 0 FAIL**. Regenerate with `npm run arena`.
+31 scenario tests passing; scorecard **15 PASS / 0 FAIL**. Regenerate with `npm run arena`.
 
 | # | Attack | Result |
 | :--- | :--- | :--- |
@@ -394,16 +395,24 @@ Twenty scenario tests passing; scorecard **11 PASS / 0 FAIL**. Regenerate with `
 | 8 | Early, double and cross-chain execution | PASS (reverts) |
 | 9 | Stale version | PASS (reverts) |
 | 10 | Hidden conflict of interest | PASS (flagged) |
+| 11 | Recycled and flash-loaned votes (Beanstalk 2022 pattern) | PASS (no weight) |
+| 12 | Guardian installs its own governor | PASS (reverts) |
+| 13 | Called contract hijacks its owner or implementation | PASS (reverts) |
+| 14 | "Fee tuning" spends a stale treasury allowance | PASS (reverts) |
 
 ### What this does NOT catch
 
 - A vote that **honestly authorizes something bad** still executes.
 - Evidence that is **self-authored but internally consistent** is not proven true.
-- A **compromised governor, executor or guardian** breaks the guarantee (the guardian can also
-  rotate the governor today).
+- A **compromised governor or executor** breaks the guarantee. A compromised guardian can halt
+  honest proposals but cannot rotate the governor.
+- **Bought votes.** Snapshot voting stops borrowed and recycled votes, not tokens bought before
+  voting opens (the 2026 BonkDAO, Term Finance and Neutron takeovers). The timelock, Sentinel
+  halt and typed rules are the response there.
 - **Arbitrary-bytecode safety** is not claimed; only the typed action model is enforced.
-- Post-conditions cover **allowance ceilings only**; owner, balance and EIP-1967 slots are not
-  re-asserted after the call.
+- Post-conditions are **best effort**: owner and implementation are checked only where the target
+  exposes `owner()` / `implementation()`, and the outflow budget covers tokens that a transfer or
+  approve rule names.
 - Simulation is **early warning**, not the guarantee; the wallet graph is **simulated data** with
   heuristic scores; AI drafts are **pre-baked or heuristic** and human-confirmed.
 - There is **no audit and no formal verification**; the Sepolia deployment is a testnet demo.
@@ -496,8 +505,8 @@ Expected:
 
 ```text
 added 641 packages
-Compiled 21 Solidity files successfully (evm target: cancun).
-68 passing
+Compiled 43 Solidity files successfully (evm target: cancun).
+79 passing
 ```
 
 Other suites:
@@ -686,7 +695,7 @@ The console supports three flexible signing modes tailored for both production h
 | `{"_tag":"DeviceLockedError"}` | Your Ledger device is locked. Enter your PIN on the physical device to unlock it, then retry. |
 | `Unknown application name` or `6807` | The Ethereum app is not open on the Ledger, or not installed in Ledger Live. Unlock, open Ethereum app on device (*"Application is ready"*), and retry. |
 | `No selected device` / `NoAccessibleDeviceError` | In the browser WebHID popup, you must click on the text row (e.g. `Nano S Plus - Paired`) to highlight it before the blue "Connect" button lights up. |
-| `This account has no governance tokens` | The connected wallet has 0 GOV tokens. Governor requires `votingToken.balanceOf(voter) > 0`. Fund the address with GOV tokens or switch to Dev Signer. |
+| `This account has no governance tokens` | The wallet held 0 GOV at the proposal's snapshot, the block before voting opened. Fund the address before voting opens, or switch to Dev Signer. |
 | `gov.nonces is not a function` | Contract ABI / deployment out of sync. Recompile and redeploy with Cancun EVM target (`npm run deploy:sepolia`). |
 | `listen EADDRINUSE 127.0.0.1:8545` | A node is already running. Reuse it or start on another port and set `LOCAL_RPC_URL`. |
 | `No signer available on "sepolia"` | Set `DEPLOYER_KEY` and `SEPOLIA_RPC_URL`. |
@@ -731,14 +740,14 @@ Screenshot placeholders, paths and alt text: [docs/screenshots/README.md](docs/s
 
 | Group | Command | Result in this workspace |
 | :--- | :--- | :--- |
-| Contracts, sentinel, preview, scenarios | `npx hardhat test` | **68 passing** |
+| Contracts, sentinel, preview, scenarios | `npx hardhat test` | **79 passing** |
 | Commitment parity (Solidity vs TypeScript) | `npm run test:parity` | **14 passing** (10 vectors) |
 | Intelligence modules | `npm run test:intelligence` | **44 passing** |
 | Local classifier and decision engine | `npm run test:decide` | **29 passing** |
-| Red-Team Arena only | `npm run arena` | **20 passing**, scorecard 11 PASS / 0 FAIL |
+| Red-Team Arena only | `npm run arena` | **31 passing**, scorecard 15 PASS / 0 FAIL |
 | Editorial console | `cd console && npm test` | **61 passing** in 10 files |
 
-That is 202 distinct automated tests; the parity 14 and arena 20 are subsets of the 68 Hardhat
+That is 213 distinct automated tests; the parity 14 and arena 31 are subsets of the 79 Hardhat
 tests. There are no fuzz or property-based tests; attack coverage is scenario-based.
 
 The scorecard is not hand-written. `npm run arena` runs the Mocha files with
@@ -753,14 +762,18 @@ Not built yet, in rough order of value:
 
 - An adapter for **Safe Guard or Zodiac Roles** and an OpenZeppelin Governor wrapper, so the
   executor can protect an existing DAO instead of only its own governor.
-- **Expanded post-conditions**: owner/admin, treasury balance delta and EIP-1967 implementation
-  asserted after the call; split `setGovernor` away from the guardian role.
+- A **quorum-cost check**: compare what quorum costs to buy with the treasury it unlocks, and
+  flag or slow proposals where the treasury is worth more (BonkDAO, July 2026).
+- An executor-level **treasury watch list**, so the outflow budget also covers tokens a proposal
+  never names.
 - **Live evidence endpoints** and live attention-queue ranking (today both are recorded).
 - **Real wallet-graph ingestion** (explorer APIs or indexers) with the same noisy-OR math.
 - **Bonded community watchers**: multiple independent Sentinels with staked reports.
 - A **physical-device smoke test** for the Ledger path, plus clear-signing descriptors for
   `IntentVote` and `IntentHalt`.
 - **External audit** and a mainnet deployment plan: gas, guardian multisig, upgrade policy.
+
+The research behind this list, with sources: [RESEARCH-2026-11.md](docs/RESEARCH-2026-11.md).
 
 ---
 

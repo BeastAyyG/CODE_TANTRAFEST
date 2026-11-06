@@ -32,6 +32,10 @@ read `deployments/local.json` for the current ones.
 
 Deployed from this repository; the manifest records deployment block `11995518`.
 
+> These Sepolia contracts predate snapshot voting, the governor-rotation fix and the expanded
+> post-conditions. Redeploy with `npm run deploy:sepolia` and reseed with
+> `npm run seed:sepolia` before demoing those properties on Sepolia.
+
 | Contract | Address | Etherscan |
 | :--- | :--- | :--- |
 | MockUSDC | `0x875E3e6e170e015EaDeF85A84E07415AAD3ACcad` | [view](https://sepolia.etherscan.io/address/0x875E3e6e170e015EaDeF85A84E07415AAD3ACcad) |
@@ -55,11 +59,11 @@ it; the script reads constructor arguments from the manifest and prints the Ethe
 | :--- | :--- | :--- | :--- |
 | [`ProposalRegistry.sol`](../contracts/ProposalRegistry.sol) | Append-only, hash-chained proposal versions | `createProposal`, `addVersion`, `latestVersionHash`, `getVersionChain`, `verifyChain` | Versions are immutable; each new version commits `prevVersionHash`; anyone can recompute the chain from events |
 | [`DisclosureRegistry.sol`](../contracts/DisclosureRegistry.sol) | Forced conflict-of-interest disclosure and challenges | `submitDisclosure` (EIP-712), `fileChallenge`, `verifyChallenge`, `hasDisclosure`, `isChallenged` | Governor cannot open voting without a disclosure; optional bond is slashed to a verified challenger |
-| [`IntentGovernor.sol`](../contracts/IntentGovernor.sol) | Voting on a commitment, not a summary | `submitProposal`, `openVoting`, `castVote`, `voteWithBrief`, `voteBySig`, `finalizeVote`, `queueForExecution`, `syncFromExecutor` | Commitment is fixed when voting opens; informed-vote ratio; EIP-712 relayed votes (`IntentVote`) |
-| [`IntentLockExecutor.sol`](../contracts/IntentLockExecutor.sol) | The hard gate: queue, verify, enforce, execute, halt | `queue`, `execute`, `halt`, `haltBySig`, `cancel`, `setGovernor` | Recomputed commitment + rule enforcement + timelock + `nonReentrant`; executed flag set before external calls; guardian can only halt |
+| [`IntentGovernor.sol`](../contracts/IntentGovernor.sol) | Voting on a commitment, not a summary | `submitProposal`, `openVoting`, `castVote`, `voteWithBrief`, `voteBySig`, `finalizeVote`, `queueForExecution`, `syncFromExecutor` | Commitment is fixed when voting opens; votes weighed with `getPastVotes` at the block before voting opened; informed-vote ratio; EIP-712 relayed votes (`IntentVote`) |
+| [`IntentLockExecutor.sol`](../contracts/IntentLockExecutor.sol) | The hard gate: queue, verify, enforce, execute, halt | `queue`, `execute`, `halt`, `haltBySig`, `cancel`, `setGovernor` | Recomputed commitment + rule enforcement + timelock + `nonReentrant`; executed flag set before external calls; owner, implementation and outflow post-conditions; guardian can only halt, and `setGovernor` needs the governor or a passed proposal |
 | [`libs/ActionDecoder.sol`](../contracts/libs/ActionDecoder.sol) | Typed rule enforcement | `enforce`, `hashRules`, per-kind decoders | Only `call`; unknown selectors rejected; recursive multicall depth ≤ 2; bounded approvals |
 | [`CommitmentHasher.sol`](../contracts/CommitmentHasher.sol) | Reference hasher used by parity tests | `hashActions`, `computeCommitment` | Byte-for-byte reference for the TypeScript implementation |
-| Test helpers | Demo targets and attacks | `MockUSDC`, `FeeModule`, `TreasuryProxy`, `MaliciousImpl`, `ReentrantRecipient`, `VulnerableProxy`, `RevertingView` | Not part of the guarantee; used by the Red-Team Arena |
+| Test helpers | Demo targets and attacks | `MockUSDC`, `MockGovernanceToken`, `FeeModule`, `TreasuryProxy`, `MaliciousImpl`, `ReentrantRecipient`, `VulnerableProxy`, `RevertingView`, `FlashLoanVoter`, `HostileModule`, `StaleAllowanceDrainer` | Not part of the guarantee; used by the Red-Team Arena. `MockGovernanceToken` is the deployed `GovernanceToken` (ERC20Votes, open demo mint) |
 
 ## The commitment
 
@@ -158,7 +162,7 @@ the preview and the console, so no layer re-implements error text.
 | `CommitmentMismatch(bytes32,bytes32)` | IntentLockExecutor | The recomputed commitment does not match the voted commitment. |
 | `DelayOutOfRange(uint256,uint256,uint256)` | IntentLockExecutor | The timelock delay is outside `[minDelay, maxDelay]`. |
 | `IntentHashMismatch(bytes32,bytes32)` | IntentLockExecutor | `keccak256(abi.encode(rules))` does not match the committed `intentHash`. |
-| `NotGovernor(address)` | IntentLockExecutor | Only the governor can queue proposals. |
+| `NotGovernor(address)` | IntentLockExecutor | Only the governor can queue proposals; only the governor or a passed proposal can call `setGovernor`. |
 | `NotGuardian(address)` | IntentLockExecutor | Only the guardian can halt. |
 | `NotQueued(bytes32)` | IntentLockExecutor | The commitment is not in the `Queued` state. |
 | `PostConditionFailed(string,bytes)` | IntentLockExecutor | A post-condition check failed after the actions ran. |

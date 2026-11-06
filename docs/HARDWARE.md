@@ -64,9 +64,9 @@ independently.
    the account you funded.
 7. Put the device on the same chain ID as the app (`31337` locally, `11155111`
    on Sepolia).
-8. Fund the account with governance tokens. Voting weight is read from the
-   governor's voting token at the time the vote is cast; an account with zero
-   tokens reverts with `InsufficientVotingPower`.
+8. Fund the account with governance tokens before the proposal opens for voting.
+   Voting weight is read at the block before voting opened; an account with no
+   tokens at that block reverts with `InsufficientVotingPower`.
 9. For guardian halts, the connected account must equal `IntentLockExecutor.guardian()`.
    If it does not, the app disables the hardware halt and shows the guardian
    address.

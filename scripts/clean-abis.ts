@@ -23,7 +23,7 @@ const MANIFEST_PATH = path.join(
 
 // Manifest keys that were deployed from another contract's artifact.
 const ARTIFACT_ALIASES: Record<string, string> = {
-  GovernanceToken: "MockUSDC",
+  GovernanceToken: "MockGovernanceToken",
 };
 
 interface Artifact {

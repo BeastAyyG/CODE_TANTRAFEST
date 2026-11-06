@@ -4,76 +4,104 @@
     "property": "Benign transfer succeeds",
     "status": "PASS",
     "testFile": "test/redteam/scenario0-benign.test.ts",
-    "durationMs": 740
+    "durationMs": 451
   },
   {
     "id": "S1",
     "property": "Post-vote payload substitution rejected",
     "status": "PASS",
     "testFile": "test/redteam/scenario1-recipient-swap.test.ts",
-    "durationMs": 387
+    "durationMs": 156
   },
   {
     "id": "S2",
     "property": "Amount inflation rejected",
     "status": "PASS",
     "testFile": "test/redteam/scenario2-amount-inflation.test.ts",
-    "durationMs": 333
+    "durationMs": 169
   },
   {
     "id": "S3",
     "property": "Unauthorized upgrade rejected",
     "status": "PASS",
     "testFile": "test/redteam/scenario3-jargon-upgrade.test.ts",
-    "durationMs": 825
+    "durationMs": 179
   },
   {
     "id": "S4",
     "property": "Hidden ownership transfer in multicall rejected",
     "status": "PASS",
     "testFile": "test/redteam/scenario4-nested-multicall.test.ts",
-    "durationMs": 2118
+    "durationMs": 219
   },
   {
     "id": "S5",
     "property": "Unlimited approval rejected",
     "status": "PASS",
     "testFile": "test/redteam/scenario5-unlimited-approve.test.ts",
-    "durationMs": 301
+    "durationMs": 126
   },
   {
     "id": "S6",
     "property": "Delegatecall payload not executable",
     "status": "PASS",
     "testFile": "test/redteam/scenario6-delegatecall-payload.test.ts",
-    "durationMs": 225
+    "durationMs": 131
   },
   {
     "id": "S7",
     "property": "Re-entrancy rejected",
     "status": "PASS",
     "testFile": "test/redteam/scenario7-reentrancy.test.ts",
-    "durationMs": 166
+    "durationMs": 61
   },
   {
     "id": "S8",
     "property": "Early execution, double execution, and cross-chain replay rejected",
     "status": "PASS",
     "testFile": "test/redteam/scenario8-timelock-replay.test.ts",
-    "durationMs": 465
+    "durationMs": 225
   },
   {
     "id": "S9",
     "property": "Stale version rejected",
     "status": "PASS",
     "testFile": "test/redteam/scenario9-stale-version.test.ts",
-    "durationMs": 189
+    "durationMs": 66
   },
   {
     "id": "S10",
     "property": "Hidden conflict-of-interest link flagged",
     "status": "PASS",
     "testFile": "test/redteam/scenario10-hidden-coi.test.ts",
+    "durationMs": 59
+  },
+  {
+    "id": "S11",
+    "property": "Recycled and flash-loaned votes carry no weight",
+    "status": "PASS",
+    "testFile": "test/redteam/scenario11-vote-recycling.test.ts",
+    "durationMs": 181
+  },
+  {
+    "id": "S12",
+    "property": "Guardian cannot rotate the governor; only a passed proposal can",
+    "status": "PASS",
+    "testFile": "test/redteam/scenario12-guardian-escalation.test.ts",
     "durationMs": 116
+  },
+  {
+    "id": "S13",
+    "property": "Owner and implementation re-checked after execution",
+    "status": "PASS",
+    "testFile": "test/redteam/scenario13-control-postconditions.test.ts",
+    "durationMs": 310
+  },
+  {
+    "id": "S14",
+    "property": "Treasury outflow capped at the committed budget",
+    "status": "PASS",
+    "testFile": "test/redteam/scenario14-treasury-outflow.test.ts",
+    "durationMs": 155
   }
 ]

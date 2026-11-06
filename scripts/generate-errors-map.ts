@@ -89,7 +89,8 @@ const ERROR_DEFINITIONS: ErrorDef[] = [
     signature: "NotGovernor(address)",
     contract: "IntentLockExecutor",
     title: "Caller Not Authorized Governor",
-    explanation: "Only the designated IntentGovernor contract can queue proposals in the executor.",
+    explanation:
+      "Only the designated IntentGovernor can queue proposals. setGovernor also needs the current governor, so after deployment only a passed, timelocked proposal can rotate it.",
   },
   {
     signature: "NotGuardian(address)",
