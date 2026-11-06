@@ -179,6 +179,66 @@ describe("tiny-model", () => {
       assert.equal(a.bias, b.bias);
     });
 
+    it("anchoring preserves the prior's sign structure on a small set", () => {
+      // Regression: unanchored training on 10 examples pushed recipientUnknown
+      // from -2.8 to -1.07, which made the model ACCEPT unknown recipients.
+      // Anchoring to the prior must keep it strongly negative.
+      const examples: TrainingExample[] = FIXTURES.map((fixture) => ({
+        features: featuresFromRecommendation(fixture),
+        label: fixture.label,
+      }));
+
+      const loose = trainTinyModel(examples);
+      const anchored = trainTinyModel(examples, {
+        anchorTo: DEFAULT_MODEL,
+        anchorStrength: 0.05,
+      });
+      const unknownIndex = FEATURE_NAMES.indexOf("recipientUnknown");
+
+      assert.ok(
+        anchored.weights[unknownIndex] < DEFAULT_MODEL.weights[unknownIndex] / 2,
+        `anchored recipientUnknown was ${anchored.weights[unknownIndex]}, expected well below 0`
+      );
+      assert.ok(
+        Math.abs(anchored.weights[unknownIndex]) > Math.abs(loose.weights[unknownIndex]),
+        "anchored weight should stay larger in magnitude than the unanchored one"
+      );
+
+      // Every sign of the prior survives.
+      for (let i = 0; i < FEATURE_NAMES.length; i++) {
+        assert.equal(
+          Math.sign(anchored.weights[i]),
+          Math.sign(DEFAULT_MODEL.weights[i]),
+          `${FEATURE_NAMES[i]} flipped sign`
+        );
+      }
+    });
+
+    it("anchoring still fits the data", () => {
+      const examples: TrainingExample[] = FIXTURES.map((fixture) => ({
+        features: featuresFromRecommendation(fixture),
+        label: fixture.label,
+      }));
+      const anchored = trainTinyModel(examples, {
+        anchorTo: DEFAULT_MODEL,
+        anchorStrength: 0.05,
+      });
+      assert.ok(accuracy(anchored, examples) >= 0.9);
+    });
+
+    it("anchorStrength 0 behaves like plain training", () => {
+      const examples: TrainingExample[] = FIXTURES.map((fixture) => ({
+        features: featuresFromRecommendation(fixture),
+        label: fixture.label,
+      }));
+      const plain = trainTinyModel(examples);
+      const zeroAnchor = trainTinyModel(examples, {
+        anchorTo: DEFAULT_MODEL,
+        anchorStrength: 0,
+      });
+      assert.deepEqual(zeroAnchor.weights, plain.weights);
+    });
+
     it("returns a usable model for an empty training set", () => {
       const empty = trainTinyModel([]);
       assert.equal(empty.weights.length, FEATURE_NAMES.length);

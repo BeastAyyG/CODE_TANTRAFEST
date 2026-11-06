@@ -10,14 +10,8 @@
  */
 
 import { extractIntentHeuristic, type ActionKindName, type IntentSpec } from "./ai-draft";
-import {
-  DEFAULT_MODEL,
-  clamp01,
-  predict,
-  type BenefitFeatures,
-  type Contribution,
-  type TinyModel,
-} from "./tiny-model";
+import { clamp01, predict, type BenefitFeatures, type Contribution, type TinyModel } from "./tiny-model";
+import { loadLocalModel } from "./local-model";
 
 export interface Recommendation {
   /** Who made the recommendation. */
@@ -111,7 +105,7 @@ export function featuresFromRecommendation(rec: Recommendation): BenefitFeatures
 
 export function decideRecommendation(
   rec: Recommendation,
-  model: TinyModel = DEFAULT_MODEL
+  model: TinyModel = loadLocalModel()
 ): Decision {
   const intent = extractIntentHeuristic(rec.text, { knownAddresses: rec.knownAddresses });
   const features = featuresFromRecommendation(rec);
