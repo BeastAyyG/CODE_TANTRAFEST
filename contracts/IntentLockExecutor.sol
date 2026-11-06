@@ -23,7 +23,11 @@ import "./ProposalRegistry.sol";
  *         - nonReentrant on execute.
  *         - Timelock: block.timestamp >= eta required.
  *         - Checks-effects-interactions: state set before external calls.
- *         - Guardian can only halt/cancel, never execute or edit.
+ *         - Post-conditions: owners and implementations change only as a
+ *           rule commits, and treasury outflow stays within the committed
+ *           maxAmounts.
+ *         - Guardian can only halt. It cannot execute, edit, or rotate the
+ *           governor; only a passed, timelocked proposal can.
  *
  * @dev    See Section 4 of the AegisDAO blueprint.
  */
@@ -50,6 +54,15 @@ contract IntentLockExecutor is ReentrancyGuard {
     bytes32 public constant INTENT_HALT_TYPEHASH = keccak256(
         "IntentHalt(bytes32 commitment,bytes32 reportHash,string reason,uint256 nonce,uint256 deadline)"
     );
+
+    // Getters read by the post-conditions. A target without them is skipped.
+    bytes4 private constant _OWNER_SELECTOR = 0x8da5cb5b;          // owner()
+    bytes4 private constant _PENDING_OWNER_SELECTOR = 0xe30c3978;  // pendingOwner()
+    bytes4 private constant _IMPLEMENTATION_SELECTOR = 0x5c60da1b; // implementation()
+
+    /// @dev Gas cap per post-condition read, so a hostile getter cannot
+    ///      consume the rest of the transaction.
+    uint256 private constant _READ_GAS = 50_000;
 
     // ──────────────────────────────────────────
     // Types
@@ -79,6 +92,27 @@ contract IntentLockExecutor is ReentrancyGuard {
         uint256        eta;            // earliest execution timestamp
         ProposalState  state;
         address        queuedBy;       // governor address that queued it
+    }
+
+    /// @dev Control state of one called contract, read before any action runs.
+    struct ControlSnapshot {
+        address target;
+        bool    ownerReadable;
+        address owner;
+        bool    ownerCommitted;     // an OWNERSHIP_TRANSFER rule names this target
+        address committedOwner;
+        bool    implReadable;
+        address implementation;
+        bool    implCommitted;      // an UPGRADE rule names this target
+        address committedImpl;
+    }
+
+    /// @dev Executor balance of one token named by a transfer or approve rule.
+    struct OutflowBudget {
+        address token;
+        bool    readable;
+        uint256 balanceBefore;
+        uint256 allowed;            // sum of committed maxAmounts, saturating
     }
 
     // ──────────────────────────────────────────
@@ -145,6 +179,11 @@ contract IntentLockExecutor is ReentrancyGuard {
         uint256 indexed actionIndex,
         address target,
         bool    success
+    );
+
+    event GovernorChanged(
+        address indexed previousGovernor,
+        address indexed newGovernor
     );
 
     // ──────────────────────────────────────────
@@ -327,6 +366,10 @@ contract IntentLockExecutor is ReentrancyGuard {
         // ── EFFECTS BEFORE INTERACTIONS ──
         prop.state = ProposalState.Executed;
 
+        // Read-only snapshot the post-conditions compare against.
+        (ControlSnapshot[] memory controls, OutflowBudget[] memory budgets) =
+            _snapshotPostState(actions, rules);
+
         // ── 7. Execute and enforce each action ──
         uint256 ruleIdx = 0;
         for (uint256 i; i < actions.length; ++i) {
@@ -361,7 +404,7 @@ contract IntentLockExecutor is ReentrancyGuard {
         }
 
         // ── 8. Post-condition checks ──
-        _postConditionChecks(actions, rules);
+        _postConditionChecks(actions, rules, controls, budgets);
 
         emit ProposalExecuted(commitment, proposalId);
     }
@@ -464,12 +507,15 @@ contract IntentLockExecutor is ReentrancyGuard {
     }
 
     /**
-     * @notice Set governor address. Callable by guardian or current governor.
+     * @notice Rotate the governor. Callable by the current governor or by the
+     *         executor itself, so once IntentGovernor is installed a rotation
+     *         must be a passed, timelocked proposal. The guardian cannot.
      */
     function setGovernor(address newGovernor) external {
-        if (msg.sender != guardian && msg.sender != governor) {
-            revert NotGuardian(msg.sender);
+        if (msg.sender != governor && msg.sender != address(this)) {
+            revert NotGovernor(msg.sender);
         }
+        emit GovernorChanged(governor, newGovernor);
         governor = newGovernor;
     }
 
@@ -556,17 +602,80 @@ contract IntentLockExecutor is ReentrancyGuard {
     // ──────────────────────────────────────────
 
     /**
-     * @dev Post-condition checks run after all actions execute.
-     *      If any check fails, the entire transaction reverts.
+     * @dev Read what the post-conditions compare against, before any action
+     *      runs. Never reverts: unreadable getters are skipped and malformed
+     *      rule sets are left for ActionDecoder to reject with its own error.
      *
-     *      Checks (where natively verifiable):
-     *      - ERC-20 allowance does not exceed committed ceilings
-     *      - For ERC-20 transfers, balance decreased by no more
-     *        than the sum of committed maxAmounts
+     *      Multicall children run on the multicall target itself, so their
+     *      ownership and upgrade rules apply to that target. Child transfers
+     *      move the multicall contract's funds, not the executor's, so only
+     *      top-level transfer and approve rules feed the outflow budget.
+     */
+    function _snapshotPostState(
+        Action[] calldata actions,
+        ActionDecoder.ActionRule[] calldata rules
+    ) internal view returns (ControlSnapshot[] memory controls, OutflowBudget[] memory budgets) {
+        controls = new ControlSnapshot[](actions.length);
+        budgets = new OutflowBudget[](actions.length);
+
+        uint256 ruleIdx;
+        for (uint256 i; i < actions.length && ruleIdx < rules.length; ++i) {
+            ActionDecoder.ActionRule calldata rule = rules[ruleIdx];
+            uint256 span = rule.kind == ActionDecoder.ActionKind.MULTICALL
+                ? 1 + uint256(rule.childCount)
+                : 1;
+            address target = actions[i].target;
+
+            // address(0) marks an unused slot, so it is never recorded.
+            if (target != address(0)) {
+                ControlSnapshot memory control = controls[_controlSlot(controls, target)];
+                if (control.target == address(0)) {
+                    control.target = target;
+                    (control.ownerReadable, control.owner) = _readAddress(target, _OWNER_SELECTOR);
+                    (control.implReadable, control.implementation) =
+                        _readAddress(target, _IMPLEMENTATION_SELECTOR);
+                }
+                for (uint256 k; k < span && ruleIdx + k < rules.length; ++k) {
+                    _commitControl(control, rules[ruleIdx + k]);
+                }
+            }
+
+            if (
+                (rule.kind == ActionDecoder.ActionKind.ERC20_TRANSFER ||
+                    rule.kind == ActionDecoder.ActionKind.ERC20_APPROVE) &&
+                rule.target != address(0)
+            ) {
+                OutflowBudget memory budget = budgets[_budgetSlot(budgets, rule.target)];
+                if (budget.token == address(0)) {
+                    budget.token = rule.target;
+                    (budget.readable, budget.balanceBefore) = _readBalance(rule.target);
+                }
+                budget.allowed = _saturatingAdd(budget.allowed, rule.maxAmount);
+            }
+
+            ruleIdx += span;
+        }
+    }
+
+    /**
+     * @dev Post-condition checks run after all actions execute. Any failure
+     *      reverts the whole transaction.
+     *
+     *      - ERC-20 allowance does not exceed the committed ceiling.
+     *      - owner() and implementation() of every called contract are
+     *        unchanged, or equal what an OWNERSHIP_TRANSFER / UPGRADE rule
+     *        committed (pendingOwner() is accepted for two-step ownership).
+     *      - The executor's outflow of each token named by a transfer or
+     *        approve rule is at most the sum of those rules' maxAmounts.
+     *
+     *      Owner and implementation are checked where the target exposes the
+     *      getter; tokens no rule names are not tracked here.
      */
     function _postConditionChecks(
         Action[] calldata actions,
-        ActionDecoder.ActionRule[] calldata rules
+        ActionDecoder.ActionRule[] calldata rules,
+        ControlSnapshot[] memory controls,
+        OutflowBudget[] memory budgets
     ) internal view {
         uint256 ruleIdx = 0;
         for (uint256 i; i < actions.length; ++i) {
@@ -593,6 +702,137 @@ contract IntentLockExecutor is ReentrancyGuard {
             } else {
                 ruleIdx += 1;
             }
+        }
+
+        for (uint256 i; i < controls.length; ++i) {
+            if (controls[i].target == address(0)) continue;
+            _checkOwner(controls[i]);
+            _checkImplementation(controls[i]);
+        }
+
+        for (uint256 i; i < budgets.length; ++i) {
+            OutflowBudget memory budget = budgets[i];
+            if (budget.token == address(0) || !budget.readable) continue;
+
+            (bool readable, uint256 balanceAfter) = _readBalance(budget.token);
+            if (!readable) {
+                revert PostConditionFailed(
+                    "treasury balance unreadable after execution",
+                    abi.encode(budget.token)
+                );
+            }
+            if (balanceAfter >= budget.balanceBefore) continue;
+
+            uint256 outflow = budget.balanceBefore - balanceAfter;
+            if (outflow > budget.allowed) {
+                revert PostConditionFailed(
+                    "treasury outflow exceeds committed budget",
+                    abi.encode(budget.token, outflow, budget.allowed)
+                );
+            }
+        }
+    }
+
+    function _checkOwner(ControlSnapshot memory control) private view {
+        (bool readable, address ownerAfter) = _readAddress(control.target, _OWNER_SELECTOR);
+        if (!readable) return;
+
+        if (control.ownerCommitted) {
+            if (ownerAfter == control.committedOwner) return;
+            (bool pendingReadable, address pending) =
+                _readAddress(control.target, _PENDING_OWNER_SELECTOR);
+            if (pendingReadable && pending == control.committedOwner) return;
+            revert PostConditionFailed(
+                "owner is not the committed owner",
+                abi.encode(control.target, control.committedOwner, ownerAfter)
+            );
+        }
+
+        if (control.ownerReadable && ownerAfter != control.owner) {
+            revert PostConditionFailed(
+                "owner changed without a committed rule",
+                abi.encode(control.target, control.owner, ownerAfter)
+            );
+        }
+    }
+
+    function _checkImplementation(ControlSnapshot memory control) private view {
+        (bool readable, address implAfter) =
+            _readAddress(control.target, _IMPLEMENTATION_SELECTOR);
+        if (!readable) return;
+
+        if (control.implCommitted) {
+            if (implAfter != control.committedImpl) {
+                revert PostConditionFailed(
+                    "implementation is not the committed implementation",
+                    abi.encode(control.target, control.committedImpl, implAfter)
+                );
+            }
+            return;
+        }
+
+        if (control.implReadable && implAfter != control.implementation) {
+            revert PostConditionFailed(
+                "implementation changed without a committed rule",
+                abi.encode(control.target, control.implementation, implAfter)
+            );
+        }
+    }
+
+    function _commitControl(
+        ControlSnapshot memory control,
+        ActionDecoder.ActionRule calldata rule
+    ) private pure {
+        if (rule.kind == ActionDecoder.ActionKind.OWNERSHIP_TRANSFER) {
+            control.ownerCommitted = true;
+            control.committedOwner = rule.counterparty;
+        } else if (rule.kind == ActionDecoder.ActionKind.UPGRADE) {
+            control.implCommitted = true;
+            control.committedImpl = rule.counterparty;
+        }
+    }
+
+    /// @dev Index of `target`, or of the first unused slot. Arrays are sized
+    ///      to the action count, so a slot always exists.
+    function _controlSlot(
+        ControlSnapshot[] memory controls,
+        address target
+    ) private pure returns (uint256 i) {
+        for (; i < controls.length; ++i) {
+            if (controls[i].target == target || controls[i].target == address(0)) return i;
+        }
+    }
+
+    function _budgetSlot(
+        OutflowBudget[] memory budgets,
+        address token
+    ) private pure returns (uint256 i) {
+        for (; i < budgets.length; ++i) {
+            if (budgets[i].token == token || budgets[i].token == address(0)) return i;
+        }
+    }
+
+    function _readAddress(address target, bytes4 selector) private view returns (bool, address) {
+        (bool ok, uint256 word) = _readWord(target, abi.encodeWithSelector(selector));
+        if (!ok || word > type(uint160).max) return (false, address(0));
+        return (true, address(uint160(word)));
+    }
+
+    function _readBalance(address token) private view returns (bool, uint256) {
+        return _readWord(token, abi.encodeWithSelector(IERC20.balanceOf.selector, address(this)));
+    }
+
+    function _readWord(address target, bytes memory callData) private view returns (bool, uint256) {
+        if (target.code.length == 0) return (false, 0);
+        (bool success, bytes memory ret) = target.staticcall{gas: _READ_GAS}(callData);
+        if (!success || ret.length < 32) return (false, 0);
+        return (true, abi.decode(ret, (uint256)));
+    }
+
+    function _saturatingAdd(uint256 a, uint256 b) private pure returns (uint256) {
+        unchecked {
+            uint256 c = a + b;
+            return c < a ? type(uint256).max : c;
         }
     }
 

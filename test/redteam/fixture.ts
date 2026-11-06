@@ -50,8 +50,8 @@ export async function deployAegisFixture(): Promise<DeployFixture> {
   const MockUSDC = await ethers.getContractFactory("MockUSDC");
   const usdc = await MockUSDC.deploy();
 
-  const MockToken = await ethers.getContractFactory("MockUSDC");
-  const votingToken = await MockToken.deploy();
+  const MockGovernanceToken = await ethers.getContractFactory("MockGovernanceToken");
+  const votingToken = await MockGovernanceToken.deploy();
 
   // 2. Proposal Registry
   const ProposalRegistry = await ethers.getContractFactory("ProposalRegistry");

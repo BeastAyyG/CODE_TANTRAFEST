@@ -1081,7 +1081,7 @@ async function main(): Promise<void> {
 
   const usdc = await ethers.getContractAt("MockUSDC", addresses.MockUSDC);
   const votingToken = await ethers.getContractAt(
-    "MockUSDC",
+    "MockGovernanceToken",
     addresses.GovernanceToken
   );
   for (const voter of [voter1, voter2, voter3]) {

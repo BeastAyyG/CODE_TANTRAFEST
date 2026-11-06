@@ -173,6 +173,7 @@ export async function deployAll(
   );
 
   const MockUSDC = await ethers.getContractFactory("MockUSDC");
+  const MockGovernanceToken = await ethers.getContractFactory("MockGovernanceToken");
   const ProposalRegistry = await ethers.getContractFactory("ProposalRegistry");
   const DisclosureRegistry = await ethers.getContractFactory("DisclosureRegistry");
   const IntentLockExecutor = await ethers.getContractFactory("IntentLockExecutor");
@@ -242,8 +243,8 @@ export async function deployAll(
   const usdcAddr = await deploy("MockUSDC", "MockUSDC", MockUSDC, [], []);
   const votingTokenAddr = await deploy(
     "GovernanceToken",
-    "MockUSDC",
-    MockUSDC,
+    "MockGovernanceToken",
+    MockGovernanceToken,
     [],
     []
   );
@@ -355,7 +356,7 @@ export async function deployAll(
   console.log("  ✔ Seeded 500,000 USDC to executor, 1,000,000 USDC to treasury");
 
   // Governance token: mint enough for quorum to the proposer and voters.
-  const votingToken = await ethers.getContractAt("MockUSDC", votingTokenAddr);
+  const votingToken = await ethers.getContractAt("MockGovernanceToken", votingTokenAddr);
   const mintTargets = [...new Set([proposerAddress, ...voterAddresses])];
   const governanceMints: { to: string; amount: string; txHash: string }[] = [];
   for (const to of mintTargets) {
@@ -421,7 +422,7 @@ async function estimateDeployGas(deployer: string): Promise<{
 } | null> {
   const factories: { name: string; factory: ContractFactory; args: unknown[] }[] = [
     { name: "MockUSDC", factory: await ethers.getContractFactory("MockUSDC"), args: [] },
-    { name: "GovernanceToken", factory: await ethers.getContractFactory("MockUSDC"), args: [] },
+    { name: "GovernanceToken", factory: await ethers.getContractFactory("MockGovernanceToken"), args: [] },
     { name: "ProposalRegistry", factory: await ethers.getContractFactory("ProposalRegistry"), args: [] },
     {
       name: "DisclosureRegistry",
